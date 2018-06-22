@@ -1,0 +1,23 @@
+{
+  "name": "Multiplayer",
+  "version": "0.0.1",
+  "author": {
+    "name": "raccoons.lv"
+  },
+  "dependencies": {
+    "fbgraph": "^1.4.4",
+    "google-auth-library": "^1.6.1",
+    "mysql": "^2.15.0",
+    "redis": "^2.8.0"
+  },
+  "devDependencies": {
+    "grunt": "1.0",
+    "grunt-contrib-watch": "1.0",
+    "proxyquire": "^2.0.1",
+    "sinon": "^4.5.0",
+    "mocha": "^5.1.1",
+    "mocha-phantomjs-core": "^2.1.2",
+    "chai": "^4.1.2",
+    "nock": "^9.2.5"
+  }
+}
