@@ -6,11 +6,11 @@ Authorize = require('../room/authorize')
 config = null
 module.exports.config = (c)->
   config = c
-  Anonymous.config(c)
-
 
 
 module.exports.Router = class Router
+  models:
+    anonymous: Anonymous
   module: 'router'
 
   constructor: ->
@@ -28,9 +28,11 @@ module.exports.Router = class Router
     #   ,  60 * 1000
 
     # @rooms = new Rooms()
-    config.pubsub.on_all_exec @module, (pr)=> @[pr.method](pr.params)
+    @pubsub().on_all_exec @module, (pr)=> @[pr.method](pr.params)
 
   # _rooms_stats_args: -> ['rooms:stats', {users: @users._all.length}]
+
+  pubsub: -> config.pubsub
 
   connection: (socket)->
     if @socket_preprocess
@@ -82,4 +84,4 @@ module.exports.Router = class Router
 
   admin: ({command, params})->
     console.info "executing #{command} with #{params}"
-    config.pubsub.emit_all_exec(@module, "admin_#{command}", params)
+    @pubsub().emit_all_exec(@module, "admin_#{command}", params)

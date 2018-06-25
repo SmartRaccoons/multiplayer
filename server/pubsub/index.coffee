@@ -67,3 +67,17 @@ module.exports.Pubsub = class Pubsub
     @remove "room:user:exec:#{id}"
 
   remove_room: (id)-> @remove "room:exec:#{id}"
+
+
+module.exports.PubsubDev = class PubsubDev extends Pubsub
+  on: (event)->
+    console.info "--------on #{event} #{@options.server_id}"
+    super
+
+  emit: (event, params)->
+    console.info "--------emit #{event} #{JSON.stringify(params)} #{@options.server_id}"
+    super
+
+  remove: (event)->
+    console.info "--------remove #{event} #{@options.server_id}"
+    super

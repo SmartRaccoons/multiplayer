@@ -3,13 +3,8 @@ sinon = require('sinon')
 proxyquire = require('proxyquire')
 
 
-class Login
-  _user_update_coins: ->
-
 redis = {}
 Pubsub = proxyquire('../', {
-  '../room/authorize':
-    Login: Login
   'redis': redis
 }).Pubsub
 

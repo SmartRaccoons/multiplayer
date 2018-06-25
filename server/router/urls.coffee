@@ -1,5 +1,6 @@
 crypto = require('crypto')
 Authorize = require('../room/authorize')
+SocketIO = require('socket.io')
 
 
 module.exports.authorize = (config, app)->
@@ -21,11 +22,11 @@ module.exports.authorize = (config, app)->
       app.get config[platform].login_full, (req, res)-> res.redirect links[platform]()
 
 
-module.exports.payments = (config, app, callback)->
+module.exports.payments = (config, app, callback_router)->
   transaction =
     callback: (id, platform, callback)=>
       new (Authorize[platform])().buy_complete id, (params)=>
-        callback Object.assign {platform}, params
+        callback_router Object.assign {platform}, params
       , callback
     platforms:
       draugiem: (platform, url)->
@@ -64,3 +65,41 @@ module.exports.payments = (config, app, callback)->
       return
     if config[platform].transaction
       transaction.platforms[platform](platform, config[platform].transaction)
+
+
+module.exports.socket = (server, log, version, callback)->
+  Socket = require('../helpers/socket')(log, 1000 * 60 * 20, version)
+  SocketIO(server, {
+    pingTimeout: 10 * 1000
+    pingInterval: 5 * 1000
+  }).on 'connection', (client)->
+    socket = new Socket(client.handshake.query, client.id)
+    socket._send = (data)-> client.emit('request', data)
+    if not socket.version_check()
+      client.emit 'version', {'actual': pjson.version}
+      return
+    client.emit 'session', socket.id
+    socket.client = client
+    client.socket = socket
+    log([socket.client.id, 'connection', socket.id, client.request.connection.remoteAddress].join(' : '))
+    client.on 'request', (data)->
+      if !(data and Array.isArray(data) and data[0])
+        return console.info socket.client.id + ': request error: ' + JSON.stringify(data) + ' : ' + socket.id
+      log(socket.client.id + ': data: ' + JSON.stringify(data) + ' : ' + socket.id)
+      socket.emit('alive')
+      socket.emit.apply(socket, data)
+    client.on 'request_receive', -> socket.received()
+    disconnect = (reason)->
+      log("gone offline: #{reason}; #{socket.immediate()}" )
+      socket.remove()
+      client._disconnected = true
+    client.on 'disconnect', (reason)-> disconnect(reason)
+    socket.disconnect = (reason, immediate = true)->
+      if reason is 'duplicate'
+        client.emit('error:duplicate')
+      socket._immediate = immediate
+      if not client._disconnected
+        return client.disconnect(true)
+      disconnect(reason)
+    socket.check()
+    callback(socket)

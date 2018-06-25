@@ -5,9 +5,10 @@ module.exports.server =
   db:
     Mysql: require('./server/db/mysql').Mysql
   pubsub: require('./server/pubsub')
+  helpers:
+    log: require('./server/helpers/log')
+    template: require('./server/helpers/template')
   router:
     index: require('./server/router/index')
     urls: require('./server/router/urls')
 
-
-# server.room.anonymous.config(config)
