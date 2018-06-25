@@ -8,4 +8,6 @@ compile :
 	coffee -c client/*.coffee
 	coffee -c client/browser/*.coffee
 	coffee -c client/browser/view/*.coffee
+	coffee -c client/browser/view/popup/*.coffee
+	coffee -c client/browser/platform/*.coffee
 	coffee -c locale/*.coffee
