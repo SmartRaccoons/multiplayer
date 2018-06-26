@@ -1,28 +1,28 @@
 crypto = require('crypto')
 Authorize = require('../room/authorize')
 SocketIO = require('socket.io')
+config_get = require('../../config').config_get
 
-
-module.exports.authorize = (config, app)->
+module.exports.authorize = (app)->
   links =
     facebook: ->
       'https://www.facebook.com/v2.12/dialog/oauth?' +
-        'client_id=' + config.facebook.id +
+        'client_id=' + config_get('facebook').id +
         '&scope=&response_type=token' +
-        '&redirect_uri=' + config.server + '/g'
+        '&redirect_uri=' + config_get('server') + '/g'
     draugiem: ->
-      'https://api.draugiem.lv/authorize/?app=' + config.draugiem.id +
-          '&hash=' + crypto.createHash('md5').update(config.draugiem.key + config.server + '/g').digest('hex') +
-          '&redirect=' + config.server + '/g'
+      'https://api.draugiem.lv/authorize/?app=' + config_get('draugiem').id +
+          '&hash=' + crypto.createHash('md5').update(config_get('draugiem').key + config_get('server') + '/g').digest('hex') +
+          '&redirect=' + config_get('server') + '/g'
     google: ->
       'https://accounts.google.com/o/oauth2/v2/auth?scope=profile&response_type=code&redirect_uri=' +
-        config.server + '/g' + '&client_id=' + config.google.id
+        config_get('server') + '/g' + '&client_id=' + config_get('google').id
   Object.keys(links).forEach (platform)->
-    if config[platform]
-      app.get config[platform].login_full, (req, res)-> res.redirect links[platform]()
+    if config_get(platform)
+      app.get config_get(platform).login_full, (req, res)-> res.redirect links[platform]()
 
 
-module.exports.payments = (config, app, callback_router)->
+module.exports.payments = (app, callback_router)->
   transaction =
     callback: (id, platform, callback)=>
       new (Authorize[platform])().buy_complete id, (params)=>
@@ -61,10 +61,10 @@ module.exports.payments = (config, app, callback_router)->
               return
             res.send('OK')
   Object.keys(transaction.platforms).forEach (platform)->
-    if !config[platform]
+    if !config_get(platform)
       return
-    if config[platform].transaction
-      transaction.platforms[platform](platform, config[platform].transaction)
+    if config_get(platform).transaction
+      transaction.platforms[platform](platform, config_get(platform).transaction)
 
 
 module.exports.socket = (server, log, version, callback)->

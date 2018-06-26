@@ -1,4 +1,3 @@
-# Anonymous = require('../room/anonymous')
 # Users = require('../room/users')
 # Rooms = require('../room/rooms')
 # Authorize = require('../room/authorize')
