@@ -3,30 +3,35 @@ ApiGoogle = require('../api/google').ApiGoogle
 ApiInbox = require('../api/inbox').ApiInbox
 ApiDraugiem = require('../api/draugiem').ApiDraugiem
 
+config_get = require('../../config').config_get
+config_callback = require('../../config').config_callback
+
 
 config = {}
 inbox = null
 google = null
-module.exports.config = (c)->
-  config.db = c.db
-  config.buy = c.buy
-  if c.facebook
+config_callback ->
+  config.db = config_get('db')
+  config.buy = config_get('buy')
+  if config_get('facebook')
     config.facebook =
-      id: c.facebook.id
-      key: c.facebook.key
-  if c.draugiem
-    ApiDraugiem::app_id = c.draugiem.key
+      id: config_get('facebook').id
+      key: config_get('facebook').key
+  if config_get('draugiem')
+    ApiDraugiem::app_id = config_get('draugiem').key
     config.draugiem =
-      buy_transaction: c.draugiem.buy_transaction
-  if c.inbox
+      buy_transaction: config_get('draugiem').buy_transaction
+  if config_get('inbox')
     config.inbox =
-      buy_price: c.inbox.buy_price
-    inbox = new ApiInbox(c)
-  if c.google
-    google = new ApiGoogle(c)
-  if c._attr
-    Object.keys(c._attr).forEach (v)=>
-      module.exports._attr[v] = _attr[v] = if _attr[v] then Object.assign(_attr[v], c._attr[v]) else c._attr[v]
+      buy_price: config_get('inbox').buy_price
+    inbox = new ApiInbox(config_get(['inbox', 'server']))
+  if config_get('google')
+    google = new ApiGoogle(config_get(['google', 'server']))
+
+
+module.exports.config_attr = (attr)->
+  Object.keys(attr).forEach (v)=>
+    module.exports._attr[v] = _attr[v] = if _attr[v] then Object.assign(_attr[v], attr[v]) else attr[v]
 
 
 module.exports._attr = _attr =
@@ -44,7 +49,6 @@ module.exports._attr = _attr =
 
 module.exports.Login = class Login
   _table: 'auth_user'
-  _table_coins: 'coins_history'
 
   _user_get: (where, update, callback)->
     if !callback

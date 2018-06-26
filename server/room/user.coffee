@@ -2,8 +2,6 @@ events = require('events')
 _ = require('lodash')
 pubsub = require('../pubsub/connector').connection()
 Login = require('./authorize').Login
-config = require('../../config')
-Locale = require('../../client/locale')
 
 
 _attr = require('./authorize')._attr

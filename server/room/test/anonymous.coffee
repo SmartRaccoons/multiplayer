@@ -19,11 +19,14 @@ class TestAuthorizeFacebook extends TestAuthorize
     super
     @api = 'auth-face'
 
-
+params = {draugiem: 'good', facebook: 'good'}
 Anonymous = proxyquire '../anonymous',
   './authorize':
     draugiem: TestAuthorizeDraugiem
     facebook: TestAuthorizeFacebook
+  '../../config':
+    config_get: (p)-> params[p]
+    config_callback: (callback)-> callback()
 .Anonymous
 
 

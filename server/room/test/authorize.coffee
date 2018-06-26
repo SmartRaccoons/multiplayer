@@ -14,6 +14,8 @@ Inbox_Authorize =
   authorize: null
   transaction_create: null
 
+config = {}
+config_callbacks = []
 Authorize = proxyquire '../authorize',
   '../api/draugiem':
     ApiDraugiem: class ApiDraugiem
@@ -29,6 +31,9 @@ Authorize = proxyquire '../authorize',
       constructor: -> Inbox_Authorize.constructor.apply(@, arguments)
       authorize: -> Inbox_Authorize.authorize.apply(@, arguments)
       transaction_create: -> Inbox_Authorize.transaction_create.apply(@, arguments)
+  '../../config':
+    config_get: (param)-> config[param]
+    config_callback: (c)-> config_callbacks.push c
 
 LoginDraugiem = Authorize.draugiem
 LoginFacebook = Authorize.facebook
@@ -44,7 +49,7 @@ describe 'Athorize', ->
   db = {}
   beforeEach ->
     clock = sinon.useFakeTimers()
-    Authorize.config
+    config =
       buy:
         1: 3
       draugiem:
@@ -59,9 +64,10 @@ describe 'Athorize', ->
         id: 'fid'
         key: 'fkey'
       db: db
-      _attr:
-        language:
-          validate: ->
+    Authorize.config_attr
+      language:
+        validate: ->
+    config_callbacks[0]()
     db.select_one = sinon.spy()
     db.update = sinon.spy()
     db.insert = sinon.spy()
@@ -126,10 +132,8 @@ describe 'Athorize', ->
       assert.equal(true, spy.getCall(0).args[0].new)
 
     it '_user_create (addtitional _attr)', ->
-      Authorize.config
-        _attr:
-          rating: {default: 1600, db: true}
-        db: db
+      Authorize.config_attr
+        rating: {default: 1600, db: true}
       login._user_create({draugiem_uid: 5}, spy)
       assert.equal(1600, db.insert.getCall(0).args[0].data.rating)
 

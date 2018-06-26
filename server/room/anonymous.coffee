@@ -1,11 +1,11 @@
 events = require('events')
 _authorize = require('./authorize')
+config_get = require('../../config').config_get
+config_callback = require('../../config').config_callback
 
-
-platforms = platforms_default = ['draugiem', 'facebook', 'google', 'inbox']
-module.exports.config = (c)->
-  _authorize.config(c)
-  platforms = platforms_default.filter (platform)-> !!c[platform]
+platforms = []
+config_callback ->
+  platforms = ['draugiem', 'facebook', 'google', 'inbox'].filter (platform)-> !!config_get(platform)
 
 
 module.exports.Anonymous = class Anonymous extends events.EventEmitter

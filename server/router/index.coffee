@@ -1,16 +1,15 @@
-Anonymous = require('../room/anonymous')
+# Anonymous = require('../room/anonymous')
 # Users = require('../room/users')
 # Rooms = require('../room/rooms')
-Authorize = require('../room/authorize')
+# Authorize = require('../room/authorize')
+module_get = require('../../config').module_get
+config_get = require('../../config').config_get
+config_callback = require('../../config').config_callback
 
-config = null
-module.exports.config = (c)->
-  config = c
-
+Anonymous = null
+config_callback( -> Anonymous = module_get('server.room.anonymous').Anonymous )()
 
 module.exports.Router = class Router
-  models:
-    anonymous: Anonymous
   module: 'router'
 
   constructor: ->
@@ -32,7 +31,7 @@ module.exports.Router = class Router
 
   # _rooms_stats_args: -> ['rooms:stats', {users: @users._all.length}]
 
-  pubsub: -> config.pubsub
+  pubsub: -> config_get('pubsub')
 
   connection: (socket)->
     if @socket_preprocess
@@ -42,12 +41,12 @@ module.exports.Router = class Router
     #   user.get('socket').disconnect(null, false)
     #   user.set({'socket': socket})
     #   return
-    # anonymous = new Anonymous(socket).on 'login', (attr, api)=>
-    #   anonymous.remove()
+    anonymous = new Anonymous(socket).on 'login', (attr, api)=>
+      anonymous.remove()
     #   user = @users.add_native(Object.assign({socket: socket}, attr))
     #   user.on 'room:set', => user.get('socket')._game = true
     #   user.on 'room:remove', => user.get('socket')._game = false
-    #   user.publish 'authenticate:success', user.data()
+      # user.publish 'authenticate:success', user.data()
     #   user.publish.apply(user, @_rooms_stats_args())
     #   socket.on 'server:status', =>
     #     user.publish 'server:status',

@@ -13,6 +13,7 @@ locales = {}
 is_node = !@o
 if is_node
   fs = require('fs')
+locales_keys = []
 (exports ? @o).Locale = Locale =
   config: (config)->
     ['en', 'lv', 'ru', 'lg'].forEach (language)->
@@ -21,15 +22,15 @@ if is_node
           locales[language] = @o["Locale#{language}"]
         return
       else
-        if fs.existsSync "#{config.dirname}#{language}"
+        if fs.existsSync "#{config.dirname}#{language}.coffee"
           locales[language] = require("#{config.dirname}#{language}")["Locale#{language}"]
-    @keys = Object.keys(locales)
+    locales_keys = Object.keys(locales)
   validate: (lang)->
     if lang
-      for l in @keys
+      for l in locales_keys
         if l is lang.substr(0, l.length)
           return l
-    return @keys[0]
+    return locales_keys[0]
 
 if is_node
   exports._ = fn
@@ -37,9 +38,9 @@ else
   do =>
     Locale.config()
     App.lang = do ->
-      for lang in Locale.keys
+      for lang in locales_keys
         for param in ['lang', 'language']
           if window.location.href.indexOf("#{param}=#{lang}") >= 0
             return lang
-      Locale.keys[0]
+      locales_keys[0]
     @._l = (key, subparams)-> fn(key, App.lang, subparams)
