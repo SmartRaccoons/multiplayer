@@ -61,47 +61,6 @@ describe 'Pubsub', ->
       sub.on.getCall(0).args[1]('event', JSON.stringify({data: {id: 'test'}}))
       assert.equal(1, spy.callCount)
 
-    it 'on user', ->
-      m.on = sinon.spy()
-      m.on_user(5, 'call')
-      assert.equal(1, m.on.callCount)
-      assert.equal('room:user:5', m.on.getCall(0).args[0])
-      assert.equal('call', m.on.getCall(0).args[1])
-
-    it 'on user exec', ->
-      m.on = sinon.spy()
-      m.on_user_exec(5, 'call')
-      assert.equal(1, m.on.callCount)
-      assert.equal('room:user:exec:5', m.on.getCall(0).args[0])
-      assert.equal('call', m.on.getCall(0).args[1])
-
-    it 'on room exec', ->
-      m.on = sinon.spy()
-      m.on_room_exec(5, 'call')
-      assert.equal(1, m.on.callCount)
-      assert.equal('room:exec:5', m.on.getCall(0).args[0])
-      assert.equal('call', m.on.getCall(0).args[1])
-
-    it 'on users exec', ->
-      m.on = sinon.spy()
-      m.on_users_exec('call')
-      assert.equal(1, m.on.callCount)
-      assert.equal('room:users:exec', m.on.getCall(0).args[0])
-      assert.equal('call', m.on.getCall(0).args[1])
-
-    it 'on user (remove events)', ->
-      m.remove = sinon.spy()
-      m.remove_user(5)
-      assert.equal(2, m.remove.callCount)
-      assert.equal('room:user:5', m.remove.getCall(0).args[0])
-      assert.equal('room:user:exec:5', m.remove.getCall(1).args[0])
-
-    it 'on room (remove events)', ->
-      m.remove = sinon.spy()
-      m.remove_room(5)
-      assert.equal(1, m.remove.callCount)
-      assert.equal('room:exec:5', m.remove.getCall(0).args[0])
-
     it 'on server', ->
       m.on = sinon.spy()
       m.on_server_exec('module', 'call')
@@ -115,6 +74,19 @@ describe 'Pubsub', ->
       assert.equal(1, m.on.callCount)
       assert.equal('server:module:exec', m.on.getCall(0).args[0])
       assert.equal('call', m.on.getCall(0).args[1])
+
+    it 'on_module_exec', ->
+      m.on = sinon.spy()
+      m.on_module_exec('module', 'id', 'call')
+      assert.equal(1, m.on.callCount)
+      assert.equal('server:module:exec:id', m.on.getCall(0).args[0])
+      assert.equal('call', m.on.getCall(0).args[1])
+
+    it 'remove_module_exec', ->
+      m.remove = sinon.spy()
+      m.remove_module_exec('module', 'id')
+      assert.equal(1, m.remove.callCount)
+      assert.equal('server:module:exec:id', m.remove.getCall(0).args[0])
 
 
   describe 'emit', ->
@@ -130,40 +102,6 @@ describe 'Pubsub', ->
       pub.publish.getCall(0).args[2](null, 2)
       assert.equal(1, callback.callCount)
       assert.deepEqual([null, 2], callback.getCall(0).args)
-
-    it 'publish user', ->
-      m.emit = sinon.spy()
-      m.emit_user(5, 'event', 'params', spy)
-      assert.equal(1, m.emit.callCount)
-      assert.equal('room:user:5', m.emit.getCall(0).args[0])
-      assert.deepEqual({event: 'event', params: 'params'}, m.emit.getCall(0).args[1])
-      m.emit.getCall(0).args[2]()
-      assert.equal(1, spy.callCount)
-
-    it 'publish user exec', ->
-      m.emit = sinon.spy()
-      m.emit_user_exec(5, 'method', 'params', spy)
-      assert.equal(1, m.emit.callCount)
-      assert.equal('room:user:exec:5', m.emit.getCall(0).args[0])
-      assert.deepEqual({method: 'method', params: 'params'}, m.emit.getCall(0).args[1])
-      m.emit.getCall(0).args[2]()
-      assert.equal(1, spy.callCount)
-
-    it 'publish room exec', ->
-      m.emit = sinon.spy()
-      m.emit_room_exec(5, 'method', 'params', spy)
-      assert.equal(1, m.emit.callCount)
-      assert.equal('room:exec:5', m.emit.getCall(0).args[0])
-      assert.deepEqual({method: 'method', params: 'params'}, m.emit.getCall(0).args[1])
-      m.emit.getCall(0).args[2]()
-      assert.equal(1, spy.callCount)
-
-    it 'publish users exec', ->
-      m.emit = sinon.spy()
-      m.emit_users_exec('method', 'params')
-      assert.equal(1, m.emit.callCount)
-      assert.equal('room:users:exec', m.emit.getCall(0).args[0])
-      assert.deepEqual({method: 'method', params: 'params'}, m.emit.getCall(0).args[1])
 
     it 'publish all', ->
       m.emit = sinon.spy()
@@ -216,29 +154,9 @@ describe 'Pubsub', ->
       assert.equal(4, emit.callCount)
       assert.equal(0, emit.getCall(3).args[1])
 
-
-  describe 'emit cases', ->
-    beforeEach ->
+    it 'emit_module_exec', ->
       m.emit = sinon.spy()
-
-    it 'user exec set (0 match)', ->
-      s = sinon.spy()
-      m.options.callback =
-        set: s
-      m.emit_user_exec(5, 'set', {coins: 15}, spy)
-      m.emit.getCall(0).args[2](null, 0)
-      assert.equal(1, s.callCount)
-      assert.deepEqual({coins: 15, id: 5}, s.getCall(0).args[0])
-      s.getCall(0).args[1]()
-      assert.equal(1, spy.callCount)
-      m.emit = sinon.spy()
-
-    it 'user exec set_coins (other method)', ->
-      s = sinon.spy()
-      m.options.callback =
-        set: s
-      m.emit_user_exec(5, 'other_method', {coins: 5, type: 2}, spy)
-      m.emit.getCall(0).args[2](null, 0)
-      assert.equal(0, s.callCount)
-      assert.equal(1, spy.callCount)
-      assert.equal(1, spy.callCount)
+      m.emit_module_exec('module', 'id', 'method', 'params')
+      assert.equal(1, m.emit.callCount)
+      assert.equal('server:module:exec:id', m.emit.getCall(0).args[0])
+      assert.deepEqual({method: 'method', params: 'params'}, m.emit.getCall(0).args[1])

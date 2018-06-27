@@ -21,13 +21,7 @@ module.exports.Pubsub = class Pubsub
 
   on_server_exec: (module, callback)-> @on "server:#{module}:exec:#{@options.server_name}", callback
 
-  on_user: (id, callback)-> @on "room:user:#{id}", callback
-
-  on_user_exec: (id, callback)-> @on "room:user:exec:#{id}", callback
-
-  on_room_exec: (id, callback)-> @on "room:exec:#{id}", callback
-
-  on_users_exec: (callback)-> @on "room:users:exec", callback
+  on_module_exec: (module, id, callback)-> @on "server:#{module}:exec:#{id}", callback
 
   emit: (event, data, callback=->)->
     @pub.publish(event, JSON.stringify({data: data, server: @options.server_id}), callback)
@@ -46,27 +40,13 @@ module.exports.Pubsub = class Pubsub
     @emit_server_exec(module, circle_server, method, params)
     circle_server = (circle_server + 1) % @options.server_all.length
 
-  emit_user: (id, event, params, callback=->)-> @emit "room:user:#{id}", {event, params}, callback
-
-  emit_user_exec: (id, method, params, callback=->)->
-    @emit "room:user:exec:#{id}", {method, params}, (err, count)=>
-      if not (count is 0 and @options.callback and method of @options.callback)
-        return callback()
-      @options.callback[method](Object.assign({id: id}, params), callback)
-
-  emit_room_exec: (id, method, params, callback=->)-> @emit "room:exec:#{id}", {method, params}, callback
-
-  emit_users_exec: (method, params, callback=->)-> @emit "room:users:exec", {method, params}, callback
+  emit_module_exec: (module, id, method, params)-> @emit "server:#{module}:exec:#{id}", {method, params}
 
   remove: (event)->
     @_event.removeAllListeners(event)
     @sub.unsubscribe(event)
 
-  remove_user: (id)->
-    @remove "room:user:#{id}"
-    @remove "room:user:exec:#{id}"
-
-  remove_room: (id)-> @remove "room:exec:#{id}"
+  remove_module_exec: (module, id)-> @remove "server:#{module}:exec:#{id}"
 
 
 module.exports.PubsubDev = class PubsubDev extends Pubsub
