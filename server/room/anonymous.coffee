@@ -1,4 +1,4 @@
-events = require('events')
+SimpleEvent = require('simple.event').SimpleEvent
 _authorize = require('./authorize')
 config_get = require('../../config').config_get
 config_callback = require('../../config').config_callback
@@ -8,7 +8,7 @@ config_callback ->
   platforms = ['draugiem', 'facebook', 'google', 'inbox'].filter (platform)-> !!config_get(platform)
 
 
-module.exports.Anonymous = class Anonymous extends events.EventEmitter
+module.exports.Anonymous = class Anonymous extends SimpleEvent
   constructor: (@_socket)->
     @authenticate = @authenticate.bind(@)
     @_socket.on 'authenticate:try', @authenticate
@@ -23,8 +23,9 @@ module.exports.Anonymous = class Anonymous extends events.EventEmitter
         return api.authorize {code: params[platform], language: params.language}, (user)=>
           if !user
             return error()
-          @emit 'login', user, api
+          @trigger 'login', user, api
     return error()
 
   remove: ->
     @_socket.removeListener 'authenticate:try', @authenticate
+    super

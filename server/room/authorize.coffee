@@ -29,25 +29,19 @@ config_callback ->
     google = new ApiGoogle(config_get(['google', 'server']))
 
 
-module.exports.config_attr = (attr)->
-  Object.keys(attr).forEach (v)=>
-    module.exports._attr[v] = _attr[v] = if _attr[v] then Object.assign(_attr[v], attr[v]) else attr[v]
-
-
-module.exports._attr = _attr =
-  'id': {db: true}
-  'name': {default: '', db: true}
-  'language': {db: true, private: true}
-  'draugiem_uid': {db: true, private: true}
-  'facebook_uid': {db: true, private: true}
-  'google_uid': {db: true, private: true}
-  'inbox_uid': {db: true, private: true}
-  'img': {default: '', db: true}
-
-  'new': {private: true}
-
-
 module.exports.Login = class Login
+  _attr:
+    'id': {db: true}
+    'name': {default: '', db: true}
+    'language': {db: true, private: true}
+    'draugiem_uid': {db: true, private: true}
+    'facebook_uid': {db: true, private: true}
+    'google_uid': {db: true, private: true}
+    'inbox_uid': {db: true, private: true}
+    'img': {default: '', db: true}
+
+    'new': {private: true}
+
   _table: 'auth_user'
 
   _user_get: (where, update, callback)->
@@ -55,7 +49,7 @@ module.exports.Login = class Login
       callback = update
       update = {}
     config.db.select_one
-      select: Object.keys(_attr).filter (v)-> _attr[v].db
+      select: Object.keys(@_attr).filter (v)=> @_attr[v].db
       table: @_table
       where: where
     , (user)=>
@@ -69,8 +63,8 @@ module.exports.Login = class Login
         where: {id: user.id}
 
   _user_update: (update)->
-    data = Object.keys(update).reduce (result, item)->
-      if item isnt 'id' and _attr[item].db
+    data = Object.keys(update).reduce (result, item)=>
+      if item isnt 'id' and @_attr[item].db
         result[item] = update[item]
       return result
     , {}
@@ -81,10 +75,10 @@ module.exports.Login = class Login
         where: {id: update.id}
 
   _user_create: (data, callback)->
-    data.language = _attr.language.validate(data.language)
-    data = Object.assign Object.keys(_attr).reduce( (result, item)->
-      if _attr[item].db and 'default' of _attr[item]
-        result[item] = _attr[item].default
+    data.language = @_attr.language.validate(data.language)
+    data = Object.assign Object.keys(@_attr).reduce( (result, item)=>
+      if @_attr[item].db and 'default' of @_attr[item]
+        result[item] = @_attr[item].default
       result
     , {}), data
     config.db.insert

@@ -64,9 +64,7 @@ describe 'Athorize', ->
         id: 'fid'
         key: 'fkey'
       db: db
-    Authorize.config_attr
-      language:
-        validate: ->
+    Login::_attr.language.validate = ->
     config_callbacks[0]()
     db.select_one = sinon.spy()
     db.update = sinon.spy()
@@ -132,13 +130,12 @@ describe 'Athorize', ->
       assert.equal(true, spy.getCall(0).args[0].new)
 
     it '_user_create (addtitional _attr)', ->
-      Authorize.config_attr
-        rating: {default: 1600, db: true}
+      Login::_attr.rating = {default: 1600, db: true}
       login._user_create({draugiem_uid: 5}, spy)
       assert.equal(1600, db.insert.getCall(0).args[0].data.rating)
 
     it '_user_create (default language)', ->
-      Authorize._attr.language.validate = stub = sinon.stub()
+      Login::_attr.language.validate = stub = sinon.stub()
       stub.returns('lv')
       login._user_create({draugiem_uid: 5, language: 'lv_GB'}, spy)
       assert.equal(1, stub.callCount)

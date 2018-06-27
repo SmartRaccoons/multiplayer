@@ -59,7 +59,7 @@ describe 'Anonymous', ->
       anonymous = new Anonymous(socket)
 
     it 'draugiem authenticate', ->
-      anonymous.on 'login', spy
+      anonymous.bind 'login', spy
       socket.emit 'authenticate:try', {draugiem: 'cd', language: 'lv', other: 'param'}
       assert.equal(1, Test_authrorize.callCount)
       assert.deepEqual({code: 'cd', language: 'lv'}, Test_authrorize.getCall(0).args[0])
@@ -69,7 +69,7 @@ describe 'Anonymous', ->
       assert.equal('auth', spy.getCall(0).args[1].api)
 
     it 'draugiem authenticate (error)', ->
-      anonymous.on 'login', spy
+      anonymous.bind 'login', spy
       socket.emit 'authenticate:try', {draugiem: 'cd'}
       Test_authrorize.getCall(0).args[1](null)
       assert.equal(0, spy.callCount)
@@ -77,7 +77,7 @@ describe 'Anonymous', ->
       assert.equal('authenticate:error', socket.send.getCall(0).args[0])
 
     it 'facebook authenticate', ->
-      anonymous.on 'login', spy
+      anonymous.bind 'login', spy
       socket.emit 'authenticate:try', {facebook: 'cd'}
       Test_authrorize.getCall(0).args[1]({id: 5})
       assert.equal('auth-face', spy.getCall(0).args[1].api)
