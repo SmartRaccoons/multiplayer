@@ -78,6 +78,7 @@ describe 'Multiserver', ->
       pubsub.emit_server_master_exec = sinon.spy()
       pubsub.emit_server_slave_exec = sinon.spy()
       pubsub.emit_server_circle_exec = sinon.spy()
+      pubsub.emit_server_other_exec = sinon.spy()
       m = new ServerRooms()
 
     it 'constructor', ->
@@ -93,6 +94,17 @@ describe 'Multiserver', ->
       pubsub.on_server_exec.getCall(0).args[1]({method: 'public', params: 'pr'})
       assert.equal(2, m.public.callCount)
 
+    it 'emit_immediate_exec (with other)', ->
+      m._method = sinon.spy()
+      m.emit_server_other_exec = sinon.spy()
+      m.emit_immediate_exec('_method', 'params')
+      assert.equal(1, m.emit_server_other_exec.callCount)
+      assert.equal('_method', m.emit_server_other_exec.getCall(0).args[0])
+      assert.equal('params', m.emit_server_other_exec.getCall(0).args[1])
+      assert.equal(1, m._method.callCount)
+      assert.equal('params', m._method.getCall(0).args[0])
+      assert.equal(true, m._method.getCall(0).args[2])
+
     it 'emit', ->
       m.emit_all_exec('arg')
       assert.equal(1, pubsub.emit_all_exec.callCount)
@@ -106,3 +118,5 @@ describe 'Multiserver', ->
       assert.equal(1, pubsub.emit_server_slave_exec.callCount)
       m.emit_server_circle_exec()
       assert.equal(1, pubsub.emit_server_circle_exec.callCount)
+      m.emit_server_other_exec()
+      assert.equal(1, pubsub.emit_server_other_exec.callCount)

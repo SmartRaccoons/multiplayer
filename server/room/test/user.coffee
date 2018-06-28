@@ -29,7 +29,6 @@ User = proxyquire('../user', {
 
 
 describe 'User', ->
-  db = null
   spy = null
   socket = null
   clock = null
@@ -177,7 +176,7 @@ describe 'User', ->
       user.room_set('5')
       clock.tick(11 * 60 * 1000)
       assert.equal(true, user.alive())
-      clock.tick(20 * 60 * 1000)
+      clock.tick(61 * 60 * 1000)
       assert.equal(false, user.alive())
 
 

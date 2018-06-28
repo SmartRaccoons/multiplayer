@@ -6,16 +6,17 @@ config_get = require('../../config').config_get
 config_callback = require('../../config').config_callback
 
 Anonymous = null
-User = null
+Users = null
 config_callback( ->
   Anonymous = module_get('server.room.anonymous').Anonymous
-  User = module_get('server.room.user').User
+  Users = module_get('server.room.users').Users
 )()
 
 module.exports.Router = class Router
   module: 'router'
 
   constructor: ->
+    @users = new Users()
     # do =>
     #   @users = new Users()
     #   # th = _.throttle =>
@@ -23,11 +24,11 @@ module.exports.Router = class Router
     #   # , 5000
     #   # @users.on 'add', th
     #   # @users.on 'remove', th
-    #   setInterval =>
-    #     @users._objects
-    #     .filter (u)-> !u.alive()
-    #     .forEach (u)-> u.get('socket').disconnect('timeout')
-    #   ,  60 * 1000
+    setInterval =>
+      @users._objects
+      .filter (u)-> !u.alive()
+      .forEach (u)-> u.get('socket').disconnect('timeout')
+    ,  60 * 1000
 
     # @rooms = new Rooms()
     @pubsub().on_all_exec @module, (pr)=> @[pr.method](pr.params)
@@ -46,25 +47,13 @@ module.exports.Router = class Router
     #   return
     anonymous = new Anonymous(socket).bind 'login', (attr, api)=>
       anonymous.remove()
-      user = new User(Object.assign({socket: socket}, attr))
-      user.publish 'authenticate:success', user.data()
-    #   user = @users.add_native(Object.assign({socket: socket}, attr))
+      user = @users.add_native(Object.assign({socket: socket}, attr))
     #   user.on 'room:set', => user.get('socket')._game = true
     #   user.on 'room:remove', => user.get('socket')._game = false
-      # user.publish 'authenticate:success', user.data()
-    #   user.publish.apply(user, @_rooms_stats_args())
-    #   socket.on 'server:status', =>
-    #     user.publish 'server:status',
-    #       users: @users._all.length
+      user.publish 'authenticate:success', user.data()
     #   @_payment_platforms.forEach (platform)=>
     #     socket.on "buy:#{platform}", (service)=>
     #       api.buy {service, user_id: user.id(), language: user.get('language')}, (params)-> user.publish "buy:#{platform}:response", Object.assign({service}, params)
-    #   if @tournament
-    #     user.publish 'tournament:list', @tournament.get()
-    #     socket.on 'tournament:top', (params)=>
-    #       if not (params and params.tournament_id)
-    #         return
-    #       user.publish 'tournament:top', @tournament.top({user_id: user.id(), tournament_id: params.tournament_id})
 
   admin_restart: ->
     @socket_preprocess = (socket)->

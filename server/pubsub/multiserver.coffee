@@ -32,5 +32,11 @@ module.exports.PubsubServer = class PubsubServer extends Pubsub
     ['on_all_exec', 'on_server_exec'].forEach (ev)=>
       @_pubsub()[ev] @_module, (pr)=> @[pr.method](pr.params)
 
-['emit_all_exec', 'emit_server_exec', 'emit_server_master_exec', 'emit_server_slave_exec', 'emit_server_circle_exec'].forEach (fn)->
+  emit_immediate_exec: (fn, params)->
+    @[fn].apply(@, [params, '', true])
+    @emit_server_other_exec(fn, params)
+
+['emit_all_exec', 'emit_server_exec', 'emit_server_master_exec',
+  'emit_server_slave_exec', 'emit_server_circle_exec',
+  'emit_server_other_exec'].forEach (fn)->
   PubsubServer::[fn] = -> @_pubsub()[fn].apply(@_pubsub(), [@_module].concat(arguments...))

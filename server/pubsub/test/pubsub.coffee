@@ -29,8 +29,7 @@ describe 'Pubsub', ->
       return sub
     spy = sinon.spy()
     m =  new Pubsub({
-      server_id: 's1'
-      server_name: 'm1'
+      server_id: 1
       server_all: ['m2', 'm1', 'm3']
       redis: 'rd'
     })
@@ -42,10 +41,16 @@ describe 'Pubsub', ->
 
     it 'emit', ->
       m.on 'event', spy
-      sub.on.getCall(0).args[1]('event', JSON.stringify({data: {id: 'test'}, server: 'b1'}))
+      sub.on.getCall(0).args[1]('event', JSON.stringify({data: {id: 'test'}, server: 5}))
       assert.equal(1, spy.callCount)
       assert.deepEqual({id: 'test'}, spy.getCall(0).args[0])
-      assert.deepEqual('b1', spy.getCall(0).args[1])
+      assert.equal(5, spy.getCall(0).args[1])
+      assert.equal(false, spy.getCall(0).args[2])
+
+    it 'emit (same server)', ->
+      m.on 'event', spy
+      sub.on.getCall(0).args[1]('event', JSON.stringify({data: {id: 'test'}, server: 1}))
+      assert.equal(true, spy.getCall(0).args[2])
 
     it 'unsubscribe', ->
       m.on 'event', spy
@@ -94,7 +99,7 @@ describe 'Pubsub', ->
       m.emit('event', {id: 'test'})
       assert.equal(1, pub.publish.callCount)
       assert.equal('event', pub.publish.getCall(0).args[0])
-      assert.equal(JSON.stringify({data: {id: 'test'}, server: 's1'}), pub.publish.getCall(0).args[1])
+      assert.equal(JSON.stringify({data: {id: 'test'}, server: 1}), pub.publish.getCall(0).args[1])
 
     it 'publish callback', ->
       callback = sinon.spy()
@@ -153,6 +158,16 @@ describe 'Pubsub', ->
       m.emit_server_circle_exec('module', 'method', 'params')
       assert.equal(4, emit.callCount)
       assert.equal(0, emit.getCall(3).args[1])
+
+    it 'publish server other exec', ->
+      m.emit_server_exec = emit = sinon.spy()
+      m.emit_server_other_exec('module', 'method', 'params')
+      assert.equal(2, emit.callCount)
+      assert.equal('module', emit.getCall(0).args[0])
+      assert.equal(0, emit.getCall(0).args[1])
+      assert.equal(2, emit.getCall(1).args[1])
+      assert.equal('method', emit.getCall(0).args[2])
+      assert.equal('params', emit.getCall(0).args[3])
 
     it 'emit_module_exec', ->
       m.emit = sinon.spy()

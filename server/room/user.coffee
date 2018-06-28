@@ -50,7 +50,7 @@ module.exports.User = class User extends User
 
   id: -> @attributes.id
 
-  alive: -> @get('alive').getTime() > new Date().getTime() - (if @room then 30 else 10) * 60 * 1000
+  alive: -> @get('alive').getTime() > new Date().getTime() - (if @room then 60 else 10) * 60 * 1000
 
   room_set: (room_id)->
     @room = room_id

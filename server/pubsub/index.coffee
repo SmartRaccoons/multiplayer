@@ -10,7 +10,7 @@ module.exports.Pubsub = class Pubsub
     @_event = new EventEmitter()
     @sub.on 'message', (ch, message)=>
       m = JSON.parse(message)
-      @_event.emit ch, m.data, m.server
+      @_event.emit ch, m.data, m.server, m.server is @options.server_id
 
   on: (event, fn)->
     @_event.on event, fn
@@ -18,7 +18,7 @@ module.exports.Pubsub = class Pubsub
 
   on_all_exec: (module, callback)-> @on "server:#{module}:exec", callback
 
-  on_server_exec: (module, callback)-> @on "server:#{module}:exec:#{@options.server_name}", callback
+  on_server_exec: (module, callback)-> @on "server:#{module}:exec:#{@options.server_all[@options.server_id]}", callback
 
   on_module_exec: (module, id, callback)-> @on "server:#{module}:exec:#{id}", callback
 
@@ -38,6 +38,11 @@ module.exports.Pubsub = class Pubsub
   emit_server_circle_exec: (module, method, params)->
     @emit_server_exec(module, circle_server, method, params)
     circle_server = (circle_server + 1) % @options.server_all.length
+
+  emit_server_other_exec: (module, method, params)->
+    for i in [0...@options.server_all.length]
+      if i isnt @options.server_id
+        @emit_server_exec(module, i, method, params)
 
   emit_module_exec: (module, id, method, params)-> @emit "server:#{module}:exec:#{id}", {method, params}
 
