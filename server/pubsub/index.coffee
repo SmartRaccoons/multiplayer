@@ -1,6 +1,5 @@
 redis = require('redis')
 EventEmitter = require('events').EventEmitter
-Login = require('../room/authorize').Login
 
 circle_server = 0
 

@@ -1,11 +1,10 @@
-SimpleEvent = require('simple.event').SimpleEvent
 module_get = require('../../config').module_get
-config_get = require('../../config').config_get
 config_callback = require('../../config').config_callback
+PubsubModule = require('../pubsub/multiserver').PubsubModule
 
 
 Login = null
-class User extends SimpleEvent
+class User extends PubsubModule
 
 config_callback( ->
   Authorize = module_get('server.room.authorize')
@@ -22,15 +21,16 @@ _pick = (ob, params)->
     result
   , {}
 
-module.exports.User = class User extends User
-  _pubsub: -> config_get('pubsub')
 
+module.exports.User = class User extends User
+  _module: 'user'
   constructor: (attr)->
     @attributes = Object.assign({alive: new Date()}, attr)
-    @_pubsub().on_user @id(), (pr)=> @publish(pr.event, pr.params)
-    @_pubsub().on_user_exec @id(), (pr)=> @[pr.method](pr.params)
+    super
     @_bind_socket()
     @
+
+  emit_self_publish: (id, ev, params)-> @emit_self_exec.apply @, [id, 'publish', [ev, params]]
 
   _bind_socket: ->
     @attributes.socket.on 'alive', => @set({alive: new Date()})
@@ -59,12 +59,12 @@ module.exports.User = class User extends User
     @room = null
     @publish 'rooms:remove'
 
-  room_exec: (method, params)->
+  room_exec: ->
     if !@room
       return
-    @_pubsub().emit_room_exec.apply(@_pubsub(), [@room, method, params])
+    @emit_module_exec.apply @,  ['room', @room].concat(arguments...)
 
-  publish: -> @attributes.socket.send.apply(@attributes.socket, arguments)
+  publish: (ev)-> @attributes.socket.send.apply(@attributes.socket, if Array.isArray(ev) then ev else arguments)
 
   data: -> _pick @attributes, @_attr
 
@@ -85,4 +85,4 @@ module.exports.User = class User extends User
 
   remove: ->
     @room_exec('remove_user', @id())
-    @_pubsub().remove_user @id()
+    super
