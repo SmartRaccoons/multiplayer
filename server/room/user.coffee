@@ -4,10 +4,12 @@ PubsubModule = require('../pubsub/multiserver').PubsubModule
 
 
 Login = null
+Room = null
 class User extends PubsubModule
 
 config_callback( ->
   Authorize = module_get('server.room.authorize')
+  Room = module_get('server.room.room').Room
   Login = Authorize.Login
   _attr = Authorize.Login::_attr
   User::_attr = Object.keys(_attr)
@@ -44,6 +46,17 @@ module.exports.User = class User extends User
       , {}
       if Object.keys(params_update).length > 0
         @set(params_update)
+    Object.keys(Room::game_methods)
+    .filter (method)-> !!Room::game_methods[method].validate
+    .forEach (method)=>
+      @attributes.socket.on "game:#{method}", (params)=>
+        if !params
+          return
+        params_new = Room::game_methods[method].validate(params)
+        if !params_new
+          return
+        @room_exec_game method, params_new
+
     @attributes.socket.remove_callback = (immediate)=>
       if immediate
         @remove()
@@ -62,7 +75,9 @@ module.exports.User = class User extends User
   room_exec: ->
     if !@room
       return
-    @emit_module_exec.apply @,  ['room', @room].concat(arguments...)
+    Room::emit_self_exec.apply(@, [@room].concat(arguments...))
+
+  room_exec_game: (method, params)-> @room_exec '_game_exec', {user_id: @id(), method, params}
 
   publish: (ev)-> @attributes.socket.send.apply(@attributes.socket, if Array.isArray(ev) then ev else arguments)
 

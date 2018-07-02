@@ -13,6 +13,15 @@ class Login
     'language': {private: true}
   _user_update: ->
 
+class Room
+  game_methods:
+    'move':
+      validate: (v)->
+        if v.hand > 0
+          return {hand: 5}
+        return false
+    'move2': {}
+
 PubsubModule_methods =
   constructor: ->
   remove: ->
@@ -20,7 +29,10 @@ PubsubModule_methods =
 User = proxyquire('../user', {
   '../../config':
     config_callback: (c)-> c
-    module_get: -> {Login}
+    module_get: (module)->
+      if 'server.room.authorize' is module
+        return {Login}
+      return {Room}
   '../pubsub/multiserver':
     PubsubModule: class PubsubModule
       constructor: -> PubsubModule_methods.constructor.apply(@, arguments)
@@ -113,12 +125,19 @@ describe 'User', ->
 
     it 'room exec', ->
       user.room_set(1)
+      Room::emit_self_exec = spy = sinon.spy()
       user.room_exec('game', 'pr')
-      assert.equal(1, user.emit_module_exec.callCount)
-      assert.equal('room', user.emit_module_exec.getCall(0).args[0])
-      assert.equal(1, user.emit_module_exec.getCall(0).args[1])
-      assert.equal('game', user.emit_module_exec.getCall(0).args[2])
-      assert.equal('pr', user.emit_module_exec.getCall(0).args[3])
+      assert.equal(1, spy.callCount)
+      assert.equal(1, spy.getCall(0).args[0])
+      assert.equal('game', spy.getCall(0).args[1])
+      assert.equal('pr', spy.getCall(0).args[2])
+
+    it 'room exec game', ->
+      user.room_exec = spy = sinon.spy()
+      user.room_exec_game('mt', 'pr')
+      assert.equal(1, spy.callCount)
+      assert.equal('_game_exec', spy.getCall(0).args[0])
+      assert.deepEqual({user_id: 5, method: 'mt', params: 'pr'}, spy.getCall(0).args[1])
 
     it 'room exec (no room)', ->
       user.room_exec('game', 'pr')
@@ -212,6 +231,28 @@ describe 'User', ->
       user.set = sinon.spy()
       socket.emit 'user:update'
       assert.equal(0, user.set.callCount)
+
+    it 'game', ->
+      user.room_exec_game = sinon.spy()
+      socket.emit 'game:move', {hand: 4}
+      assert.equal(1, user.room_exec_game.callCount)
+      assert.equal('move', user.room_exec_game.getCall(0).args[0])
+      assert.deepEqual({hand: 5}, user.room_exec_game.getCall(0).args[1])
+
+    it 'game (not validates)', ->
+      user.room_exec_game = sinon.spy()
+      socket.emit 'game:move', {hand: 0}
+      assert.equal(0, user.room_exec_game.callCount)
+
+    it 'game (no params)', ->
+      user.room_exec_game = sinon.spy()
+      socket.emit 'game:move'
+      assert.equal(0, user.room_exec_game.callCount)
+
+    it 'game (no validate)', ->
+      user.room_exec_game = sinon.spy()
+      socket.emit 'game:move2', {hand: 5}
+      assert.equal(0, user.room_exec_game.callCount)
 
     it 'socket remove_callback', ->
       user.remove = sinon.spy()
