@@ -7,9 +7,11 @@ config_callback = require('../../config').config_callback
 
 Anonymous = null
 Users = null
+Rooms = null
 config_callback( ->
   Anonymous = module_get('server.room.anonymous').Anonymous
   Users = module_get('server.room.users').Users
+  Rooms = module_get('server.room.users').Rooms
 )()
 
 module.exports.Router = class Router
@@ -17,6 +19,7 @@ module.exports.Router = class Router
 
   constructor: ->
     @users = new Users()
+    @rooms = new Rooms()
     # do =>
     #   @users = new Users()
     #   # th = _.throttle =>
@@ -29,8 +32,6 @@ module.exports.Router = class Router
       .filter (u)-> !u.alive()
       .forEach (u)-> u.get('socket').disconnect('timeout')
     ,  60 * 1000
-
-    # @rooms = new Rooms()
     @pubsub().on_all_exec @module, (pr)=> @[pr.method](pr.params)
 
   # _rooms_stats_args: -> ['rooms:stats', {users: @users._all.length}]
@@ -47,7 +48,7 @@ module.exports.Router = class Router
     #   return
     anonymous = new Anonymous(socket).bind 'login', (attr, api)=>
       anonymous.remove()
-      user = @users.add_native(Object.assign({socket: socket}, attr))
+      user = @users._create(Object.assign({socket: socket}, attr))
     #   user.on 'room:set', => user.get('socket')._game = true
     #   user.on 'room:remove', => user.get('socket')._game = false
       user.publish 'authenticate:success', user.data()
