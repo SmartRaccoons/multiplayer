@@ -4,6 +4,8 @@ module.exports.server =
     authorize: require('./server/room/authorize')
     anonymous: require('./server/room/anonymous')
     user: require('./server/room/user')
+    room: require('./server/room/room')
+    rooms: require('./server/room/rooms')
   db:
     Mysql: require('./server/db/mysql').Mysql
   pubsub: require('./server/pubsub')
