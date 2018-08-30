@@ -26,6 +26,8 @@ PubsubModule_methods =
   constructor: ->
   remove: ->
 
+
+_pubsub = {}
 User = proxyquire('../user', {
   '../../config':
     config_callback: (c)-> c
@@ -37,6 +39,8 @@ User = proxyquire('../user', {
     PubsubModule: class PubsubModule
       constructor: -> PubsubModule_methods.constructor.apply(@, arguments)
       remove: -> PubsubModule_methods.remove.apply(@, arguments)
+    PubsubServer: class PubsubServer
+      _pubsub: -> _pubsub
 }).User
 
 
@@ -57,6 +61,8 @@ describe 'User', ->
       send: sinon.spy()
       on: sinon.spy()
     spy = sinon.spy()
+    _pubsub =
+      emit_server_master_exec: sinon.spy()
 
   afterEach ->
     clock.restore()
@@ -142,6 +148,35 @@ describe 'User', ->
     it 'room exec (no room)', ->
       user.room_exec('game', 'pr')
       assert.equal(0, user.emit_module_exec.callCount)
+
+    it 'rooms_join', ->
+      user.data_public = sinon.fake.returns({id: 5})
+      user.rooms_join()
+      assert.equal(1, _pubsub.emit_server_master_exec.callCount)
+      assert.equal('rooms', _pubsub.emit_server_master_exec.getCall(0).args[0])
+      assert.equal('lobby_add', _pubsub.emit_server_master_exec.getCall(0).args[1])
+      assert.deepEqual({id: 5}, _pubsub.emit_server_master_exec.getCall(0).args[2])
+      assert.equal(1, user.data_public.callCount)
+
+    it 'rooms_join (params)', ->
+      user.data_public = sinon.fake.returns({id: 5})
+      user.rooms_join('tournaments', {id: 4, z: 5})
+      assert.equal('tournaments', _pubsub.emit_server_master_exec.getCall(0).args[0])
+      assert.deepEqual({id: 4, z: 5}, _pubsub.emit_server_master_exec.getCall(0).args[2])
+
+    it 'lobby_join', ->
+      user.publish = sinon.spy()
+      user.lobby_join({p: 'a'})
+      assert.equal(1, user.publish.callCount)
+      assert.equal('lobby:join', user.publish.getCall(0).args[0])
+      assert.deepEqual({p: 'a'}, user.publish.getCall(0).args[1])
+
+    it 'lobby_remove', ->
+      user.publish = sinon.spy()
+      user.lobby_remove({p: 'a'})
+      assert.equal(1, user.publish.callCount)
+      assert.equal('lobby:remove', user.publish.getCall(0).args[0])
+      assert.deepEqual({p: 'a'}, user.publish.getCall(0).args[1])
 
     it 'remove user', ->
       user.room_exec = sinon.spy()

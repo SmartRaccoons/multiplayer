@@ -6,8 +6,8 @@
   },
   "dependencies": {
     "fbgraph": "^1.4.4",
-    "google-auth-library": "^1.6.1",
-    "mysql": "^2.15.0",
+    "google-auth-library": "^2.0.0",
+    "mysql": "^2.16.0",
     "node-uuid": "^1.4.8",
     "redis": "^2.8.0",
     "simple.event": "git+https://github.com/SmartRaccoons/simple.event.js.git",
@@ -15,12 +15,12 @@
   },
   "devDependencies": {
     "grunt": "1.0",
-    "grunt-contrib-watch": "1.0",
-    "proxyquire": "^2.0.1",
-    "sinon": "^4.5.0",
+    "grunt-contrib-watch": "^1.1.0",
+    "proxyquire": "^2.1.0",
+    "sinon": "^6.1.5",
     "mocha": "^5.1.1",
     "mocha-phantomjs-core": "^2.1.2",
     "chai": "^4.1.2",
-    "nock": "^9.2.5"
+    "nock": "^9.6.1"
   }
 }

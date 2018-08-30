@@ -1,6 +1,7 @@
 module_get = require('../../config').module_get
 config_callback = require('../../config').config_callback
 PubsubModule = require('../pubsub/multiserver').PubsubModule
+PubsubServer = require('../pubsub/multiserver').PubsubServer
 
 
 Login = null
@@ -65,6 +66,12 @@ module.exports.User = class User extends User
 
   alive: -> @get('alive').getTime() > new Date().getTime() - (if @room then 60 else 10) * 60 * 1000
 
+  lobby_join: (params)->
+    @publish('lobby:join', params)
+
+  lobby_remove: (params)->
+    @publish('lobby:remove', params)
+
   room_set: (room_id)->
     @room = room_id
 
@@ -78,6 +85,9 @@ module.exports.User = class User extends User
     Room::emit_self_exec.apply(@, [@room].concat(arguments...))
 
   room_exec_game: (method, params)-> @room_exec '_game_exec', {user_id: @id(), method, params}
+
+  rooms_join: (room = 'rooms', params={})->
+    PubsubServer::_pubsub()['emit_server_master_exec'](room, 'lobby_add', Object.assign(@data_public(), params))
 
   publish: (ev)-> @attributes.socket.send.apply(@attributes.socket, if Array.isArray(ev) then ev else arguments)
 
