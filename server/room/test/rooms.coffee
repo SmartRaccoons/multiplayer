@@ -13,16 +13,12 @@ class Room extends SimpleEvent
 class User extends SimpleEvent
 
 
-PubsubServer_methods =
-  # constructor: ->
-
 Rooms = proxyquire('../rooms', {
   '../../config':
     config_callback: (c)-> c
     module_get: -> {Room, User}
   './default':
     PubsubServer: class PubsubServer extends SimpleEvent
-      # constructor: -> PubsubServer_methods.constructor.apply(@, arguments)
 }).Rooms
 
 
@@ -47,6 +43,7 @@ describe 'Rooms', ->
       assert.deepEqual(Room, rooms.model())
       assert.deepEqual([], rooms._lobby)
       assert.deepEqual([], rooms._models)
+      assert.deepEqual({min: 6}, rooms._params)
 
     it '_create', ->
       rooms._create({attr: 'ibutes'})
