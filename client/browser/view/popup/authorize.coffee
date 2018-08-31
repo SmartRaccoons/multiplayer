@@ -9,7 +9,7 @@ window.o.ViewPopupAuthorize = class PopupAuthorize extends Popup
     body: _.template """
       <% self.options.platforms.forEach(function (platform) { %>
 
-        <button data-click='authorize' data-click-attr='<%= platform %>' class='<%= self.className %>-facebook'><%= platform %></button>
+        <button data-click='authorize' data-click-attr='<%= platform %>' class='<%= self.className %>-<%= platform %>'><%= platform %></button>
       <% }) %>
       <p>
         <%= _l('Authorize desc') %>

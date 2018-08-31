@@ -18,7 +18,7 @@
     PopupAuthorize.prototype.options_default = {
       close: false,
       head: _.template("<%= _l('Authorize') %>"),
-      body: _.template("<% self.options.platforms.forEach(function (platform) { %>\n\n  <button data-click='authorize' data-click-attr='<%= platform %>' class='<%= self.className %>-facebook'><%= platform %></button>\n<% }) %>\n<p>\n  <%= _l('Authorize desc') %>\n</p>")
+      body: _.template("<% self.options.platforms.forEach(function (platform) { %>\n\n  <button data-click='authorize' data-click-attr='<%= platform %>' class='<%= self.className %>-<%= platform %>'><%= platform %></button>\n<% }) %>\n<p>\n  <%= _l('Authorize desc') %>\n</p>")
     };
 
     return PopupAuthorize;
