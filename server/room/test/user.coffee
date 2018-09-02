@@ -63,6 +63,7 @@ describe 'User', ->
     spy = sinon.spy()
     _pubsub =
       emit_server_master_exec: sinon.spy()
+      emit_all_exec: sinon.spy()
 
   afterEach ->
     clock.restore()
@@ -73,12 +74,23 @@ describe 'User', ->
       PubsubModule_methods.constructor = sinon.spy()
       PubsubModule_methods.remove = sinon.spy()
       user = new User({id: 5, socket: socket})
+      user.id = 5
       user.emit_module_exec = sinon.spy()
 
     it 'default attributes', ->
       user = new User({socket: socket})
       assert.equal('user', user._module)
       assert(user.attributes.alive.getTime() <= new Date().getTime())
+
+    it 'publish user data on constructor', ->
+      spy = sinon.spy()
+      class UserPublish extends User
+        publish: -> spy.apply(@, arguments)
+        data: -> 'd'
+      new UserPublish({id: 2, socket: socket})
+      assert.equal(1, spy.callCount)
+      assert.equal('authenticate:success', spy.getCall(0).args[0])
+      assert.equal('d', spy.getCall(0).args[1])
 
     it 'publish', ->
       socket.send = sinon.spy()
@@ -99,6 +111,7 @@ describe 'User', ->
 
     it 'pubsub listen', ->
       assert.equal(1, PubsubModule_methods.constructor.callCount)
+      assert.deepEqual({id: 5}, PubsubModule_methods.constructor.getCall(0).args[0])
 
     it 'emit_self_publish', ->
       user.emit_self_exec = sinon.spy()
@@ -116,21 +129,25 @@ describe 'User', ->
       user = new User({id: 5, name: 'b', new: true, socket: socket})
       assert.deepEqual({id: 5, name: 'b'}, user.data_public())
 
-    it 'room set', ->
+    it '_room_add', ->
       assert.notEqual(1, user.room)
-      user.room_set(1)
+      user.publish = sinon.spy()
+      user._room_add(1)
       assert.equal(1, user.room)
+      assert.equal(1, user.publish.callCount)
+      assert.equal('room:add', user.publish.getCall(0).args[0])
+      assert.equal(1, user.publish.getCall(0).args[1])
 
     it 'room remove', ->
       user.publish = sinon.spy()
-      user.room_set(1)
-      user.room_remove()
+      user.room = 1
+      user._room_remove()
       assert.notEqual(1, user.room)
       assert.equal(1, user.publish.callCount)
-      assert.equal('rooms:remove', user.publish.getCall(0).args[0])
+      assert.equal('room:remove', user.publish.getCall(0).args[0])
 
     it 'room exec', ->
-      user.room_set(1)
+      user.room = {id: 1}
       Room::emit_self_exec = spy = sinon.spy()
       user.room_exec('game', 'pr')
       assert.equal(1, spy.callCount)
@@ -149,31 +166,64 @@ describe 'User', ->
       user.room_exec('game', 'pr')
       assert.equal(0, user.emit_module_exec.callCount)
 
-    it 'rooms_join', ->
+    it '_room_update', ->
+      user.publish = sinon.spy()
+      user.room = null
+      user._room_update('room')
+      assert.equal('room', user.room)
+      assert.equal(1, user.publish.callCount)
+      assert.equal('room:update', user.publish.getCall(0).args[0])
+      assert.equal('room', user.publish.getCall(0).args[1])
+
+    it 'rooms_lobby_add', ->
       user.data_public = sinon.fake.returns({id: 5})
-      user.rooms_join()
+      user.rooms_lobby_add()
       assert.equal(1, _pubsub.emit_server_master_exec.callCount)
       assert.equal('rooms', _pubsub.emit_server_master_exec.getCall(0).args[0])
       assert.equal('lobby_add', _pubsub.emit_server_master_exec.getCall(0).args[1])
       assert.deepEqual({id: 5}, _pubsub.emit_server_master_exec.getCall(0).args[2])
       assert.equal(1, user.data_public.callCount)
 
-    it 'rooms_join (params)', ->
+    it 'rooms_lobby_add (params)', ->
       user.data_public = sinon.fake.returns({id: 5})
-      user.rooms_join('tournaments', {id: 4, z: 5})
+      user.rooms_lobby_add('tournaments', {id: 4, z: 5})
       assert.equal('tournaments', _pubsub.emit_server_master_exec.getCall(0).args[0])
       assert.deepEqual({id: 4, z: 5}, _pubsub.emit_server_master_exec.getCall(0).args[2])
 
-    it 'lobby_join', ->
+    it 'rooms_lobby_remove', ->
+      user.id = 5
+      user.rooms_lobby_remove()
+      assert.equal(1, _pubsub.emit_server_master_exec.callCount)
+      assert.equal('rooms', _pubsub.emit_server_master_exec.getCall(0).args[0])
+      assert.equal('lobby_remove', _pubsub.emit_server_master_exec.getCall(0).args[1])
+      assert.equal(5, _pubsub.emit_server_master_exec.getCall(0).args[2])
+
+    it 'rooms_lobby_remove (params)', ->
+      user.rooms_lobby_remove('tournaments')
+      assert.equal('tournaments', _pubsub.emit_server_master_exec.getCall(0).args[0])
+
+    it 'rooms_reconnect', ->
+      user.id = 5
+      user.rooms_reconnect()
+      assert.equal(1, _pubsub.emit_all_exec.callCount)
+      assert.equal('rooms', _pubsub.emit_all_exec.getCall(0).args[0])
+      assert.equal('_objects_exec', _pubsub.emit_all_exec.getCall(0).args[1])
+      assert.deepEqual({user_reconnect: 5}, _pubsub.emit_all_exec.getCall(0).args[2])
+
+    it 'rooms_reconnect (params)', ->
+      user.rooms_reconnect('tours')
+      assert.equal('tours', _pubsub.emit_all_exec.getCall(0).args[0])
+
+    it '_lobby_add', ->
       user.publish = sinon.spy()
-      user.lobby_join({p: 'a'})
+      user._lobby_add({p: 'a'})
       assert.equal(1, user.publish.callCount)
-      assert.equal('lobby:join', user.publish.getCall(0).args[0])
+      assert.equal('lobby:add', user.publish.getCall(0).args[0])
       assert.deepEqual({p: 'a'}, user.publish.getCall(0).args[1])
 
-    it 'lobby_remove', ->
+    it '_lobby_remove', ->
       user.publish = sinon.spy()
-      user.lobby_remove({p: 'a'})
+      user._lobby_remove({p: 'a'})
       assert.equal(1, user.publish.callCount)
       assert.equal('lobby:remove', user.publish.getCall(0).args[0])
       assert.deepEqual({p: 'a'}, user.publish.getCall(0).args[1])
@@ -181,11 +231,40 @@ describe 'User', ->
     it 'remove user', ->
       user.room_exec = sinon.spy()
       PubsubModule_methods.remove = sinon.spy()
+      user.attributes.socket.disconnect = sinon.spy()
       user.remove()
       assert.equal(1, PubsubModule_methods.remove.callCount)
       assert.equal(1, user.room_exec.callCount)
-      assert.equal('remove_user', user.room_exec.getCall(0).args[0])
-      assert.equal(5, user.room_exec.getCall(0).args[1])
+      assert.equal('user_remove', user.room_exec.getCall(0).args[0])
+      assert.deepEqual({id: 5, disconnect: true}, user.room_exec.getCall(0).args[1])
+      assert.equal(1, user.attributes.socket.disconnect.callCount)
+      assert.equal(null, user.attributes.socket.disconnect.getCall(0).args[0])
+
+    it 'remove user (duplicate)', ->
+      user.room_exec = sinon.spy()
+      user.attributes.socket.disconnect = sinon.spy()
+      user.remove('duplicate')
+      assert.equal('duplicate', user.attributes.socket.disconnect.getCall(0).args[0])
+
+    it 'remove user (2 times)', ->
+      user.room_exec = sinon.spy()
+      user.attributes.socket.disconnect = sinon.spy()
+      user.remove()
+      user.remove()
+      assert.equal(1, user.room_exec.callCount)
+
+    it 'room_left', ->
+      user.room_exec = spy = sinon.spy()
+      user.room_left()
+      assert.equal(0, spy.callCount)
+      user.room = {id: 2, type: 'user'}
+      user.room_left()
+      assert.equal(0, spy.callCount)
+      user.room = {id: 2, type: 'spectator'}
+      user.room_left()
+      assert.equal(1, spy.callCount)
+      assert.equal('user_remove', spy.getCall(0).args[0])
+      assert.deepEqual({id: 5}, spy.getCall(0).args[1])
 
     it 'set', ->
       user.set({alive: 'alive'})
@@ -227,7 +306,7 @@ describe 'User', ->
       assert.equal(false, user.alive())
 
     it 'alive (in room)', ->
-      user.room_set('5')
+      user.room = '5'
       clock.tick(11 * 60 * 1000)
       assert.equal(true, user.alive())
       clock.tick(61 * 60 * 1000)
@@ -239,8 +318,9 @@ describe 'User', ->
     socket = null
     beforeEach ->
       socket = new events.EventEmitter()
+      socket.send = sinon.spy()
       user = new User({id: 5, socket: socket})
-      user.room_set(3)
+      user.room = 3
       user.room_exec = sinon.spy()
 
     it 'alive', ->
@@ -291,10 +371,5 @@ describe 'User', ->
 
     it 'socket remove_callback', ->
       user.remove = sinon.spy()
-      socket.remove_callback()
-      assert.equal(0, user.remove.callCount)
-
-    it 'socket remove_callback (immediate)', ->
-      user.remove = sinon.spy()
-      socket.remove_callback(true)
+      socket.emit 'remove'
       assert.equal(1, user.remove.callCount)

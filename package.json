@@ -14,13 +14,14 @@
     "socket.io": "^2.1.1"
   },
   "devDependencies": {
+    "chai": "^4.1.2",
+    "coffeescript": "^2.3.2",
     "grunt": "1.0",
     "grunt-contrib-watch": "^1.1.0",
-    "proxyquire": "^2.1.0",
-    "sinon": "^6.1.5",
-    "mocha": "^5.1.1",
+    "mocha": "^5.2.0",
     "mocha-phantomjs-core": "^2.1.2",
-    "chai": "^4.1.2",
-    "nock": "^9.6.1"
+    "nock": "^9.6.1",
+    "proxyquire": "^2.1.0",
+    "sinon": "^6.1.5"
   }
 }

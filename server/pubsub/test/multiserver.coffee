@@ -12,7 +12,6 @@ Multiserver = proxyquire('../multiserver', {
 
 class ModuleUser extends Multiserver.PubsubModule
   _module: 'user'
-  id: -> '5'
 
 class ServerRooms extends Multiserver.PubsubServer
   _module: 'rooms'
@@ -29,9 +28,10 @@ describe 'Multiserver', ->
       pubsub.on_module_exec = sinon.spy()
       pubsub.remove_module_exec = sinon.spy()
       pubsub.emit_module_exec = sinon.spy()
-      m = new ModuleUser()
+      m = new ModuleUser({id: '5'})
 
     it 'constructor', ->
+      assert.equal('5', m.id)
       assert.equal(1, pubsub.on_module_exec.callCount)
       assert.equal('user', pubsub.on_module_exec.getCall(0).args[0])
       assert.equal('5', pubsub.on_module_exec.getCall(0).args[1])

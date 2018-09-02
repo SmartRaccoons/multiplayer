@@ -27,10 +27,11 @@ _pick = (ob, params)->
 
 module.exports.User = class User extends User
   _module: 'user'
-  constructor: (attr)->
-    @attributes = Object.assign({alive: new Date()}, attr)
-    super
+  constructor: (attributes)->
+    super({id: attributes.id})
+    @attributes = Object.assign({alive: new Date()}, attributes)
     @_bind_socket()
+    @publish 'authenticate:success', @data()
     @
 
   emit_self_publish: (id, ev, params)-> @emit_self_exec.apply @, [id, 'publish', [ev, params]]
@@ -57,37 +58,47 @@ module.exports.User = class User extends User
         if !params_new
           return
         @room_exec_game method, params_new
-
-    @attributes.socket.remove_callback = (immediate)=>
-      if immediate
-        @remove()
-
-  id: -> @attributes.id
+    @attributes.socket.on 'remove', => @remove()
 
   alive: -> @get('alive').getTime() > new Date().getTime() - (if @room then 60 else 10) * 60 * 1000
 
-  lobby_join: (params)->
-    @publish('lobby:join', params)
+  rooms_lobby_add: (room = 'rooms', params={})->
+    PubsubServer::_pubsub()['emit_server_master_exec'](room, 'lobby_add', Object.assign(@data_public(), params))
 
-  lobby_remove: (params)->
+  rooms_lobby_remove: (room = 'rooms')->
+    PubsubServer::_pubsub()['emit_server_master_exec'](room, 'lobby_remove', @id)
+
+  rooms_reconnect: (room = 'rooms')->
+    PubsubServer::_pubsub()['emit_all_exec'](room, '_objects_exec', {user_reconnect: @id})
+
+  _lobby_add: (params)->
+    @publish('lobby:add', params)
+
+  _lobby_remove: (params)->
     @publish('lobby:remove', params)
 
-  room_set: (room_id)->
-    @room = room_id
+  room_left: ->
+    if @room and @room.type is 'spectator'
+      @room_exec('user_remove', {id: @id})
 
-  room_remove: ->
+  _room_add: (room)->
+    @room = room
+    @publish 'room:add', @room
+
+  _room_remove: ->
     @room = null
-    @publish 'rooms:remove'
+    @publish 'room:remove'
+
+  _room_update: (room)->
+    @room = room
+    @publish 'room:update', @room
 
   room_exec: ->
     if !@room
       return
-    Room::emit_self_exec.apply(@, [@room].concat(arguments...))
+    Room::emit_self_exec.apply Room::, [@room.id].concat(Array::slice.call(arguments))
 
-  room_exec_game: (method, params)-> @room_exec '_game_exec', {user_id: @id(), method, params}
-
-  rooms_join: (room = 'rooms', params={})->
-    PubsubServer::_pubsub()['emit_server_master_exec'](room, 'lobby_add', Object.assign(@data_public(), params))
+  room_exec_game: (method, params)-> @room_exec '_game_exec', {user_id: @id, method, params}
 
   publish: (ev)-> @attributes.socket.send.apply(@attributes.socket, if Array.isArray(ev) then ev else arguments)
 
@@ -104,10 +115,14 @@ module.exports.User = class User extends User
       return
     @publish 'user:set', data
     if !silent
-      Login::_user_update(Object.assign({id: @id()}, data))
+      Login::_user_update(Object.assign({id: @id}, data))
 
   get: (param)-> @attributes[param]
 
-  remove: ->
-    @room_exec('remove_user', @id())
-    super
+  remove: (reason)->
+    if @_removed
+      return
+    @_removed = true
+    @room_exec('user_remove', {@id, disconnect: true})
+    super()
+    @attributes.socket.disconnect(reason)

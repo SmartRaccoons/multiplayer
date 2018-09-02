@@ -4,19 +4,19 @@ sinon = require('sinon')
 proxyquire = require('proxyquire')
 
 
-Test_authrorize = {}
+Test_authorize = {}
 class TestAuthorize
   authorize: ->
-    Test_authrorize.apply(@, arguments)
+    Test_authorize.apply(@, arguments)
 
 class TestAuthorizeDraugiem extends TestAuthorize
   authorize: ->
-    super
+    super ...arguments
     @api = 'auth'
 
 class TestAuthorizeFacebook extends TestAuthorize
   authorize: ->
-    super
+    super ...arguments
     @api = 'auth-face'
 
 params = {draugiem: 'good', facebook: 'good'}
@@ -39,7 +39,7 @@ describe 'Anonymous', ->
     socket.send = sinon.spy()
     spy = sinon.spy()
     spy2 = sinon.spy()
-    Test_authrorize = sinon.spy()
+    Test_authorize = sinon.spy()
 
   describe 'common', ->
     anonymous = null
@@ -61,9 +61,9 @@ describe 'Anonymous', ->
     it 'draugiem authenticate', ->
       anonymous.bind 'login', spy
       socket.emit 'authenticate:try', {draugiem: 'cd', language: 'lv', other: 'param'}
-      assert.equal(1, Test_authrorize.callCount)
-      assert.deepEqual({code: 'cd', language: 'lv'}, Test_authrorize.getCall(0).args[0])
-      Test_authrorize.getCall(0).args[1]({id: 5})
+      assert.equal(1, Test_authorize.callCount)
+      assert.deepEqual({code: 'cd', language: 'lv'}, Test_authorize.getCall(0).args[0])
+      Test_authorize.getCall(0).args[1]({id: 5})
       assert.equal(1, spy.callCount)
       assert.deepEqual({id: 5}, spy.getCall(0).args[0])
       assert.equal('auth', spy.getCall(0).args[1].api)
@@ -71,7 +71,7 @@ describe 'Anonymous', ->
     it 'draugiem authenticate (error)', ->
       anonymous.bind 'login', spy
       socket.emit 'authenticate:try', {draugiem: 'cd'}
-      Test_authrorize.getCall(0).args[1](null)
+      Test_authorize.getCall(0).args[1](null)
       assert.equal(0, spy.callCount)
       assert.equal(1, socket.send.callCount)
       assert.equal('authenticate:error', socket.send.getCall(0).args[0])
@@ -79,17 +79,17 @@ describe 'Anonymous', ->
     it 'facebook authenticate', ->
       anonymous.bind 'login', spy
       socket.emit 'authenticate:try', {facebook: 'cd'}
-      Test_authrorize.getCall(0).args[1]({id: 5})
+      Test_authorize.getCall(0).args[1]({id: 5})
       assert.equal('auth-face', spy.getCall(0).args[1].api)
 
     it 'authenticate no class', ->
       socket.emit 'authenticate:try', {codes: 'cd'}
-      assert.equal(0, Test_authrorize.callCount)
+      assert.equal(0, Test_authorize.callCount)
       assert.equal(1, socket.send.callCount)
       assert.equal('authenticate:error', socket.send.getCall(0).args[0])
 
     it 'authenticate no params', ->
       socket.emit 'authenticate:try', null
-      assert.equal(0, Test_authrorize.callCount)
+      assert.equal(0, Test_authorize.callCount)
       assert.equal(1, socket.send.callCount)
       assert.equal('authenticate:error', socket.send.getCall(0).args[0])

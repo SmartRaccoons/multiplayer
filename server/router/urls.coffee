@@ -67,39 +67,28 @@ module.exports.payments = (app, callback_router)->
       transaction.platforms[platform](platform, config_get(platform).transaction)
 
 
-module.exports.socket = (server, log, version, callback)->
-  Socket = require('../helpers/socket')(log, 1000 * 60 * 20, version)
+module.exports.socket = ({ server, log, version, callback })->
+  Socket = require('../helpers/socket')({ version })
   SocketIO(server, {
     pingTimeout: 10 * 1000
     pingInterval: 5 * 1000
   }).on 'connection', (client)->
-    socket = new Socket(client.handshake.query, client.id)
-    socket._send = (data)-> client.emit('request', data)
+    socket = new Socket(client.handshake.query)
+    socket.send = ->
+      log("write:#{client.id}:#{JSON.stringify(Array.from(arguments))}")
+      client.emit('request', Array.from(arguments))
     if not socket.version_check()
-      client.emit 'version', {'actual': pjson.version}
+      client.emit 'version', {'actual': version}
       return
-    client.emit 'session', socket.id
-    socket.client = client
-    client.socket = socket
-    log([socket.client.id, 'connection', socket.id, client.request.connection.remoteAddress].join(' : '))
     client.on 'request', (data)->
       if !(data and Array.isArray(data) and data[0])
-        return console.info socket.client.id + ': request error: ' + JSON.stringify(data) + ' : ' + socket.id
-      log(socket.client.id + ': data: ' + JSON.stringify(data) + ' : ' + socket.id)
+        return console.info client.id + ': request error: ' + JSON.stringify(data)
+      log("receive:#{client.id}:#{JSON.stringify(data)}")
       socket.emit('alive')
       socket.emit.apply(socket, data)
-    client.on 'request_receive', -> socket.received()
-    disconnect = (reason)->
-      log("gone offline: #{reason}; #{socket.immediate()}" )
-      socket.remove()
-      client._disconnected = true
-    client.on 'disconnect', (reason)-> disconnect(reason)
-    socket.disconnect = (reason, immediate = true)->
+    client.on 'disconnect', (reason)-> socket.remove()
+    socket.disconnect = (reason)->
       if reason is 'duplicate'
-        client.emit('error:duplicate')
-      socket._immediate = immediate
-      if not client._disconnected
-        return client.disconnect(true)
-      disconnect(reason)
-    socket.check()
+        client.emit 'error:duplicate'
+      client.disconnect(true)
     callback(socket)

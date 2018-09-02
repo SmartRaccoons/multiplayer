@@ -3,14 +3,13 @@ exec = require('child_process').exec
 glob = require('glob')
 
 
-module.exports = (grunt, template)->
+module.exports = (grunt, template, commands)->
   grunt.loadNpmTasks('grunt-contrib-watch')
   coffee = [
     'client/*.coffee'
     'client/**/*.coffee'
     'locale/*.coffee'
   ]
-  coffee_command = "coffee -m -c"
   exec_callback = (callback)->
     (error, stdout, stderr)->
       if error
@@ -19,7 +18,7 @@ module.exports = (grunt, template)->
 
   grunt.registerTask 'production', ->
     done = this.async()
-    exec "uglifycss client/browser/css/screen.css > public/d/c.css"
+    exec "#{commands.uglifycss} client/browser/css/screen.css > public/d/c.css"
     template_config = Object.keys(template.config_get().javascripts)
     platforms = ['standalone', 'draugiem', 'facebook', 'inbox'].filter (platform)-> template_config.indexOf(platform) >= 0
     platforms_exec = (i)=>
@@ -30,7 +29,7 @@ module.exports = (grunt, template)->
           return fs.readFileSync(f, 'utf8')
         return f
       ).join("\n")
-      exec "uglifyjs --beautify \"indent-level=0\" all-temp.js -o public/d/j-#{platform}.js", =>
+      exec "#{commands.uglifyjs} --beautify \"indent-level=0\" all-temp.js -o public/d/j-#{platform}.js", =>
         exec "rm all-temp.js", =>
           i++
           if i >= platforms.length
@@ -65,7 +64,7 @@ module.exports = (grunt, template)->
       coffee:
         files: coffee
       sass:
-        files: ['client/browser/sass/screen.sass']
+        files: ['client/browser/sass/*.sass']
       static:
         files: [
           'client/**/*.css'
@@ -77,7 +76,7 @@ module.exports = (grunt, template)->
   compile_file = (file, callback=->)->
     ext = file.split('.').pop()
     if ext is 'coffee'
-      exec("#{coffee_command} #{file}", exec_callback(callback))
+      exec("#{commands.coffee} #{file}", exec_callback(callback))
     if ext is 'sass'
       exec("cd client/browser && compass compile --sourcemap sass/screen.sass -c ../../node_modules/multiplayer/client/browser/config.rb", exec_callback(callback))
 

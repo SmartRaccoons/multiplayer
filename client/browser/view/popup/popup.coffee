@@ -17,12 +17,12 @@ window.o.ViewPopup = class Popup extends window.o.View
       @trigger $(e.target).attr('data-click'), $(e.target).attr('data-click-attr')
 
   constructor: ->
-    super
+    super ...arguments
     if @options.parent
       @$el.appendTo @options.parent
     @
 
   render: ->
-    super
+    super ...arguments
     @$container = $(@$('div')[0])
     @

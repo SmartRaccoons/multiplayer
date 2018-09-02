@@ -13,7 +13,7 @@ window.o.Router = class Router extends window.o.View
     return false
 
   constructor: ->
-    super
+    super ...arguments
     App.events.trigger 'router:init', @
     @_active = null
 
