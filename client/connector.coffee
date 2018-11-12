@@ -8,9 +8,8 @@ io = @io ? require 'socket.io-client'
   })
   router.send = -> connector.emit 'request', Array.prototype.slice.call(arguments)
   ['connect', 'request'].forEach (ev)->
-    connector.on ev, (data)-> router[ev].apply router, data
-  connector.on 'request', (data) -> connector.emit 'request_receive'
-  connector.on 'session', (id) -> connector.io.opts.query._session = id
+    connector.on ev, (data)->
+      router[ev].apply router, data
   connector.on 'version', -> params.version_callback()
   delay = 0
   connector.on 'error:duplicate', ->

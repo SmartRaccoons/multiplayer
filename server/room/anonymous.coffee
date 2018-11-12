@@ -10,6 +10,7 @@ config_callback ->
 
 module.exports.Anonymous = class Anonymous extends SimpleEvent
   constructor: (@_socket)->
+    super()
     @authenticate = @authenticate.bind(@)
     @_socket.on 'authenticate:try', @authenticate
 
@@ -28,4 +29,4 @@ module.exports.Anonymous = class Anonymous extends SimpleEvent
 
   remove: ->
     @_socket.removeListener 'authenticate:try', @authenticate
-    super
+    super()

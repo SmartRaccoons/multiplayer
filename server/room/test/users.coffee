@@ -6,7 +6,9 @@ SimpleEvent = require('simple.event').SimpleEvent
 
 
 class User extends SimpleEvent
-  constructor: (@attributes)->
+  constructor: (attributes)->
+    super()
+    @attributes = attributes
   id: -> @attributes.id
   data_public: -> {p: 'public'}
 
@@ -20,7 +22,7 @@ Users = proxyquire('../users', {
     config_callback: (c)-> c
     module_get: -> {User}
   './default':
-    PubsubServer: class PubsubServer extends SimpleEvent
+    PubsubServerObjects: class PubsubServerObjects extends SimpleEvent
       _add: -> PubsubServer_methods._add.apply(@, arguments)
       _create: -> PubsubServer_methods._create.apply(@, arguments)
 }).Users
@@ -72,12 +74,11 @@ describe 'Users', ->
 
     it '_check_duplicate', ->
       user = new User({id: 5})
-      user.attributes.socket = socket =
-        disconnect: sinon.spy()
+      user.remove = sinon.spy()
       users.get = -> user
       users._check_duplicate(5)
-      assert.equal(1, socket.disconnect.callCount)
-      assert.equal('duplicate', socket.disconnect.getCall(0).args[0])
+      assert.equal(1, user.remove.callCount)
+      assert.equal('duplicate', user.remove.getCall(0).args[0])
 
     it '_check_duplicate (no model)', ->
       users.get = -> false

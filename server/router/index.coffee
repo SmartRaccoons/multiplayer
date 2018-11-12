@@ -51,27 +51,27 @@ module.exports.Router = class Router
       user = @users._create(Object.assign({socket: socket}, attr))
     #   user.on 'room:set', => user.get('socket')._game = true
     #   user.on 'room:remove', => user.get('socket')._game = false
-      user.publish 'authenticate:success', user.data()
+      # user.publish 'authenticate:success', user.data()
     #   @_payment_platforms.forEach (platform)=>
     #     socket.on "buy:#{platform}", (service)=>
     #       api.buy {service, user_id: user.id(), language: user.get('language')}, (params)-> user.publish "buy:#{platform}:response", Object.assign({service}, params)
 
   admin_restart: ->
-    @socket_preprocess = (socket)->
-      ['rooms:join'].forEach (ev)=>
-        socket.on "before:#{ev}", =>
-          socket.send 'user:inform', {body: 'restart in progress'}
-          return false
-    @users._objects.forEach (u)=> @socket_preprocess(u.get('socket'))
-    @rooms._lobby.forEach (u)=> @rooms._lobby_remove(u.id)
-    @rooms._objects.forEach (r)=> r._game_last()
-    restart_available = =>
-      if @rooms._objects.length > 0
-        return false
-      console.info 'restart available'
-      return true
-    if !restart_available()
-      @rooms.on 'remove', => restart_available()
+    # @socket_preprocess = (socket)->
+    #   ['rooms:lobby:add'].forEach (ev)=>
+    #     socket.on "before:#{ev}", =>
+    #       socket.send 'user:inform', {body: 'restart in progress'}
+    #       return false
+    # @users._objects.forEach (u)=> @socket_preprocess(u.get('socket'))
+    # @rooms._lobby.forEach (u)=> @rooms._lobby_remove(u.id)
+    # @rooms._objects.forEach (r)=> r._game_last()
+    # restart_available = =>
+    #   if @rooms._objects.length > 0
+    #     return false
+    #   console.info 'restart available'
+    #   return true
+    # if !restart_available()
+    #   @rooms.on 'remove', => restart_available()
 
   admin_status: ->
     console.info "users: #{@users._objects.length} rooms: #{@rooms._objects.length} lobby: #{@rooms._lobby.length}"

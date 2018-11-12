@@ -56,12 +56,12 @@ module.exports.Pubsub = class Pubsub
 module.exports.PubsubDev = class PubsubDev extends Pubsub
   on: (event)->
     console.info "--------on #{event} #{@options.server_id}"
-    super
+    super ...arguments
 
   emit: (event, params)->
     console.info "--------emit #{event} #{JSON.stringify(params)} #{@options.server_id}"
-    super
+    super ...arguments
 
   remove: (event)->
     console.info "--------remove #{event} #{@options.server_id}"
-    super
+    super ...arguments
