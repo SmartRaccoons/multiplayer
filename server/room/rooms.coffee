@@ -25,11 +25,13 @@ module.exports.Rooms = class Rooms extends PubsubServerObjects
 
   emit_user_publish: -> User::emit_self_publish.apply User::, arguments
 
+  _lobby_params: -> {rooms: @_module, lobby: @_lobby.length}
+
   lobby_add: (params)->
     if @_lobby_index(params.id) >= 0
       return
     @_lobby.push params
-    @emit_user_exec params.id, '_lobby_add', {rooms: @_module, lobby: @_lobby.length}
+    @emit_user_exec params.id, '_lobby_add', @_lobby_params()
 
   lobby_remove: (id)->
     index = @_lobby_index(id)

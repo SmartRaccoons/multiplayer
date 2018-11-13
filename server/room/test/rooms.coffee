@@ -71,14 +71,19 @@ describe 'Rooms', ->
       assert.equal(1, rooms._lobby_index(6))
       assert.equal(-1, rooms._lobby_index(10))
 
+    it '_lobby_params', ->
+      rooms._lobby = [1]
+      assert.deepEqual({rooms: 'rooms', lobby: 1}, rooms._lobby_params())
+
     it 'add', ->
+      rooms._lobby_params = -> 'lp'
       assert.deepEqual([], rooms._lobby)
       rooms.lobby_add({id: 5, bet: 6})
       assert.deepEqual([{id: 5, bet: 6}], rooms._lobby)
       assert.equal(1, emit_user.callCount)
       assert.equal(5, emit_user.getCall(0).args[0])
       assert.equal('_lobby_add',emit_user.getCall(0).args[1])
-      assert.deepEqual({rooms: 'rooms', lobby: 1}, emit_user.getCall(0).args[2])
+      assert.equal('lp', emit_user.getCall(0).args[2])
 
     it 'add (existing)', ->
       rooms._lobby_index = sinon.fake.returns(0)
