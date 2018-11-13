@@ -2,6 +2,10 @@ view_id = 0
 
 update_ev = 'options_update'
 
+
+touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigator.msMaxTouchPoints > 0)
+
+
 @o.View = class View extends SimpleEvent
   className: null
   el: 'div'
@@ -17,17 +21,32 @@ update_ev = 'options_update'
     @$el = $("<#{@el}>")
     if @className
       @$el.addClass(@className)
-    if @events
-      for k, v of @events
-        m = k.match /^(\S+)\s*(.*)$/
-        @$el.on "#{m[1]}.delegateEvents#{@_id}", m[2].replace('&-', "#{@className}-")
-        , if typeof v isnt 'string' then _.bind(v, @) else ((v)=>
-          => @[v]()
-        )(v)
+    @__events_delegate()
     @_options_bind = Object.keys(@options_bind).reduce (acc, v)=>
       acc.concat { events: v.split(','), fn: @options_bind[v].bind(@) }
     , []
     @
+
+  __events_delegate: ->
+    if !@events
+      return
+    for k, v of @events
+      m = k.match /^(\S+)\s*(.*)$/
+      fn = if typeof v isnt 'string' then _.bind(v, @) else ((v)=>
+        => @[v]()
+      )(v)
+      el = @__selector_parse(m[2], true)
+      m[1].split(',').forEach (event)=>
+        [ev, pr] = event.split(':')
+        if pr is 'nt' and touch
+          return
+        if pr is 't' and !touch
+          return
+        if ev is 'click' and touch
+          ev = 'touchstart'
+        @$el.on "#{ev}.delegateEvents#{@_id}", el, fn
+
+  __events_undelegate: -> @$el.off('.delegateEvents' + @_id)
 
   options_update: (options, force = false)->
     updated = []
@@ -81,7 +100,7 @@ update_ev = 'options_update'
     @_options_bind.forEach (v)-> v.fn()
     @$el.html _.template(@template)({self: @})
     @$el.find('[class]').forEach (el)=>
-      $(el).attr('class', $(el).attr('class').replace('&-', "#{@className}-"))
+      $(el).attr 'class', @__selector_parse($(el).attr('class'))
     @$el.find('*').forEach (el)=>
       @option_bind_el(el)
     return @
@@ -113,7 +132,9 @@ update_ev = 'options_update'
   remove: ->
     @subview_remove()
     super ...arguments
-    @$el.off('.delegateEvents' + @_id)
+    @__events_undelegate()
     @$el.remove()
 
-  $: (selector)-> @$el.find(selector)
+  __selector_parse: (s, point = false)-> s.replace '&-', "#{if point then '.' else ''}#{@className}-"
+
+  $: (selector)-> @$el.find(@__selector_parse(selector, true))
