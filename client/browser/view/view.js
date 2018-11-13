@@ -23,6 +23,7 @@
           this.$el.addClass(this.className);
         }
         this.__events_delegate();
+        this.__events_binded_el = [];
         this._options_bind = Object.keys(this.options_bind).reduce((acc, v) => {
           return acc.concat({
             events: v.split(','),
@@ -145,6 +146,7 @@
           return $(el).attr(attr, val);
         };
         this.bind(`${update_ev}:${option}`, exec);
+        this.__events_binded_el.push(`${update_ev}:${option}`);
         return exec;
       }
 
@@ -152,6 +154,14 @@
         if (!this.template) {
           return this;
         }
+        (() => {
+          var ev, results;
+          results = [];
+          while (ev = this.__events_binded_el.shift()) {
+            results.push(this.unbind(ev));
+          }
+          return results;
+        })();
         this._options_bind.forEach(function(v) {
           return v.fn();
         });

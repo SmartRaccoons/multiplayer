@@ -22,6 +22,7 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
     if @className
       @$el.addClass(@className)
     @__events_delegate()
+    @__events_binded_el = []
     @_options_bind = Object.keys(@options_bind).reduce (acc, v)=>
       acc.concat { events: v.split(','), fn: @options_bind[v].bind(@) }
     , []
@@ -92,11 +93,15 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
         return $(el).removeAttr(attr)
       $(el).attr attr, val
     @bind "#{update_ev}:#{option}", exec
+    @__events_binded_el.push "#{update_ev}:#{option}"
     return exec
 
   render: ->
     if not @template
       return @
+    do =>
+      while ev = @__events_binded_el.shift()
+        @unbind(ev)
     @_options_bind.forEach (v)-> v.fn()
     @$el.html _.template(@template)({self: @})
     @$el.find('[class]').forEach (el)=>

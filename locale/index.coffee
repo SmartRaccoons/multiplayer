@@ -16,15 +16,16 @@ if is_node
 locales_keys = []
 (exports ? @o).Locale = Locale =
   config: (config)->
-    ['en', 'lv', 'ru', 'lg'].forEach (language)->
+    ['en', 'ru', 'lv', 'lg'].forEach (language)->
       if not is_node
         if @o["Locale#{language}"]
           locales[language] = @o["Locale#{language}"]
+          locales_keys.push language
         return
       else
         if fs.existsSync "#{config.dirname}#{language}.coffee"
           locales[language] = require("#{config.dirname}#{language}")["Locale#{language}"]
-    locales_keys = Object.keys(locales)
+    @available = locales_keys.map (k)=> [k, locales[k]['Language']]
   validate: (lang)->
     if lang
       for l in locales_keys

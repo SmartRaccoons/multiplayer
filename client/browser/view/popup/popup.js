@@ -29,7 +29,8 @@
         return this.remove();
       },
       'click [data-click]': function(e) {
-        return this.trigger($(e.target).attr('data-click'), $(e.target).attr('data-click-attr'));
+        this.trigger($(e.target).attr('data-click'), $(e.target).attr('data-click-attr'));
+        return this.remove();
       }
     };
 

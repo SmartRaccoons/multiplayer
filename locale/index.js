@@ -42,7 +42,10 @@
           }
         }
       });
-      return locales_keys = Object.keys(locales);
+      locales_keys = Object.keys(locales);
+      return this.available = locales_keys.map((k) => {
+        return [k, locales[k]['Language']];
+      });
     },
     validate: function(lang) {
       var i, l, len;
