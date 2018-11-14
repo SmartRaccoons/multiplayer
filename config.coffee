@@ -15,7 +15,7 @@ module.exports.config = (c)->
 module.exports.config_get = config_get = (param)->
   if Array.isArray(param)
     return param.reduce (result, item)->
-      Object.assign result, {item: config_get(item)}
+      Object.assign result, {[item]: config_get(item)}
     , {}
   config.config[param]
 module.exports.config_callback = (callback)->
