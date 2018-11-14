@@ -1,8 +1,12 @@
 {
-  "name": "Multiplayer",
+  "name": "multiplayer",
   "version": "0.0.1",
   "author": {
     "name": "raccoons.lv"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SmartRaccoons/multiplayer.git"
   },
   "dependencies": {
     "fbgraph": "^1.4.4",
