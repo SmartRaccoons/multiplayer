@@ -29,7 +29,10 @@ module.exports = (grunt, template, commands)->
           return fs.readFileSync(f, 'utf8')
         return f
       ).join("\n")
-      exec "#{commands.uglifyjs} --beautify \"indent-level=0\" all-temp.js -o public/d/j-#{platform}.js", =>
+      exec "#{commands.uglifyjs} all-temp.js -o public/d/j-#{platform}.js", (err)=>
+        if err
+          console.info err
+          return done()
         exec "rm all-temp.js", =>
           i++
           if i >= platforms.length
