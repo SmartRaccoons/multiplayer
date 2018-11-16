@@ -31,10 +31,11 @@
 
   (typeof exports !== "undefined" && exports !== null ? exports : this.o).Locale = Locale = {
     config: function(config) {
-      ['en', 'lv', 'ru', 'lg'].forEach(function(language) {
+      ['en', 'ru', 'lv', 'lg'].forEach(function(language) {
         if (!is_node) {
           if (this.o[`Locale${language}`]) {
             locales[language] = this.o[`Locale${language}`];
+            locales_keys.push(language);
           }
         } else {
           if (fs.existsSync(`${config.dirname}${language}.coffee`)) {
@@ -42,7 +43,6 @@
           }
         }
       });
-      locales_keys = Object.keys(locales);
       return this.available = locales_keys.map((k) => {
         return [k, locales[k]['Language']];
       });
