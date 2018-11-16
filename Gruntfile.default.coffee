@@ -46,13 +46,12 @@ module.exports = (grunt, template, commands)->
     files = []
     for extension in ['coffee', 'sass']
       files = files.concat(grunt.config(['watch'])[extension].files)
-    j = 0
     compile = ->
-      files_all.forEach (f)->
-        compile_file f, ->
-          j++
-          if j is files_all.length
-            done()
+      check = ->
+        if files_all.length is 0
+          return done()
+        compile_file files_all.shift(), check
+      compile_file files_all.shift(), check
     i = 0
     files_all = []
     files.forEach (f)->
@@ -77,6 +76,7 @@ module.exports = (grunt, template, commands)->
           livereload: true
 
   compile_file = (file, callback=->)->
+    console.info "compile: #{file}"
     ext = file.split('.').pop()
     if ext is 'coffee'
       exec("#{commands.coffee} #{file}", exec_callback(callback))
