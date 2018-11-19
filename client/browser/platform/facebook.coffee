@@ -34,10 +34,10 @@ window.o.PlatformFacebook = class Facebook
       request_id: id
     , ->
 
-  share: (callback=->)->
+  share: (params = {}, callback=->)->
     window.FB.ui
       method: 'share'
-      href: 'https://apps.facebook.com/mancala-friends'
+      href: params.href
     , (response)=>
       if response and response.error_code
         return callback(response.error_code)

@@ -53,10 +53,10 @@
         }, function() {});
       }
 
-      share(callback = function() {}) {
+      share(params = {}, callback = function() {}) {
         return window.FB.ui({
           method: 'share',
-          href: 'https://apps.facebook.com/mancala-friends'
+          href: params.href
         }, (response) => {
           if (response && response.error_code) {
             return callback(response.error_code);

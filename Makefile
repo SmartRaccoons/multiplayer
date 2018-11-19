@@ -10,4 +10,3 @@ compile :
 	./node_modules/coffeescript/bin/coffee -c client/browser/view/*.coffee
 	./node_modules/coffeescript/bin/coffee -c client/browser/view/popup/*.coffee
 	./node_modules/coffeescript/bin/coffee -c client/browser/platform/*.coffee
-	./node_modules/coffeescript/bin/coffee -c locale/*.coffee

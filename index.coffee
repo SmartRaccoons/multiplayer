@@ -14,5 +14,6 @@ module.exports =
     helpers:
       log: require('./server/helpers/log')
       template: require('./server/helpers/template')
+      email: require('./server/helpers/email')
     router:
       urls: require('./server/router/urls')

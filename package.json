@@ -9,15 +9,16 @@
     "url": "https://github.com/SmartRaccoons/multiplayer.git"
   },
   "dependencies": {
+    "emailjs": "^2.2.0",
     "fbgraph": "^1.4.4",
-    "google-auth-library": "^2.0.0",
+    "google-auth-library": "^2.0.1",
     "mysql": "^2.16.0",
     "redis": "^2.8.0",
     "simple.event": "git+https://github.com/SmartRaccoons/simple.event.js.git",
     "socket.io": "^2.1.1"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
+    "chai": "^4.2.0",
     "coffeescript": "^2.3.2",
     "grunt": "1.0",
     "grunt-contrib-watch": "^1.1.0",
@@ -25,6 +26,6 @@
     "mocha-phantomjs-core": "^2.1.2",
     "nock": "^9.6.1",
     "proxyquire": "^2.1.0",
-    "sinon": "^6.1.5"
+    "sinon": "^6.3.5"
   }
 }
