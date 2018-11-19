@@ -8,7 +8,6 @@ module.exports = (grunt, template, commands)->
   coffee = [
     'client/*.coffee'
     'client/**/*.coffee'
-    'locale/*.coffee'
   ]
   exec_callback = (callback)->
     (error, stdout, stderr)->

@@ -1,47 +1,65 @@
-fn = (key, active = 'en', subparams)->
-  res = locales[active][key]
-  if not subparams
-    return res
-  res.replace /\\?\{([^{}]+)\}/g, (match, name) ->
-    if match.charAt(0) == '\\'
-      return match.slice(1)
-    if subparams[name]
-      return subparams[name]
-    return ''
+coffeescript = require('coffeescript')
+fs = require('fs')
+translate_fn_generate = require('./fn').translate_fn_generate
+
 
 locales = {}
-is_node = !@o
-if is_node
-  fs = require('fs')
-locales_keys = []
-(exports ? @o).Locale = Locale =
-  config: (config)->
-    ['en', 'ru', 'lv', 'lg'].forEach (language)->
-      if not is_node
-        if @o["Locale#{language}"]
-          locales[language] = @o["Locale#{language}"]
-          locales_keys.push language
-        return
-      else
-        if fs.existsSync "#{config.dirname}#{language}.coffee"
-          locales[language] = require("#{config.dirname}#{language}")["Locale#{language}"]
-    @available = locales_keys.map (k)=> [k, locales[k]['Language']]
-  validate: (lang)->
-    if lang
-      for l in locales_keys
-        if l is lang.substr(0, l.length)
-          return l
-    return locales_keys[0]
+locales_available = []
+translate_fn = -> throw 'no translate fn'
 
-if is_node
-  exports._ = fn
-else
-  do =>
-    Locale.config()
+module.exports.config = (config)->
+  get_config = (f)->
+    try
+      return require("#{config.dirname}/#{f}")
+    catch e
+      return false
+  locales = {}
+  locales_available = config.locales.slice(0)
+  locale_default = get_config('en')
+  locales_available.forEach (language)->
+    language_common = get_config(language)
+    ['server', 'client'].forEach (platform)->
+      language_platform = get_config("#{language}.#{platform}")
+      if !locales[language]
+        locales[language] = {}
+      locales[language][platform] = Object.assign({}, locale_default, language_common, language_platform)
+
+  translate_fn = translate_fn_generate(
+    Object.keys(locales)
+    .reduce (acc, language)->
+      acc[language] = locales[language].server
+      acc
+    , {}
+  )
+
+module.exports.client = ->
+  locales_var = Object.keys(locales)
+    .map (language)->
+      "locales['#{language}'] = #{JSON.stringify(locales[language].client)}"
+    .join("\n")
+  coffeescript.compile """
+    locales_available = #{JSON.stringify(locales_available)}
+    locales = {}
+    #{locales_var}
+    #{fs.readFileSync("#{__dirname}/fn.coffee")}
+    fn = translate_fn_generate(locales)
     App.lang = do ->
-      for lang in locales_keys
+      for lang in Object.keys(locales)
         for param in ['lang', 'language']
-          if window.location.href.indexOf("#{param}=#{lang}") >= 0
+          if window.location.href.indexOf(param + '=' + lang) >= 0
             return lang
-      locales_keys[0]
+      locales_available[0]
+
     @._l = (key, subparams)-> fn(key, App.lang, subparams)
+    @._locales_available = locales_available.map (language)-> [language, locales[language]['Language']]
+  """
+
+module.exports.validate = (lang)->
+  if lang
+    for l in locales_available
+      if l is lang.substr(0, l.length)
+        return l
+  return locales_available[0]
+
+
+module.exports._ = -> translate_fn.apply(@, arguments)
