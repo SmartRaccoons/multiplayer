@@ -5,10 +5,14 @@
   this.o.Sound = Sound = class Sound {
     constructor(options) {
       this.options = options;
+      this.__muted = false;
     }
 
     play(sound) {
       var a;
+      if (this.__muted) {
+        return;
+      }
       try {
         a = new Audio(`${this.options.path}${sound}.wav`);
         a.volume = 0.3;
@@ -16,6 +20,14 @@
       } catch (error) {
 
       }
+    }
+
+    is_mute() {
+      return this.__muted;
+    }
+
+    mute(__muted) {
+      this.__muted = __muted;
     }
 
   };

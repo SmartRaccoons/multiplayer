@@ -66,6 +66,8 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
     updated.forEach (option)=> @trigger "#{update_ev}:#{option}"
     @trigger update_ev
 
+  options_update_bind: (option, exec)-> @bind "#{update_ev}:#{option}", exec
+
   _option_get_from_str: (str)->
     res = str.trim()
     .match /^(?:\&|\&amp;)\=([\w]*)$/

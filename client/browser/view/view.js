@@ -97,6 +97,10 @@
         return this.trigger(update_ev);
       }
 
+      options_update_bind(option, exec) {
+        return this.bind(`${update_ev}:${option}`, exec);
+      }
+
       _option_get_from_str(str) {
         var res;
         res = str.trim().match(/^(?:\&|\&amp;)\=([\w]*)$/);
