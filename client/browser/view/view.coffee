@@ -12,6 +12,7 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
   template: ''
   events: {}
   options_bind: {}
+  options_bind_el_self: {}
 
   constructor: (options)->
     super()
@@ -89,7 +90,7 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
       val = val_get()
       if attr is 'html'
         return $(el)[attr](val)
-      if val is null
+      if val is null or val is false
         return $(el).removeAttr(attr)
       $(el).attr attr, val
     @bind "#{update_ev}:#{option}", exec
@@ -106,6 +107,9 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
     @$el.html _.template(@template)({self: @})
     @$el.find('[class]').forEach (el)=>
       $(el).attr 'class', @__selector_parse($(el).attr('class'))
+    do =>
+      for attr, option of @options_bind_el_self
+        @option_bind_el_attr(@$el, attr, option)()
     @$el.find('*').forEach (el)=>
       @option_bind_el(el)
     return @

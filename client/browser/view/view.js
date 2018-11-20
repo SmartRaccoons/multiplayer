@@ -140,7 +140,7 @@
           if (attr === 'html') {
             return $(el)[attr](val);
           }
-          if (val === null) {
+          if (val === null || val === false) {
             return $(el).removeAttr(attr);
           }
           return $(el).attr(attr, val);
@@ -171,6 +171,16 @@
         this.$el.find('[class]').forEach((el) => {
           return $(el).attr('class', this.__selector_parse($(el).attr('class')));
         });
+        (() => {
+          var attr, option, ref, results;
+          ref = this.options_bind_el_self;
+          results = [];
+          for (attr in ref) {
+            option = ref[attr];
+            results.push(this.option_bind_el_attr(this.$el, attr, option)());
+          }
+          return results;
+        })();
         this.$el.find('*').forEach((el) => {
           return this.option_bind_el(el);
         });
@@ -241,6 +251,8 @@
     View.prototype.events = {};
 
     View.prototype.options_bind = {};
+
+    View.prototype.options_bind_el_self = {};
 
     return View;
 
