@@ -76,7 +76,7 @@
         updated = [];
         for (k in options) {
           v = options[k];
-          if (force || this.options[k] !== v) {
+          if (force || !_.isEqual(this.options[k], v)) {
             this.options[k] = v;
             updated.push(k);
           }
@@ -135,7 +135,9 @@
       option_bind_el_attr(el, attr, option) {
         var exec, val_get;
         boundMethodCheck(this, View);
-        val_get = () => {
+        val_get = this.options_html[option] ? () => {
+          return this.options_html[option].bind(this)(this.options[option]);
+        } : () => {
           return this.options[option];
         };
         exec = () => {
@@ -176,8 +178,19 @@
           return $(el).attr('class', this.__selector_parse($(el).attr('class')));
         });
         (() => {
-          var attr, option, ref, results;
-          ref = this.options_bind_el_self;
+          var attr, get, option, ref, results;
+          get = () => {
+            var opt;
+            if (!Array.isArray(this.options_bind_el_self)) {
+              return this.options_bind_el_self;
+            }
+            opt = {};
+            this.options_bind_el_self.forEach(function(v) {
+              return opt[`data-${v}`] = v;
+            });
+            return opt;
+          };
+          ref = get();
           results = [];
           for (attr in ref) {
             option = ref[attr];
@@ -253,6 +266,8 @@
     View.prototype.template = '';
 
     View.prototype.events = {};
+
+    View.prototype.options_html = {};
 
     View.prototype.options_bind = {};
 

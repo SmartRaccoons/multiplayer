@@ -11,6 +11,7 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
   el: 'div'
   template: ''
   events: {}
+  options_html: {}
   options_bind: {}
   options_bind_el_self: {}
 
@@ -53,7 +54,7 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
   options_update: (options, force = false)->
     updated = []
     for k, v of options
-      if force or @options[k] isnt v
+      if force or !_.isEqual(@options[k], v)
         @options[k] = v
         updated.push k
     if updated.length is 0
@@ -87,7 +88,7 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
       @option_bind_el_attr(el, 'html', option)()
 
   option_bind_el_attr: (el, attr, option)=>
-    val_get =  => @options[option]
+    val_get = if @options_html[option] then => @options_html[option].bind(@)(@options[option]) else => @options[option]
     exec = =>
       val = val_get()
       if attr is 'html'
@@ -110,7 +111,13 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
     @$el.find('[class]').forEach (el)=>
       $(el).attr 'class', @__selector_parse($(el).attr('class'))
     do =>
-      for attr, option of @options_bind_el_self
+      get = =>
+        if !Array.isArray(@options_bind_el_self)
+          return @options_bind_el_self
+        opt = {}
+        @options_bind_el_self.forEach (v)-> opt["data-#{v}"] = v
+        return opt
+      for attr, option of get()
         @option_bind_el_attr(@$el, attr, option)()
     @$el.find('*').forEach (el)=>
       @option_bind_el(el)
