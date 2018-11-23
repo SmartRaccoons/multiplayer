@@ -23,6 +23,9 @@ module.exports.send = email_send = (params, callback=->)->
     callback(err)
 
 
+module.exports.send_admin = (params)-> email_send Object.assign({to: config.report}, params)
+
+
 errors_log = []
 module.exports.log = (err, _messages = [], callback=->)->
   errors_log.push(new Date().getTime())
