@@ -55,38 +55,52 @@ module.exports.js_get = js_get = (platform, development = false)->
 
 template_read = (name)-> fs.readFileSync("#{config.dirname}#{name}.html", 'utf8')
 
+_template_include_js = (params)->
+  if params.development
+    return js_get(params.platform, params.development).map (js)->
+      t = js.substr(-3)
+      if t is 'css'
+        return "<link rel='stylesheet' href='/#{js}' />"
+      if t is '.js'
+        return "<script src='/#{js}'></script>"
+      return "<script>#{js}</script>"
+    .join "\n"
+  if params.platform is 'cordova'
+    return """
+      <script src='cordova.js'></script>
+      <script src='d/j-#{params.platform}.js?#{params.version}'></script>
+    """
+  return """
+    #{if 'standalone' isnt params.platform then """
+
+      <script>
+          if (!(function () {
+            try {
+                return window.self !== window.top;
+            } catch (e) {
+                return true;
+            }
+          })()) {
+              window.location = '/g';
+          }
+      </script>
+
+    """ else ''}
+
+    <script src='/d/j-#{params.platform}.js?#{params.version}'></script>
+  """
+
+_template_include_css = (params)->
+  if params.development
+    return "<link rel='stylesheet' href='/client/browser/css/screen.css' />"
+  if params.platform is 'cordova'
+    return "<link rel='stylesheet' href='d/c.css?#{params.version}' />"
+  return "<link rel='stylesheet' href='/d/c.css?#{params.version}' />"
+
 
 module.exports.generate = (tmp_params)->
   params = Object.assign {}, config, tmp_params
   if params.platform
-    if params.development
-      params.javascripts = js_get(params.platform, params.development).map (js)->
-        t = js.substr(-3)
-        if t is 'css'
-          return "<link rel='stylesheet' href='/#{js}' />"
-        if t is '.js'
-          return "<script src='/#{js}'></script>"
-        return "<script>#{js}</script>"
-      .join "\n"
-    else
-      params.javascripts = ''
-      if params.platform isnt 'standalone'
-        params.javascripts = """
-          <script>
-              if (!(function () {
-                try {
-                    return window.self !== window.top;
-                } catch (e) {
-                    return true;
-                }
-              })()) {
-                  window.location = '/g';
-              }
-          </script>
-        """
-      params.javascripts += "<script src='/d/j-#{params.platform}.js?#{params.version}'></script>"
-    if params.development
-      params.css = "<link rel='stylesheet' href='/client/browser/css/screen.css' />"
-    else
-      params.css = "<link rel='stylesheet' href='/d/c.css?#{params.version}' />"
+    params.javascripts = _template_include_js(params)
+    params.css = _template_include_css(params)
   _template(template_read(params.template))(params)
