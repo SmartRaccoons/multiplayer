@@ -1,6 +1,7 @@
-window.o.PlatformFacebook = class Facebook
+window.o.PlatformFacebook = class Facebook extends window.o.PlatformCommon
   _scope: ''
   constructor: (@options)->
+    super()
     @router = new window.o.Router()
     @router.$el.appendTo('body')
     fn = (event, data)=>
@@ -45,19 +46,10 @@ window.o.PlatformFacebook = class Facebook
 
   _auth_callback: (response, callback=@auth_error)->
     if response.status is 'connected'
-      return @auth_send(response.authResponse.accessToken)
+      return @auth_send({access_token: response.authResponse.accessToken})
     return callback()
 
   auth: -> window.FB.login ((response)=> @_auth_callback(response)), {scope: @_scope}
 
   auth_error: ->
     @router.message(_l('standalone login error')).bind 'login', => @auth()
-
-  auth_send: (access_token)-> @router.send 'authenticate:try', {facebook: access_token}
-
-  connect: ->
-    window.o.Connector
-      router: @router
-      address: ''
-      version: document.body.getAttribute('data-version')
-      version_callback: => @router.message(_l('version error'))

@@ -1,5 +1,6 @@
-window.o.PlatformInbox = class Inbox
+window.o.PlatformInbox = class Inbox extends window.o.PlatformCommon
   constructor: ->
+    super()
     @router = new window.o.Router()
     @router.$el.appendTo('body')
     fn = (event, data)=>
@@ -13,10 +14,3 @@ window.o.PlatformInbox = class Inbox
     @router.bind 'request:buy:inbox:response', ({link})=>
       @router.subview_append new window.o.ViewPopupIframe({link, parent: @router.$el}).render()
     @
-
-  connect: ->
-    window.o.Connector
-      router: @router
-      address: ''
-      version: document.body.getAttribute('data-version')
-      version_callback: => @router.message(_l('version error'))

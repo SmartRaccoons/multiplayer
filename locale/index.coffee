@@ -43,11 +43,12 @@ module.exports.client = ->
     #{locales_var}
     #{fs.readFileSync("#{__dirname}/fn.coffee")}
     fn = translate_fn_generate(locales)
-    App.lang = do ->
+    App.lang = do =>
       for lang in Object.keys(locales)
         for param in ['lang', 'language']
           if window.location.href.indexOf(param + '=' + lang) >= 0
             return lang
+      @._locales_default = true
       locales_available[0]
 
     @._l = (key, subparams)-> fn(key, App.lang, subparams)

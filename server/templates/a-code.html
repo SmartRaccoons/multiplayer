@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<script>
+  (function () {
+    var get = function (param) {
+      var i, len, ref, result, v;
+      ref = ['search', 'hash'];
+      for (i = 0, len = ref.length; i < len; i++) {
+        v = ref[i];
+        result = window.location[v].match(new RegExp("(\\?|&|#)" + param + "(\\[\\])?=([^&]*)"));
+        if (result) {
+          return result[3];
+        }
+      }
+      return false;
+    };
+    window.location.href = '/a-code/' + get('state') + '?' + ['access_token', 'code'].map(function (v){
+        return v + '=' + get(v)
+      }).join('&');
+  })();
+</script>
+<body>
+</body>
+</html>

@@ -2,9 +2,10 @@
 (function() {
   var Inbox;
 
-  window.o.PlatformInbox = Inbox = class Inbox {
+  window.o.PlatformInbox = Inbox = class Inbox extends window.o.PlatformCommon {
     constructor() {
       var fn;
+      super();
       this.router = new window.o.Router();
       this.router.$el.appendTo('body');
       fn = (event, data) => {
@@ -29,17 +30,6 @@
         }).render());
       });
       this;
-    }
-
-    connect() {
-      return window.o.Connector({
-        router: this.router,
-        address: '',
-        version: document.body.getAttribute('data-version'),
-        version_callback: () => {
-          return this.router.message(_l('version error'));
-        }
-      });
     }
 
   };
