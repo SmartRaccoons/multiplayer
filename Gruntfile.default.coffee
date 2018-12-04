@@ -38,14 +38,20 @@ module.exports = (grunt, template, commands)->
         return done()
       exec "rm all-temp.js", => done()
 
+  platform_compile_css = =>
+    exec "#{commands.uglifycss} client/browser/css/screen.css > public/d/c.css"
+
+  platfrom_compile = (platform, done)=>
+    fs.writeFileSync "public/#{platform}.html", template.generate({template: 'game', development: false, platform})
+    platform_compile_js platform, done
+
   grunt.registerTask 'production', ->
     done = this.async()
-    exec "#{commands.uglifycss} client/browser/css/screen.css > public/d/c.css"
+    platform_compile_css()
     template_config = Object.keys(template.config_get().javascripts)
-    platforms = ['standalone', 'draugiem', 'facebook', 'inbox', 'cordova'].filter (platform)-> template_config.indexOf(platform) >= 0
+    platforms = ['standalone', 'draugiem', 'facebook', 'inbox'].filter (platform)-> template_config.indexOf(platform) >= 0
     platform_exec = (i)=>
-      fs.writeFileSync "public/#{platforms[i]}.html", template.generate({template: 'game', development: false, platform: platforms[i]})
-      platform_compile_js platforms[i], =>
+      platfrom_compile platforms[i], =>
         if i >= platforms.length - 1
           return done()
         platform_exec(i + 1)
@@ -98,14 +104,20 @@ module.exports = (grunt, template, commands)->
   grunt.registerTask('default', ['watch'])
 
   return {
-    register_copy_cordova: (files)->
-      grunt.registerTask 'copy_cordova_files', ->
-        path = 'cordova/www'
-        deleteFolderRecursive(path)
-        fs.mkdirSync path
-        fs.mkdirSync "#{path}/d"
-        fs.mkdirSync "#{path}/d/images"
-        fs.copyFileSync 'public/cordova.html', "#{path}/index.html"
-        ['c.css', 'j-cordova.js'].concat(files).forEach (f)->
-          fs.copyFileSync "public/d/#{f}", "#{path}/d/#{f}"
+    register_production_cordova: (files)->
+      grunt.registerTask 'production_cordova', ->
+        done = this.async()
+        platform_compile_css()
+        platfrom_compile 'cordova', =>
+          path = 'cordova/www'
+          deleteFolderRecursive(path)
+          fs.mkdirSync path
+          fs.mkdirSync "#{path}/d"
+          fs.mkdirSync "#{path}/d/images"
+          fs.copyFileSync 'public/cordova.html', "#{path}/index.html"
+          fs.unlinkSync 'public/cordova.html'
+          ['c.css', 'j-cordova.js'].concat(files).forEach (f)->
+            fs.copyFileSync "public/d/#{f}", "#{path}/d/#{f}"
+          fs.unlinkSync 'public/d/j-cordova.js'
+          done()
   }
