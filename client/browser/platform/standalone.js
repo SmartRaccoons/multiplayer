@@ -3,9 +3,10 @@
   var Standalone;
 
   window.o.PlatformStandalone = Standalone = (function() {
-    class Standalone {
+    class Standalone extends window.o.PlatformCommon {
       constructor(options) {
         var fn;
+        super();
         this.options = options;
         this.router = new window.o.Router();
         this.router.$el.appendTo('body');
@@ -22,28 +23,18 @@
         this.router.bind('request', fn);
         this.router.bind('connect', () => {
           if (!this.auth()) {
-            return this.auth_popup();
+            if (!this.options.language_check) {
+              return this.auth_popup();
+            }
+            return this.language_check(() => {
+              return this.auth_popup();
+            });
           }
         });
         this.router.bind('logout', () => {
           this._auth_clear();
           return window.location.reload(true);
         });
-      }
-
-      connect() {
-        return window.o.Connector({
-          router: this.router,
-          address: '',
-          version: document.body.getAttribute('data-version'),
-          version_callback: () => {
-            return this.router.message(_l('version error'));
-          }
-        });
-      }
-
-      auth_send(p) {
-        return this.router.send('authenticate:try', p);
       }
 
       auth_popup() {

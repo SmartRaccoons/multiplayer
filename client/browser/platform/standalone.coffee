@@ -1,10 +1,11 @@
-window.o.PlatformStandalone = class Standalone
+window.o.PlatformStandalone = class Standalone extends window.o.PlatformCommon
   _authorize:
     draugiem: 'dr_auth_code'
     facebook: 'access_token'
     google: 'code'
 
   constructor: (@options)->
+    super()
     @router = new window.o.Router()
     @router.$el.appendTo('body')
     fn = (event, data)=>
@@ -16,19 +17,12 @@ window.o.PlatformStandalone = class Standalone
     @router.bind 'request', fn
     @router.bind 'connect', =>
       if !@auth()
-        @auth_popup()
+        if !@options.language_check
+          return @auth_popup()
+        @language_check => @auth_popup()
     @router.bind 'logout', =>
       @_auth_clear()
       window.location.reload true
-
-  connect: ->
-    window.o.Connector
-      router: @router
-      address: ''
-      version: document.body.getAttribute('data-version')
-      version_callback: => @router.message(_l('version error'))
-
-  auth_send: (p)-> @router.send 'authenticate:try', p
 
   auth_popup: ->
     authorize = @router.subview_append new window.o.ViewPopupAuthorize({platforms: Object.keys(App.config.login)})

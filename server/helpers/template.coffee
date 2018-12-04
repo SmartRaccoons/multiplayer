@@ -46,6 +46,7 @@ _template = do ->
 config = {}
 
 module.exports.config = (c)-> config = c
+module.exports.config_get = -> config
 
 module.exports.js_get = js_get = (platform, development = false)->
   js = config.javascripts.all.concat(config.javascripts[if development then 'development' else 'master'])
@@ -53,7 +54,7 @@ module.exports.js_get = js_get = (platform, development = false)->
     js = js.concat(config.javascripts[platform])
   return js
 
-template_read = (name)-> fs.readFileSync("#{config.dirname}#{name}.html", 'utf8')
+template_read = (name, dir = config.dirname)-> fs.readFileSync("#{dir}#{name}.html", 'utf8')
 
 _template_include_js = (params)->
   if params.development
@@ -104,3 +105,6 @@ module.exports.generate = (tmp_params)->
     params.javascripts = _template_include_js(params)
     params.css = _template_include_css(params)
   _template(template_read(params.template))(params)
+
+module.exports.generate_local = (template)->
+  _template(template_read(template, "#{__dirname}/../templates/"))

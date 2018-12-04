@@ -1,8 +1,13 @@
+SimpleEvent = require('simple.event').SimpleEvent
 events = require('events')
 assert = require('assert')
 sinon = require('sinon')
 proxyquire = require('proxyquire')
 
+
+PubsubModule_methods =
+  constructor: ->
+  remove: ->
 
 Test_authorize = {}
 class TestAuthorize
@@ -19,7 +24,9 @@ class TestAuthorizeFacebook extends TestAuthorize
     super ...arguments
     @api = 'auth-face'
 
-params = {draugiem: 'good', facebook: 'good'}
+dbmemory = {}
+locale = {}
+params = {draugiem: 'good', facebook: 'good', server_id: 5, dbmemory}
 Anonymous = proxyquire '../anonymous',
   './authorize':
     draugiem: TestAuthorizeDraugiem
@@ -27,6 +34,15 @@ Anonymous = proxyquire '../anonymous',
   '../../config':
     config_get: (p)-> params[p]
     config_callback: (callback)-> callback()
+    module_get: -> locale
+  '../pubsub/multiserver':
+    PubsubModule: class PubsubModule extends SimpleEvent
+      constructor: ->
+        super()
+        PubsubModule_methods.constructor.apply(@, arguments)
+      remove: ->
+        super()
+        PubsubModule_methods.remove.apply(@, arguments)
 .Anonymous
 
 
@@ -40,16 +56,72 @@ describe 'Anonymous', ->
     spy = sinon.spy()
     spy2 = sinon.spy()
     Test_authorize = sinon.spy()
+    dbmemory.random = sinon.spy()
+    dbmemory.random_remove = sinon.spy()
+    locale.validate = sinon.fake.returns('en')
 
   describe 'common', ->
     anonymous = null
     beforeEach ->
+      PubsubModule_methods.constructor = sinon.spy()
+      PubsubModule_methods.remove = sinon.spy()
       anonymous = new Anonymous(socket)
 
-    it 'remove authenticate:try event', ->
+    it 'pubsub ', ->
+      assert.equal('anonymous', anonymous._module)
+      assert.equal(1, PubsubModule_methods.constructor.callCount)
+      assert.deepEqual({id: '5:1'}, PubsubModule_methods.constructor.getCall(0).args[0])
       anonymous.remove()
+      assert.equal(1, PubsubModule_methods.remove.callCount)
+
+    it 'remove', ->
+      anonymous.bind 'remove', spy
+      socket.emit 'remove'
+      assert.equal(1, spy.callCount)
+
+    it 'remove events', ->
+      anonymous.remove()
+      anonymous.bind 'remove', spy
       socket.emit 'authenticate:try', null
       assert.equal(0, socket.send.callCount)
+      socket.emit 'remove', null
+      assert.equal(0, spy.callCount)
+      socket.emit 'authenticate:code'
+      assert.equal(0, dbmemory.random.callCount)
+
+
+  describe 'code', ->
+    anonymous = null
+    beforeEach ->
+      anonymous = new Anonymous(socket)
+      anonymous._module = 'm'
+      anonymous.id = 'id'
+
+    it 'random', ->
+      assert.deepEqual([], anonymous._codes)
+      socket.emit 'authenticate:code'
+      assert.equal(1, locale.validate.callCount)
+      assert.equal('', locale.validate.getCall(0).args[0])
+      assert.equal(1, dbmemory.random.callCount)
+      assert.equal('m', dbmemory.random.getCall(0).args[0])
+      assert.deepEqual({id: 'id', language: 'en'}, dbmemory.random.getCall(0).args[1])
+      dbmemory.random.getCall(0).args[2]({random: 777})
+      assert.equal(1, socket.send.callCount)
+      assert.equal('authenticate:code', socket.send.getCall(0).args[0])
+      assert.deepEqual({random: 777}, socket.send.getCall(0).args[1])
+      assert.deepEqual([777], anonymous._codes)
+
+    it 'random (language)', ->
+      socket.emit 'authenticate:code', {language: 'lv'}
+      assert.equal('lv', locale.validate.getCall(0).args[0])
+
+    it 'remove', ->
+      anonymous._codes = [1, 2]
+      anonymous.remove()
+      assert.equal(2, dbmemory.random_remove.callCount)
+      assert.equal('m', dbmemory.random_remove.getCall(0).args[0])
+      assert.equal(1, dbmemory.random_remove.getCall(0).args[1])
+      assert.equal(2, dbmemory.random_remove.getCall(1).args[1])
 
 
   describe 'Login', ->

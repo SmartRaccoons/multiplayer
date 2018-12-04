@@ -10,6 +10,7 @@ module.exports =
       rooms: require('./server/room/rooms')
     db:
       mysql: require('./server/db/mysql').Mysql
+      memory: require('./server/db/memory').Memory
     pubsub: require('./server/pubsub')
     helpers:
       log: require('./server/helpers/log')
