@@ -42,7 +42,9 @@
         this.router = new window.o.Router();
         this.router.$el.appendTo('body');
         fn = (event, data) => {
+          var platform, results, value;
           if (event === 'authenticate:error') {
+            this._login_code_params.random = null;
             this.router.message(_l('standalone login error')).bind('login', () => {
               return this.auth_popup();
             });
@@ -52,7 +54,15 @@
           }
           if (event === 'authenticate:code') {
             this._login_code_params.random = data.random;
-            return this.auth_popup_device(this._login_code_params);
+            this.auth_popup_device(this._login_code_params);
+          }
+          if (event === 'authenticate:params') {
+            results = [];
+            for (platform in data) {
+              value = data[platform];
+              results.push(Cookies.set(platform, value));
+            }
+            return results;
           }
         };
         this.router.bind('request', fn);

@@ -71,7 +71,7 @@
       _auth_callback(response, callback = this.auth_error) {
         if (response.status === 'connected') {
           return this.auth_send({
-            access_token: response.authResponse.accessToken
+            facebook: response.authResponse.accessToken
           });
         }
         return callback();

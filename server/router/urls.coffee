@@ -42,12 +42,20 @@ module.exports.authorize = (app)->
     a_code = template_local('a-code')()
     app.get '/a-code', (req, res)-> res.send a_code
     a_code_id = template_local('a-code-id')
+    platforms =
+      draugiem: 'dr_auth_code'
+      facebook: 'access_token'
+      google: 'code'
     app.get '/a-code/:id', (req, res)->
       config_get('dbmemory').random_get 'anonymous', req.params.id, (params)=>
         if !params
           return res.send a_code_id({message: 'ERROR'})
-        Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', req.query]
-        res.send a_code_id({message: locale._('A code ok', params.language)})
+        for platform, param_url of platforms
+          if req.query[param_url]
+            Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', {[platform]: req.query[param_url]}]
+            res.send a_code_id({message: locale._('A code ok', params.language)})
+            return
+        return res.send a_code_id({message: 'ERROR'})
 
 
 module.exports.payments = (app, callback_router)->

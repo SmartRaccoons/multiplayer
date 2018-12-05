@@ -46,7 +46,7 @@ window.o.PlatformFacebook = class Facebook extends window.o.PlatformCommon
 
   _auth_callback: (response, callback=@auth_error)->
     if response.status is 'connected'
-      return @auth_send({access_token: response.authResponse.accessToken})
+      return @auth_send({facebook: response.authResponse.accessToken})
     return callback()
 
   auth: -> window.FB.login ((response)=> @_auth_callback(response)), {scope: @_scope}

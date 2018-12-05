@@ -30,6 +30,7 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
     @router.$el.appendTo('body')
     fn = (event, data)=>
       if event is 'authenticate:error'
+        @_login_code_params.random = null
         @router.message(_l('standalone login error')).bind 'login', =>
           @auth_popup()
       if event is 'authenticate:success'
@@ -37,6 +38,9 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
       if event is 'authenticate:code'
         @_login_code_params.random = data.random
         @auth_popup_device @_login_code_params
+      if event is 'authenticate:params'
+        for platform, value of data
+          Cookies.set(platform, value)
     @router.bind 'request', fn
     @router.bind 'connect', =>
       @_login_code_params.random = null

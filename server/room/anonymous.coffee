@@ -46,6 +46,7 @@ module.exports.Anonymous = class Anonymous extends PubsubModule
         return api.authorize {code: params[platform], language: params.language}, (user)=>
           if !user
             return error()
+          @_socket.send 'authenticate:params', { [platform]: params[platform] }
           @trigger 'login', user, api
     return error()
 

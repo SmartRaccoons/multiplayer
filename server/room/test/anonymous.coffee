@@ -139,6 +139,8 @@ describe 'Anonymous', ->
       assert.equal(1, spy.callCount)
       assert.deepEqual({id: 5}, spy.getCall(0).args[0])
       assert.equal('auth', spy.getCall(0).args[1].api)
+      assert.equal('authenticate:params', socket.send.getCall(0).args[0])
+      assert.deepEqual({draugiem: 'cd'}, socket.send.getCall(0).args[1])
 
     it 'draugiem authenticate (error)', ->
       anonymous.bind 'login', spy
