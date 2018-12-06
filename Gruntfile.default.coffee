@@ -41,9 +41,9 @@ module.exports = (grunt, template, commands)->
   platform_compile_css = =>
     exec "#{commands.uglifycss} client/browser/css/screen.css > public/d/c.css"
 
-  platfrom_compile = (platform, done)=>
-    fs.writeFileSync "public/#{platform}.html", template.generate({template: 'game', development: false, platform})
-    platform_compile_js platform, done
+  platform_compile_html = (params)=>
+    fs.writeFileSync "public/#{params.platform}.#{params.extension or 'html'}", template.generate(Object.assign({development: false}, params))
+
 
   grunt.registerTask 'production', ->
     done = this.async()
@@ -51,7 +51,8 @@ module.exports = (grunt, template, commands)->
     template_config = Object.keys(template.config_get().javascripts)
     platforms = ['standalone', 'draugiem', 'facebook', 'inbox'].filter (platform)-> template_config.indexOf(platform) >= 0
     platform_exec = (i)=>
-      platfrom_compile platforms[i], =>
+      platform_compile_html {platform: platforms[i], template: 'game'}
+      platform_compile_js platforms[i], =>
         if i >= platforms.length - 1
           return done()
         platform_exec(i + 1)
@@ -105,11 +106,16 @@ module.exports = (grunt, template, commands)->
 
   return {
     register_production_cordova: (files)->
+      cordova_path = 'cordova'
       grunt.registerTask 'production_cordova', ->
         done = this.async()
         platform_compile_css()
-        platfrom_compile 'cordova', =>
-          path = 'cordova/www'
+        platform_compile_html {platform: 'cordova', template: 'cordova-config', extension: 'xml'}
+        fs.copyFileSync 'public/cordova.xml', "#{cordova_path}/config.xml"
+        fs.unlinkSync 'public/cordova.xml'
+        platform_compile_html {platform: 'cordova', template: 'cordova'}
+        platform_compile_js 'cordova', =>
+          path = "#{cordova_path}/www"
           deleteFolderRecursive(path)
           fs.mkdirSync path
           fs.mkdirSync "#{path}/d"

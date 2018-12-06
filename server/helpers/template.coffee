@@ -54,7 +54,8 @@ module.exports.js_get = js_get = (platform, development = false)->
     js = js.concat(config.javascripts[platform])
   return js
 
-template_read = (name, dir = config.dirname)-> fs.readFileSync("#{dir}#{name}.html", 'utf8')
+template_read = (params)->
+  fs.readFileSync("#{params.dir or config.dirname}#{params.template}.#{params.extension or 'html'}", 'utf8')
 
 _template_include_js = (params)->
   if params.development
@@ -104,7 +105,7 @@ module.exports.generate = (tmp_params)->
   if params.platform
     params.javascripts = _template_include_js(params)
     params.css = _template_include_css(params)
-  _template(template_read(params.template))(params)
+  _template(template_read(tmp_params))(params)
 
 module.exports.generate_local = (template)->
-  _template(template_read(template, "#{__dirname}/../templates/"))
+  _template(template_read({template, dir: "#{__dirname}/../templates/"}))
