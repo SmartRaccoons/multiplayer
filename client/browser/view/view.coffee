@@ -13,10 +13,11 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
   events: {}
   options_html: {}
   options_bind: {}
-  options_bind_el_self: {}
+  options_bind_el_self: {} # or []
 
   constructor: (options)->
     super()
+    @__touch = touch
     @options = _.extend(_.cloneDeep(@options_default), options)
     view_id++
     @_id = view_id
@@ -41,11 +42,11 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
       el = @__selector_parse(m[2], true)
       m[1].split(',').forEach (event)=>
         [ev, pr] = event.split(':')
-        if pr is 'nt' and touch
+        if pr is 'nt' and @__touch
           return
-        if pr is 't' and !touch
+        if pr is 't' and !@__touch
           return
-        if ev is 'click' and touch
+        if ev is 'click' and @__touch
           ev = 'touchstart'
         @$el.on "#{ev}.delegateEvents#{@_id}", el, fn
 
@@ -60,6 +61,7 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
     if updated.length is 0
       return
     @_options_bind
+    .concat @_subview_options_binded()
     .filter (v)->
       updated.filter( (up)-> v.events.indexOf(up) >= 0 ).length > 0
     .forEach (v)->
@@ -101,8 +103,9 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
     return exec
 
   render: ->
-    if not @template
+    if @__rendering or not @template
       return @
+    @__rendering = true
     do =>
       while ev = @__events_binded_el.shift()
         @unbind(ev)
@@ -121,14 +124,32 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
         @option_bind_el_attr(@$el, attr, option)()
     @$el.find('*').forEach (el)=>
       @option_bind_el(el)
+    @__rendering = false
     return @
 
-  subview_append: (view, events = [])->
+  subview_append: (view, events = [], options_bind = {})->
     if !@__subview
       @__subview = []
     @__subview.push(view)
     @subview_events_pass(events, view, @)
+    if Array.isArray(options_bind)
+      options_bind = options_bind.reduce (acc, v)->
+        Object.assign acc, {[v]: v}
+      , {}
+    view._options_bind_parent = Object.keys(options_bind).reduce (acc, key)=>
+      value = options_bind[key]
+      fn = => view.options_update { [value]: @options[key] }
+      fn()
+      acc.concat {events: key.split(','), fn}
+    , []
     view
+
+  _subview_options_binded: ->
+    if !@__subview
+      return []
+    @__subview.reduce (acc, v)=>
+      acc.concat v._options_bind_parent
+    , []
 
   subview_events_pass: (events, view, parent = @)->
     events.forEach (ev)=>
@@ -142,10 +163,19 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
   hide: ->
     @$el.addClass('hidden')
     @trigger 'hide'
+    @
 
   show: ->
     @$el.removeClass('hidden')
     @trigger 'show'
+    @
+
+  show_hide: ->
+    if @$el.hasClass('hidden')
+      return @show()
+    @hide()
+
+  hide_show: -> @show_hide()
 
   remove: ->
     @subview_remove()

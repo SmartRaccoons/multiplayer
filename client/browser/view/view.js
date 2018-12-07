@@ -15,6 +15,7 @@
         super();
         this.option_bind_el = this.option_bind_el.bind(this);
         this.option_bind_el_attr = this.option_bind_el_attr.bind(this);
+        this.__touch = touch;
         this.options = _.extend(_.cloneDeep(this.options_default), options);
         view_id++;
         this._id = view_id;
@@ -52,13 +53,13 @@
           results.push(m[1].split(',').forEach((event) => {
             var ev, pr;
             [ev, pr] = event.split(':');
-            if (pr === 'nt' && touch) {
+            if (pr === 'nt' && this.__touch) {
               return;
             }
-            if (pr === 't' && !touch) {
+            if (pr === 't' && !this.__touch) {
               return;
             }
-            if (ev === 'click' && touch) {
+            if (ev === 'click' && this.__touch) {
               ev = 'touchstart';
             }
             return this.$el.on(`${ev}.delegateEvents${this._id}`, el, fn);
@@ -84,7 +85,7 @@
         if (updated.length === 0) {
           return;
         }
-        this._options_bind.filter(function(v) {
+        this._options_bind.concat(this._subview_options_binded()).filter(function(v) {
           return updated.filter(function(up) {
             return v.events.indexOf(up) >= 0;
           }).length > 0;
@@ -157,9 +158,10 @@
       }
 
       render() {
-        if (!this.template) {
+        if (this.__rendering || !this.template) {
           return this;
         }
+        this.__rendering = true;
         (() => {
           var ev, results;
           results = [];
@@ -201,16 +203,47 @@
         this.$el.find('*').forEach((el) => {
           return this.option_bind_el(el);
         });
+        this.__rendering = false;
         return this;
       }
 
-      subview_append(view, events = []) {
+      subview_append(view, events = [], options_bind = {}) {
         if (!this.__subview) {
           this.__subview = [];
         }
         this.__subview.push(view);
         this.subview_events_pass(events, view, this);
+        if (Array.isArray(options_bind)) {
+          options_bind = options_bind.reduce(function(acc, v) {
+            return Object.assign(acc, {
+              [v]: v
+            });
+          }, {});
+        }
+        view._options_bind_parent = Object.keys(options_bind).reduce((acc, key) => {
+          var fn, value;
+          value = options_bind[key];
+          fn = () => {
+            return view.options_update({
+              [value]: this.options[key]
+            });
+          };
+          fn();
+          return acc.concat({
+            events: key.split(','),
+            fn
+          });
+        }, []);
         return view;
+      }
+
+      _subview_options_binded() {
+        if (!this.__subview) {
+          return [];
+        }
+        return this.__subview.reduce((acc, v) => {
+          return acc.concat(v._options_bind_parent);
+        }, []);
       }
 
       subview_events_pass(events, view, parent = this) {
@@ -234,12 +267,25 @@
 
       hide() {
         this.$el.addClass('hidden');
-        return this.trigger('hide');
+        this.trigger('hide');
+        return this;
       }
 
       show() {
         this.$el.removeClass('hidden');
-        return this.trigger('show');
+        this.trigger('show');
+        return this;
+      }
+
+      show_hide() {
+        if (this.$el.hasClass('hidden')) {
+          return this.show();
+        }
+        return this.hide();
+      }
+
+      hide_show() {
+        return this.show_hide();
       }
 
       remove() {
