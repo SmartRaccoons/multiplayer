@@ -20,9 +20,9 @@ window.o.PlatformFacebook = class Facebook extends window.o.PlatformCommon
       'id': 'facebook-jssdk'
     .appendTo document.body
 
-    window.fbAsyncInit = ->
+    window.fbAsyncInit = =>
       window.FB.init
-        appId      : App.config.facebook_id
+        appId      : @options.facebook_id
         xfbml      : true
         version    : 'v2.5'
       callback()

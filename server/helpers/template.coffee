@@ -57,6 +57,17 @@ module.exports.js_get = js_get = (platform, development = false)->
 template_read = (params)->
   fs.readFileSync("#{params.dir or config.dirname}#{params.template}.#{params.extension or 'html'}", 'utf8')
 
+template_read_block = (params)->
+  dir = "#{params.dir or config.dirname}block/"
+  if !fs.existsSync(dir)
+    return {}
+  return fs.readdirSync(dir).reduce (acc, file)->
+    if file.substr(0, 1) is '.'
+      return acc
+    acc[file.split('.')[0]] = fs.readFileSync("#{dir}#{file}", 'utf8')
+    acc
+  , {}
+
 _template_include_js = (params)->
   if params.development
     return js_get(params.platform, params.development).map (js)->
@@ -105,6 +116,8 @@ module.exports.generate = (tmp_params)->
   if params.platform
     params.javascripts = _template_include_js(params)
     params.css = _template_include_css(params)
+  params.block = template_read_block(tmp_params)
+  Object.keys(params.block).forEach (block)-> params.block[block] = _template(params.block[block])
   _template(template_read(tmp_params))(params)
 
 module.exports.generate_local = (template)->

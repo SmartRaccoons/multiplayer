@@ -36,9 +36,9 @@
           'src': '//connect.facebook.net/en_US/sdk.js',
           'id': 'facebook-jssdk'
         }).appendTo(document.body);
-        return window.fbAsyncInit = function() {
+        return window.fbAsyncInit = () => {
           window.FB.init({
-            appId: App.config.facebook_id,
+            appId: this.options.facebook_id,
             xfbml: true,
             version: 'v2.5'
           });
