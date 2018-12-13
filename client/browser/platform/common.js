@@ -27,6 +27,7 @@
     }
 
     auth_send(p) {
+      this.router.message(_l('Authorizing'));
       return this.router.send('authenticate:try', p);
     }
 

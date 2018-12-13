@@ -19,4 +19,6 @@ window.o.PlatformCommon = class Common
       version_callback: => @router.message(_l('version error'))
     }, params)
 
-  auth_send: (p)-> @router.send 'authenticate:try', p
+  auth_send: (p)->
+    @router.message(_l('Authorizing'))
+    @router.send 'authenticate:try', p

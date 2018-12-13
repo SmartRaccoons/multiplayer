@@ -25,4 +25,5 @@ io = @io ? require 'socket.io-client'
   connector.on 'disconnect', dis
   ['reconnect_attempt', 'reconnecting'].forEach (ev)->
     connector.on ev, -> console.info ev
+  router.connecting()
   connector

@@ -22,6 +22,8 @@ window.o.Router = class Router extends window.o.View
     @render()
     @trigger 'connect'
 
+  connecting: -> @message(_l('Connecting'))
+
   disconnect: -> @message(_l('Disconnect'))
 
   login_duplicate: -> @message(_l('Login duplicate'))

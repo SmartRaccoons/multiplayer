@@ -29,6 +29,10 @@
         return this.trigger('connect');
       }
 
+      connecting() {
+        return this.message(_l('Connecting'));
+      }
+
       disconnect() {
         return this.message(_l('Disconnect'));
       }

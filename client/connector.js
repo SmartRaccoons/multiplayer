@@ -56,6 +56,7 @@
         return console.info(ev);
       });
     });
+    router.connecting();
     return connector;
   };
 

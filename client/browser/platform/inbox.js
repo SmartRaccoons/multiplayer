@@ -18,7 +18,7 @@
       };
       this.router.bind('request', fn);
       this.router.bind('connect', () => {
-        return this.router.send('authenticate:try', {
+        return this.auth_send({
           inbox: this.router._get('uid'),
           language: this.router._get('language')
         });

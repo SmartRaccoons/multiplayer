@@ -9,8 +9,7 @@ window.o.PlatformInbox = class Inbox extends window.o.PlatformCommon
       if event is 'authenticate:success'
         @router.unbind 'request', fn
     @router.bind 'request', fn
-    @router.bind 'connect', =>
-      @router.send 'authenticate:try', {inbox: @router._get('uid'), language: @router._get('language')}
+    @router.bind 'connect', => @auth_send({ inbox: @router._get('uid'), language: @router._get('language') })
     @router.bind 'request:buy:inbox:response', ({link})=>
       @router.subview_append new window.o.ViewPopupIframe({link, parent: @router.$el}).render()
     @
