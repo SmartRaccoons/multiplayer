@@ -180,6 +180,7 @@ module.exports = (grunt, helpers, commands)->
             sh = sharp(cordova_config.icon)
             if img.width
               sh = sh.resize(img.width)
+            sh.jpeg({quality: cordova_config.img_params.quality or 100, progressive: true})
             sh.toFile(img.dest)
           screen: (img)->
             sh = sharp(cordova_config.screen)
@@ -192,6 +193,7 @@ module.exports = (grunt, helpers, commands)->
                 sh2 = sh2.resize(img.width, img.height, {fit: 'fill'})
               sh2
               .overlayWith(screen)
+              .jpeg({quality: cordova_config.img_params.quality or 100, progressive: true})
               .toFile(img.dest)
         Object.keys(medias).forEach (media)->
           fs.mkdirSync "#{path_res}/#{media}"
@@ -204,7 +206,7 @@ module.exports = (grunt, helpers, commands)->
                 fnc[media](Object.assign(img, {
                   dest: "#{path_res}/#{media}/#{platform}/#{img.src}"
                 }))
-              .concat fnc[media]({dest: "#{path_res}/#{media}.png"})
+              .concat fnc[media]({dest: "#{path_res}/#{media}.jpg"})
             )
         .then => done()
 
