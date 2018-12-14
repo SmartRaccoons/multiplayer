@@ -11,7 +11,7 @@ window.o.PlatformFacebook = class Facebook extends window.o.PlatformCommon
         @router.unbind 'request', fn
     @router.bind 'request', fn
     @router.bind 'connect', =>
-      window.FB.getLoginStatus ((response)=> @_auth_callback(response, @auth)), {scope: @_scope}
+      window.FB.getLoginStatus ((response)=> @_auth_callback(response, @auth.bind(@))), {scope: @_scope}
     @
 
   init: (callback)->
@@ -44,7 +44,7 @@ window.o.PlatformFacebook = class Facebook extends window.o.PlatformCommon
         return callback(response.error_code)
       callback()
 
-  _auth_callback: (response, callback=@auth_error)->
+  _auth_callback: (response, callback=@auth_error.bind(@))->
     if response.status is 'connected'
       return @auth_send({facebook: response.authResponse.accessToken})
     return callback()

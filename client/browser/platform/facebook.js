@@ -23,7 +23,7 @@
         this.router.bind('request', fn);
         this.router.bind('connect', () => {
           return window.FB.getLoginStatus(((response) => {
-            return this._auth_callback(response, this.auth);
+            return this._auth_callback(response, this.auth.bind(this));
           }), {
             scope: this._scope
           });
@@ -68,7 +68,7 @@
         });
       }
 
-      _auth_callback(response, callback = this.auth_error) {
+      _auth_callback(response, callback = this.auth_error.bind(this)) {
         if (response.status === 'connected') {
           return this.auth_send({
             facebook: response.authResponse.accessToken
