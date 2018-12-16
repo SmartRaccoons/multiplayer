@@ -23,7 +23,7 @@ medias =
       acc.concat [0..params.length - 3].map (i)->
         resize = params[2 + i]
         return {
-          src: "#{params[0]}#{if resize > 1 then "@#{resize}x" else ''}.jpg"
+          src: "#{params[0]}#{if resize > 1 then "@#{resize}x" else ''}.png"
           width: resize * params[1]
           height: resize * params[1]
           tag: 'icon'
@@ -46,7 +46,7 @@ medias =
       ['-Landscape-2436h', 2436, 1125, 200]
     ].map (params)->
       return {
-        src: "Default#{params[0]}.jpg"
+        src: "Default#{params[0]}.png"
         width: params[1]
         height: params[2]
         padding: if params[3] then params[3] else 0
