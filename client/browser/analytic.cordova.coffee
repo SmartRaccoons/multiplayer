@@ -1,4 +1,12 @@
-window.o.AnalyticCordova = class AnalyticCordova
+wrap = (f)->
+  (=>
+    try
+      f.apply(@, arguments)
+    catch error
+  )()
+
+
+window.o.Analytic = class AnalyticCordova
   init: ->
     window.ga.startTrackerWithId(App.config.google_analytics)
 
