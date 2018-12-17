@@ -2,7 +2,7 @@ window.dataLayer = window.dataLayer or []
 gtag = -> window.dataLayer.push(arguments)
 
 
-window.o.Analytic = class AnalyticBrowser
+window.o.Analytic = class Analytic
   init: ->
     $('<script>').attr
       src: "https://www.googletagmanager.com/gtag/js?id=#{App.config.google_analytics}"
@@ -10,6 +10,7 @@ window.o.Analytic = class AnalyticBrowser
     .appendTo document.body
     gtag('js', new Date())
     @config()
+    @
 
   config: (params = {})->
     params['app_name'] = document.title
