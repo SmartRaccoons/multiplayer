@@ -2,6 +2,8 @@ fs = require('fs')
 exec = require('child_process').exec
 glob = require('glob')
 sharp = require('sharp')
+util = require('util')
+exec_promise = util.promisify(exec)
 
 
 directory_delete = (path)->
@@ -31,17 +33,19 @@ module.exports = (grunt, helpers, commands)->
         console.log('exec error: ' + error)
       callback()
 
-  platform_compile_js = (platform, done)=>
-    fs.writeFileSync 'all-temp.js', helpers.template.js_get(platform).map( (f)->
+  platform_compile_js = ({platform, babel}, done)=>
+    fs.writeFileSync "public/d/j-#{platform}.js", helpers.template.js_get(platform).map( (f)->
       if f.substr(-3) is '.js'
         return fs.readFileSync(f, 'utf8')
       return f
     ).join("\n")
-    exec "#{commands.uglifyjs} all-temp.js -o public/d/j-#{platform}.js", (err)=>
-      if err
-        console.info err
-        return done()
-      exec "rm all-temp.js", => done()
+    Promise.all(
+      [
+        if babel and commands.babel then commands.babel else null,
+        if commands.uglifyjs then commands.uglifyjs else null
+      ].filter (ex)-> !!ex
+      .map (ex)-> exec_promise "#{ex} public/d/j-#{platform}.js -o public/d/j-#{platform}.js"
+    ).then => done()
 
   platform_compile_css = =>
     exec "#{commands.uglifycss} client/browser/css/screen.css > public/d/c.css"
@@ -58,7 +62,7 @@ module.exports = (grunt, helpers, commands)->
     platforms = ['standalone', 'draugiem', 'facebook', 'inbox'].filter (platform)-> template_config.indexOf(platform) >= 0
     platform_exec = (i)=>
       platform_compile_html {platform: platforms[i], template: 'game'}
-      platform_compile_js platforms[i], =>
+      platform_compile_js {platform: platforms[i]}, =>
         if i >= platforms.length - 1
           return done()
         platform_exec(i + 1)
@@ -136,7 +140,7 @@ module.exports = (grunt, helpers, commands)->
     )(helpers.screen)
 
   if helpers.cordova
-    (({files, path, icon})->
+    (({files, path, icon, babel})->
       grunt.registerTask 'production_cordova', ->
         done = this.async()
         platform_compile_css()
@@ -157,7 +161,7 @@ module.exports = (grunt, helpers, commands)->
         fs.copyFileSync 'public/cordova.xml', "#{path}/config.xml"
         fs.unlinkSync 'public/cordova.xml'
         platform_compile_html {platform: 'cordova', template: 'cordova'}
-        platform_compile_js 'cordova', =>
+        platform_compile_js {platform: 'cordova', babel}, =>
           path_www = "#{path}/www"
           directory_clear(path_www)
           fs.mkdirSync "#{path_www}/d"
