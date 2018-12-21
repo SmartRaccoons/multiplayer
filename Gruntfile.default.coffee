@@ -33,7 +33,7 @@ module.exports = (grunt, helpers, commands)->
         console.log('exec error: ' + error)
       callback()
 
-  platform_compile_js = ({platform, babel}, done)=>
+  platform_compile_js = ({platform, babel})=>
     fs.writeFileSync "public/d/j-#{platform}.js", helpers.template.js_get(platform).map( (f)->
       if f.substr(-3) is '.js'
         return fs.readFileSync(f, 'utf8')
@@ -45,10 +45,10 @@ module.exports = (grunt, helpers, commands)->
         if commands.uglifyjs then commands.uglifyjs else null
       ].filter (ex)-> !!ex
       .map (ex)-> exec_promise "#{ex} public/d/j-#{platform}.js -o public/d/j-#{platform}.js"
-    ).then => done()
+    )
 
   platform_compile_css = =>
-    exec "#{commands.uglifycss} client/browser/css/screen.css > public/d/c.css"
+    exec_promise "#{commands.uglifycss} client/browser/css/screen.css > public/d/c.css"
 
   platform_compile_html = (params)=>
     fs.writeFileSync "public/#{params.platform}.#{params.extension or 'html'}", helpers.template.generate(Object.assign({development: false}, params))
@@ -57,16 +57,17 @@ module.exports = (grunt, helpers, commands)->
 
   grunt.registerTask 'production', ->
     done = this.async()
-    platform_compile_css()
     template_config = Object.keys(helpers.template.config_get().javascripts)
-    platforms = ['standalone', 'draugiem', 'facebook', 'inbox'].filter (platform)-> template_config.indexOf(platform) >= 0
-    platform_exec = (i)=>
-      platform_compile_html {platform: platforms[i], template: 'game'}
-      platform_compile_js {platform: platforms[i]}, =>
-        if i >= platforms.length - 1
-          return done()
-        platform_exec(i + 1)
-    platform_exec(0)
+    Promise.all( [
+        platform_compile_css()
+      ].concat(
+        ['standalone', 'draugiem', 'facebook', 'inbox']
+        .filter (platform)-> template_config.indexOf(platform) >= 0
+        .map (platform)->
+          platform_compile_html {platform, template: 'game'}
+          platform_compile_js {platform}
+      )
+    ).then => done()
 
   grunt.registerTask 'compile', ->
     done = @async()
@@ -143,7 +144,6 @@ module.exports = (grunt, helpers, commands)->
     (({files, path, icon, babel})->
       grunt.registerTask 'production_cordova', ->
         done = this.async()
-        platform_compile_css()
         medias = helpers.cordova.medias()
         platform_compile_html
           platform: 'cordova'
@@ -161,7 +161,10 @@ module.exports = (grunt, helpers, commands)->
         fs.copyFileSync 'public/cordova.xml', "#{path}/config.xml"
         fs.unlinkSync 'public/cordova.xml'
         platform_compile_html {platform: 'cordova', template: 'cordova'}
-        platform_compile_js {platform: 'cordova', babel}, =>
+        Promise.all([
+          platform_compile_css()
+          platform_compile_js {platform: 'cordova', babel}
+        ]).then =>
           path_www = "#{path}/www"
           directory_clear(path_www)
           fs.mkdirSync "#{path_www}/d"
