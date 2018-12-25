@@ -30,13 +30,28 @@ medias =
         }
     , []
 
+    android: [
+      ['ldpi', 36]
+      ['mdpi', 48]
+      ['hdpi', 72]
+      ['xhdpi', 96]
+      ['xxhdpi', 144]
+      ['xxxhdpi', 192]
+    ].map (params)->
+      return {
+        src: "icon-#{params[1]}-#{params[0]}.png"
+        width: params[1]
+        height: params[1]
+        tag: 'icon'
+      }
+
   screen:
     ios: [
       ['~iphone', 320, 480, 10]
       ['@2x~iphone', 640, 960, 30]
       ['-Portrait~ipad', 768, 1024, 50]
       ['-Portrait@2x~ipad', 1536, 2048, 100]
-      ['-Landscape~ipad', 1024, 768]
+      ['-Landscape~ipad', 1024, 768, 50]
       ['-Landscape@2x~ipad', 2048, 1536, 200]
       ['-568h@2x~iphone', 640, 1136, 50]
       ['-667h', 750, 1334, 50]
@@ -52,10 +67,28 @@ medias =
         padding: if params[3] then params[3] else 0
         tag: 'splash'
       }
+    android: [
+      ['hdpi', 800, 480, 30]
+      ['ldpi', 320, 200, 10]
+      ['mdpi', 480, 320, 20]
+      ['xhdpi', 1280, 720, 50]
+      ['xxhdpi', 1600, 960, 80]
+      ['xxxhdpi', 1920, 1280, 100]
+    ].reduce (acc, params)->
+      acc.concat ['land', 'port'].map (orientation)->
+        return {
+          src: "splash-#{orientation}-#{params[0]}.png"
+          density: "#{orientation}-#{params[0]}"
+          width: if orientation is 'land' then params[1] else params[2]
+          height: if orientation is 'land' then params[2] else params[1]
+          padding: if params[3] then params[3] else 0
+          tag: 'splash'
+        }
+    , []
 
 config = {}
 module.exports.config = (c)->
-  config = Object.assign({path: 'cordova', platforms: ['ios']}, c)
+  config = Object.assign({path: 'cordova', platforms: ['ios', 'android']}, c)
 
 module.exports.config_get = -> config
 
