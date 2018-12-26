@@ -141,7 +141,7 @@ module.exports = (grunt, helpers, commands)->
     )(helpers.screen)
 
   if helpers.cordova
-    (({files, path, icon, babel})->
+    (({files, path, icon, babel, android})->
       grunt.registerTask 'production_cordova', ->
         done = this.async()
         medias = helpers.cordova.medias()
@@ -214,5 +214,14 @@ module.exports = (grunt, helpers, commands)->
               .concat fnc[media]({dest: "#{path_res}/#{media}.png"})
             )
         .then => done()
+      if android
+        grunt.registerTask 'production_cordova_build_android', ->
+          done = this.async()
+          exec_promise "cd cordova && cordova build android --release -- --keystore=#{android.keystore} --storePassword=#{android.storePassword} --alias=#{android.alias} --password=#{android.password} --gradleArg=-PcdvMinSdkVersion=#{android.minApi}"
+          .then (res)=>
+            console.info 'out: ', res.stdout
+            console.info 'error: ', res.stderr
+            fs.copyFileSync 'cordova/platforms/android/app/build/outputs/apk/release/app-release.apk', "cordova/android.apk"
+            done()
 
     )(helpers.cordova.config_get())
