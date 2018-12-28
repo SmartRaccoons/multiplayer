@@ -80,11 +80,13 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
 
   option_bind_el: (el)=>
     attributes = $(el)[0].attributes
-    [0...attributes.length].forEach (i)=>
-      option = @_option_get_from_str attributes[i].value
-      if !option
-        return
-      @option_bind_el_attr(el, attributes[i].name, option)()
+    [0...attributes.length].map (i)=>
+      {
+        option: @_option_get_from_str attributes[i].value
+        name: attributes[i].name
+      }
+    .filter ({option})-> !!option
+    .forEach ({name, option})=> @option_bind_el_attr(el, name, option)()
     option = @_option_get_from_str $(el).html()
     if option
       @option_bind_el_attr(el, 'html', option)()

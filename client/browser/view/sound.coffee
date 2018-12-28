@@ -1,10 +1,12 @@
 cordova = -> !!window.cordova
 
+__enable = true
+
 @o.Sound = class Sound
   _volume: 0.3
   constructor: (@options)->
     @_media_last = null
-    @__muted = false
+    @__muted = if Cookies then !!parseInt(Cookies.get('__sound_muted')) else false
     fn = =>
       @__enable = true
       document.body.removeEventListener('click', fn)
@@ -13,6 +15,8 @@ cordova = -> !!window.cordova
     document.body.addEventListener('touchstart', fn)
 
   play: (sound)->
+    if !__enable
+      return
     if !@__enable
       return
     if @__muted
@@ -29,6 +33,9 @@ cordova = -> !!window.cordova
       @_media_last.play()
     catch
 
+  is_enable: -> __enable
+  disable: -> __enable = false
+
   stop: ->
     if !@_media_last
       return
@@ -39,4 +46,7 @@ cordova = -> !!window.cordova
 
   is_mute: -> @__muted
 
-  mute: (@__muted)-> @stop()
+  mute: (@__muted)->
+    @stop()
+    if Cookies
+      Cookies.set('__sound_muted', if @__muted then 1 else 0)

@@ -119,13 +119,15 @@
           var results = [];
           for (var j = 0, ref = attributes.length; 0 <= ref ? j < ref : j > ref; 0 <= ref ? j++ : j--){ results.push(j); }
           return results;
-        }).apply(this).forEach((i) => {
-          var option;
-          option = this._option_get_from_str(attributes[i].value);
-          if (!option) {
-            return;
-          }
-          return this.option_bind_el_attr(el, attributes[i].name, option)();
+        }).apply(this).map((i) => {
+          return {
+            option: this._option_get_from_str(attributes[i].value),
+            name: attributes[i].name
+          };
+        }).filter(function({option}) {
+          return !!option;
+        }).forEach(({name, option}) => {
+          return this.option_bind_el_attr(el, name, option)();
         });
         option = this._option_get_from_str($(el).html());
         if (option) {
