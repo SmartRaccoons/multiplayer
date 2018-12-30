@@ -5,8 +5,13 @@ update_ev = 'options_update'
 
 touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigator.msMaxTouchPoints > 0)
 
+__body = new SimpleEvent()
+$('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click'
+
+
 
 @o.View = class View extends SimpleEvent
+  background_click_hide: false
   className: null
   el: 'div'
   template: ''
@@ -163,6 +168,7 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
       while view = this.__subview.shift()
         view.remove()
   hide: ->
+    @__background_click_callback_remove()
     @$el.addClass('hidden')
     @trigger 'hide'
     @
@@ -170,6 +176,14 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
   show: ->
     @$el.removeClass('hidden')
     @trigger 'show'
+    if @background_click_hide
+      @__background_click_callback_remove()
+      setTimeout =>
+        if @__removed
+          return
+        @__background_click_callback = => @hide()
+        __body.bind 'click', @__background_click_callback
+      , 0
     @
 
   show_hide: ->
@@ -179,7 +193,13 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
 
   hide_show: -> @show_hide()
 
+  __background_click_callback_remove: ->
+    if @__background_click_callback
+      __body.unbind 'click', @__background_click_callback
+
   remove: ->
+    @__removed = true
+    @__background_click_callback_remove()
     @subview_remove()
     super ...arguments
     @__events_undelegate()
