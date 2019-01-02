@@ -43,7 +43,7 @@ module.exports.Anonymous = class Anonymous extends PubsubModule
     for platform in platforms
       if params[platform]
         api = new _authorize[platform]()
-        return api.authorize {code: params[platform], language: params.language}, (user)=>
+        return api.authorize {code: params[platform], language: params.language, params: params.params}, (user)=>
           if !user
             return error()
           @_socket.send 'authenticate:params', { [platform]: params[platform] }

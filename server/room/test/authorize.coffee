@@ -283,7 +283,7 @@ describe 'Athorize', ->
       assert.equal('code', login._user_session_check.getCall(0).args[0])
       login._user_session_check.getCall(0).args[1](null)
       assert.equal(1, login._api_call.callCount)
-      assert.equal('code', login._api_call.getCall(0).args[0])
+      assert.deepEqual({code: 'code'}, login._api_call.getCall(0).args[0])
       assert.equal(0, login._api_session.callCount)
 
     it 'new update', ->
@@ -344,7 +344,7 @@ describe 'Athorize', ->
       assert.equal('transaction_draugiem', login._table_transaction)
 
     it 'success', ->
-      login._api_call('code', spy)
+      login._api_call({'code'}, spy)
       assert.equal(1, TestDraugiem_authrorize.callCount)
       assert.equal('code', TestDraugiem_authrorize.getCall(0).args[0])
       TestDraugiem_authrorize.getCall(0).args[1]({uid: '56', name: 'n', surname: 'sn', img: 'im', language: 'lv'})
@@ -454,7 +454,7 @@ describe 'Athorize', ->
       assert.equal('transaction_facebook', login._table_transaction)
 
     it 'success', ->
-      login._api_call('code', spy)
+      login._api_call({code: 'code'}, spy)
       assert.equal(1, TestFacebook.setAccessToken.callCount)
       assert.equal('code', TestFacebook.setAccessToken.getCall(0).args[0])
       assert.equal(1, TestFacebook.get.callCount)

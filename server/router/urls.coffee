@@ -16,6 +16,7 @@ config_callback( ->
 
 
 module.exports.authorize = (app)->
+  code_url = config_get('code_url')
   links =
     facebook: (path = '/g', code = '')->
       'https://www.facebook.com/v2.12/dialog/oauth?' +
@@ -37,22 +38,22 @@ module.exports.authorize = (app)->
     if config_get(platform)
       app.get config_get(platform).login_full, (req, res)-> res.redirect links[platform]()
       app.get config_get(platform).login + '/:id', (req, res)->
-        res.redirect links[platform]("/a-code", req.params.id)
+        res.redirect links[platform](code_url, req.params.id)
   do =>
     a_code = template_local('a-code')()
-    app.get '/a-code', (req, res)-> res.send a_code
+    app.get code_url, (req, res)-> res.send a_code
     a_code_id = template_local('a-code-id')
     platforms =
       draugiem: 'dr_auth_code'
       facebook: 'access_token'
       google: 'code'
-    app.get '/a-code/:id', (req, res)->
+    app.get "#{code_url}/:id", (req, res)->
       config_get('dbmemory').random_get 'anonymous', req.params.id, (params)=>
         if !params
           return res.send a_code_id({message: 'ERROR'})
         for platform, param_url of platforms
           if req.query[param_url]
-            Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', { [platform]: decodeURIComponent(req.query[param_url]) } ]
+            Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', { [platform]: decodeURIComponent(req.query[param_url]), params: {code_url: true}} ]
             res.send a_code_id({message: locale._('A code ok', params.language)})
             return
         return res.send a_code_id({message: 'ERROR'})
