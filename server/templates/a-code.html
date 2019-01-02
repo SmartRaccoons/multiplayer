@@ -12,12 +12,12 @@
         v = ref[i];
         result = window.location[v].match(new RegExp("(\\?|&|#)" + param + "(\\[\\])?=([^&]*)"));
         if (result) {
-          return decodeURIComponent(result[3]);
+          return result[3];
         }
       }
       return false;
     };
-    window.location.href = '/a-code/' + get('state') + '?' + ['access_token', 'code'].map(function (v){
+    window.location.href = '/a-code/' + get('state') + '?' + ['access_token', 'code'].filter(function(v) { return !!get(v); }).map(function (v){
         return v + '=' + get(v)
       }).join('&');
   })();
