@@ -11,7 +11,7 @@
           v = ref[i];
           result = window.location[v].match(new RegExp("(\\?|&|#)" + param + "(\\[\\])?=([^&]*)"));
           if (result) {
-            return result[3];
+            return decodeURIComponent(result[3]);
           }
         }
         return false;

@@ -9,7 +9,7 @@ window.o.Router = class Router extends window.o.View
         new RegExp("(\\?|&|#)" + param + "(\\[\\])?=([^&]*)")
       )
       if result
-        return result[3]
+        return decodeURIComponent(result[3])
     return false
 
   constructor: ->

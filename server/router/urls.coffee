@@ -52,7 +52,7 @@ module.exports.authorize = (app)->
           return res.send a_code_id({message: 'ERROR'})
         for platform, param_url of platforms
           if req.query[param_url]
-            Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', {[platform]: req.query[param_url]}]
+            Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', { [platform]: decodeURIComponent(req.query[param_url]) } ]
             res.send a_code_id({message: locale._('A code ok', params.language)})
             return
         return res.send a_code_id({message: 'ERROR'})
