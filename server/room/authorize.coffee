@@ -26,7 +26,7 @@ config_callback ->
       buy_price: config_get('inbox').buy_price
     inbox = new ApiInbox(config_get(['inbox', 'server']))
   if config_get('google')
-    google = new ApiGoogle(config_get(['google', 'server']))
+    google = new ApiGoogle(config_get(['google', 'server', 'code_url']))
 
 
 module.exports.Login = class Login
