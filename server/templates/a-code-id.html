@@ -13,17 +13,26 @@
         body {
             width: 100%;
             display: table;
-            font-size: 26px;
-            font-size: 8vw;
+            font-size: 20px;
+            font-size: 6vw;
             text-align: center;
         }
+        div {
+          display: table-cell;
+          vertical-align: middle;
+        }
         span {
-            display: table-cell;
-            vertical-align: middle;
+          display: block;
+        }
+        .error {
+          color: red;
         }
     </style>
 </head>
-<body>
-    <span><%= message %></span>
-</body>
+<body><div>
+  <% if(error){%>
+    <span class='error'><%= error %></span>
+  <%}%>
+  <span><%= message %></span>
+</div></body>
 </html>

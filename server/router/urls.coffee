@@ -17,6 +17,11 @@ config_callback( ->
 
 module.exports.authorize = (app)->
   code_url = config_get('code_url')
+  code_template = do =>
+    a_code_id = template_local('a-code-id')
+    (params)=> a_code_id Object.assign({message: '', error: ''}, params)
+  code_parse = (code)-> [ locale.lang_long(code.substr(0, 1)), code.substr(1) ]
+
   links =
     facebook: (path = '/g', code = '')->
       'https://www.facebook.com/v2.12/dialog/oauth?' +
@@ -38,25 +43,35 @@ module.exports.authorize = (app)->
     if config_get(platform)
       app.get config_get(platform).login_full, (req, res)-> res.redirect links[platform]()
       app.get config_get(platform).login + '/:id', (req, res)->
-        res.redirect links[platform](code_url, req.params.id)
+        [language, code] = code_parse(req.params.id)
+        config_get('dbmemory').random_get 'anonymous', code, (params)=>
+          if !params
+            return res.send code_template({
+              error: locale._('Link error', language)
+              message: locale._('Link error desc', language)
+            })
+          res.redirect links[platform](code_url, req.params.id)
   do =>
     a_code = template_local('a-code')()
     app.get code_url, (req, res)-> res.send a_code
-    a_code_id = template_local('a-code-id')
     platforms =
       draugiem: 'dr_auth_code'
       facebook: 'access_token'
       google: 'code'
     app.get "#{code_url}/:id", (req, res)->
-      config_get('dbmemory').random_get 'anonymous', req.params.id, (params)=>
+      [language, code] = code_parse(req.params.id)
+      config_get('dbmemory').random_get 'anonymous', code, (params)=>
         if !params
-          return res.send a_code_id({message: 'ERROR'})
+          return res.send code_template({
+            error: locale._('Link error', language)
+            message: locale._('Link error device', language)
+          })
         for platform, param_url of platforms
           if req.query[param_url]
             Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', { [platform]: decodeURIComponent(req.query[param_url]), params: {code_url: true}} ]
-            res.send a_code_id({message: locale._('A code ok', params.language)})
+            res.send code_template({message: locale._('A code ok', language)})
             return
-        return res.send a_code_id({message: 'ERROR'})
+        return res.send code_template({error: locale._('Error', language)})
 
 
 module.exports.payments = (app, callback_router)->

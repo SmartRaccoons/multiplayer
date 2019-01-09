@@ -59,6 +59,7 @@ describe 'Anonymous', ->
     dbmemory.random = sinon.spy()
     dbmemory.random_remove = sinon.spy()
     locale.validate = sinon.fake.returns('en')
+    locale.lang_short = sinon.fake.returns('e')
 
   describe 'common', ->
     anonymous = null
@@ -102,13 +103,15 @@ describe 'Anonymous', ->
       socket.emit 'authenticate:code'
       assert.equal(1, locale.validate.callCount)
       assert.equal('', locale.validate.getCall(0).args[0])
+      assert.equal(1, locale.lang_short.callCount)
+      assert.equal('en', locale.lang_short.getCall(0).args[0])
       assert.equal(1, dbmemory.random.callCount)
       assert.equal('m', dbmemory.random.getCall(0).args[0])
-      assert.deepEqual({id: 'id', language: 'en'}, dbmemory.random.getCall(0).args[1])
+      assert.deepEqual({id: 'id'}, dbmemory.random.getCall(0).args[1])
       dbmemory.random.getCall(0).args[2]({random: 777})
       assert.equal(1, socket.send.callCount)
       assert.equal('authenticate:code', socket.send.getCall(0).args[0])
-      assert.deepEqual({random: 777}, socket.send.getCall(0).args[1])
+      assert.deepEqual({random: 'e777'}, socket.send.getCall(0).args[1])
       assert.deepEqual([777], anonymous._codes)
 
     it 'random (language)', ->

@@ -31,10 +31,10 @@ module.exports.Anonymous = class Anonymous extends PubsubModule
       @_socket.on p[0], @[p[1]]
 
   authenticate_code: (params)->
-    language = locale.validate(if params then params.language else '')
-    dbmemory.random @_module, {language, id: @id}, ({random})=>
+    language = locale.lang_short(locale.validate(if params then params.language else ''))
+    dbmemory.random @_module, {id: @id}, ({random})=>
       @_codes.push random
-      @_socket.send 'authenticate:code', {random}
+      @_socket.send 'authenticate:code', {random: [language, random].join('') }
 
   authenticate: (params)->
     error = => @_socket.send 'authenticate:error'

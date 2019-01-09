@@ -62,5 +62,12 @@ module.exports.validate = (lang)->
         return l
   return locales_available[0]
 
+module.exports.lang_short = (lang)-> locales[lang].server.id
+
+module.exports.lang_long = (short)->
+  for lang, locale of locales
+    if locale.server.id is short
+      return lang
+  return locales_available[0]
 
 module.exports._ = -> translate_fn.apply(@, arguments)
