@@ -5,7 +5,7 @@ module.exports.Memory = class Memory
   constructor: (@options)->
     @client = redis.createClient(@options.redis)
 
-  random: (key, value, callback = ->, expire = 1000 * 60 * 30, length = 6, times = 0)->
+  random: (key, value, callback = ->, expire = 1000 * 60 * 10, length = 6, times = 0)->
     if times > 1000
       return console.info 'random error'
     max = Math.pow(10, length) - 1
