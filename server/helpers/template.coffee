@@ -64,7 +64,7 @@ template_read_block = (params)->
   return fs.readdirSync(dir).reduce (acc, file)->
     if file.substr(0, 1) is '.'
       return acc
-    acc[file.split('.')[0]] = fs.readFileSync("#{dir}#{file}", 'utf8')
+    acc[file.split('.')[0]] = _template fs.readFileSync("#{dir}#{file}", 'utf8')
     acc
   , {}
 
@@ -117,7 +117,10 @@ module.exports.generate = (tmp_params)->
     params.javascripts = _template_include_js(params)
     params.css = _template_include_css(params)
   params.block = template_read_block(tmp_params)
-  Object.keys(params.block).forEach (block)-> params.block[block] = _template(params.block[block])
+  params.multiplayer =
+    block: template_read_block Object.assign({
+        dir: "#{__dirname}/../templates/"
+      }, tmp_params)
   _template(template_read(tmp_params))(params)
 
 module.exports.generate_local = (template)->

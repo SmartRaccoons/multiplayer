@@ -9,9 +9,11 @@ template_local = require('../helpers/template').generate_local
 
 Anonymous = null
 locale = null
+template = null
 config_callback( ->
   Anonymous = module_get('server.room.anonymous').Anonymous
   locale = module_get('locale')
+  template = module_get('server.helpers.template')
 )()
 
 
@@ -72,6 +74,19 @@ module.exports.authorize = (app)->
             res.send code_template({message: locale._('A code ok', language)})
             return
         return res.send code_template({error: locale._('Error', language)})
+
+
+module.exports.index = (app, locales)->
+  index = locales.reduce (acc, language)->
+    acc[language] = template.generate({
+      template: 'index'
+      _l: (v)-> locale._(v, language)
+    })
+    acc
+  , {}
+  app.get '/', (req, res)->
+    language = if req.query and locales.indexOf(req.query.lang) >= 0 then req.query.lang else locales[0]
+    res.send index[language]
 
 
 module.exports.payments = (app, callback_router)->

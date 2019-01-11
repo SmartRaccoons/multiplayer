@@ -1,0 +1,35 @@
+<script>
+function popup_close() {
+  var el = document.getElementById('popup');
+  el.style.display = 'none';
+}
+
+(function(){
+  function os_get() {
+    var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    if (/android/i.test(userAgent)) {
+        return 'android';
+    }
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+      return 'ios';
+    }
+    return null;
+  }
+
+  function popup_open(os) {
+    var div = document.createElement('div');
+    var links = JSON.parse('<%= JSON.stringify(links) %>');
+    if (!links[os]) {
+      return;
+    }
+    div.id ='popup';
+    div.innerHTML = '<div data-os="' + os + '"><a href="' + links[os] + '">' + os + ' <%= _l("Popupdownload download") %></a> <button onclick="popup_close()"><%= _l("Popupdownload cancel") %></button></div>';
+    document.body.appendChild(div);
+  }
+  var os = os_get();
+  os = 'android';
+  if (os) {
+    popup_open(os);
+  }
+})();
+</script>
