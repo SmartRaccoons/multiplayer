@@ -458,11 +458,11 @@ describe 'Athorize', ->
       assert.equal(1, TestFacebook.setAccessToken.callCount)
       assert.equal('code', TestFacebook.setAccessToken.getCall(0).args[0])
       assert.equal(1, TestFacebook.get.callCount)
-      assert.equal('/me?fields=locale,name,picture.width(100)', TestFacebook.get.getCall(0).args[0])
-      TestFacebook.get.getCall(0).args[1](null, {id: '56', name: 'n', locale: 'en_GB', picture: {data: {url: 'im'}}})
+      assert.equal('/me?fields=token_for_business,locale,name,picture.width(100)', TestFacebook.get.getCall(0).args[0])
+      TestFacebook.get.getCall(0).args[1](null, {id: '56', token_for_business: 'tf', name: 'n', locale: 'en_GB', picture: {data: {url: 'im'}}})
       assert.equal(1, spy.callCount)
       assert.deepEqual({facebook_uid: '56'}, spy.getCall(0).args[0])
-      assert.deepEqual({name: 'n', img: 'im', language: 'en_GB'}, spy.getCall(0).args[1])
+      assert.deepEqual({facebook_token_for_business: 'tf', name: 'n', img: 'im', language: 'en_GB'}, spy.getCall(0).args[1])
 
     it 'success no img', ->
       login._api_call('code', spy)

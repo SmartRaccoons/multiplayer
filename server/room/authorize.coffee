@@ -163,10 +163,10 @@ module.exports.facebook = class LoginFacebook extends Login
   _table_transaction: 'transaction_facebook'
   _api_call: ({code}, callback)->
     fbgraph.setAccessToken(code)
-    fbgraph.get '/me?fields=locale,name,picture.width(100)', (err, res)=>
+    fbgraph.get '/me?fields=token_for_business,locale,name,picture.width(100)', (err, res)=>
       if err
         return callback(null)
-      callback({facebook_uid: res.id}, {name: res.name, language: res.locale, img: if res.picture and res.picture.data then res.picture.data.url else null})
+      callback({facebook_uid: res.id}, {facebook_token_for_business: res.token_for_business, name: res.name, language: res.locale, img: if res.picture and res.picture.data then res.picture.data.url else null})
 
   buy: (params, callback)->
     @_transaction_create params, callback

@@ -4,6 +4,7 @@ CREATE TABLE `auth_user` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `draugiem_uid` int(11) DEFAULT NULL,
   `facebook_uid` varchar(100) DEFAULT NULL,
+  `facebook_token_for_business` varchar(100) DEFAULT NULL,
   `google_uid` varchar(100) DEFAULT NULL,
   `inbox_uid` varchar(100) DEFAULT NULL,
   `name` varchar(100) NOT NULL,
