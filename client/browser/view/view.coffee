@@ -110,6 +110,7 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
     return exec
 
   render: ->
+    @subview_remove()
     if @__rendering or not @template
       return @
     @__rendering = true

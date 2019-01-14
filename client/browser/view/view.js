@@ -166,6 +166,7 @@
       }
 
       render() {
+        this.subview_remove();
         if (this.__rendering || !this.template) {
           return this;
         }
