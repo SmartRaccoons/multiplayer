@@ -8,8 +8,7 @@
         return callback();
       }
       return this.router.subview_append(new window.o.ViewPopupLanguage()).bind('language', (language) => {
-        App.lang = language;
-        return this.router.render();
+        return App.lang = language;
       }).bind('remove', () => {
         return callback();
       }).render().$el.appendTo(this.router.$el);

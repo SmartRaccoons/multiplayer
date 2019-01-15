@@ -6,7 +6,6 @@ window.o.PlatformCommon = class Common
     @router.subview_append(new window.o.ViewPopupLanguage())
     .bind 'language', (language)=>
       App.lang = language
-      @router.render()
     .bind 'remove', => callback()
     .render()
     .$el.appendTo(@router.$el)
