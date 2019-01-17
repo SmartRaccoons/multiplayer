@@ -25,6 +25,7 @@ module.exports.ApiInbox = class ApiInbox
     }, (data)->
       callback
         name: [data.users[0].fname, data.users[0].lname].join(' ')
+        language: data.users[0].language
         # email: data.users[0].mail
     , callback_error
 

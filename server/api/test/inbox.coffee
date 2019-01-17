@@ -22,14 +22,14 @@ describe 'api', ->
   describe 'authorize', ->
     beforeEach ->
       a._get_data = (p, data, callback)->
-        callback({code: '200 OK',users: [ { apiKey: 'apikey',fname: 'name', lname: 'lname',mail: 'm@openid.inbox.lv' } ] })
+        callback({code: '200 OK',users: [ { apiKey: 'apikey',fname: 'name', lname: 'lname',mail: 'm@openid.inbox.lv', language: 'lg' } ] })
 
     it 'ok', ->
       spy = sinon.spy()
       a.authorize('i-uid', spy)
       assert.equal(1, spy.callCount)
       # assert.deepEqual({name: 'name lname',email: 'm@openid.inbox.lv'}, spy.getCall(0).args[0])
-      assert.deepEqual({name: 'name lname'}, spy.getCall(0).args[0])
+      assert.deepEqual({name: 'name lname', language: 'lg'}, spy.getCall(0).args[0])
 
     it 'request', ->
       sinon.spy(a, '_get_data')
