@@ -281,6 +281,10 @@
         return this;
       }
 
+      __is_visible() {
+        return !this.$el.hasClass('hidden');
+      }
+
       show() {
         this.$el.removeClass('hidden');
         this.trigger('show');
@@ -300,7 +304,7 @@
       }
 
       show_hide() {
-        if (this.$el.hasClass('hidden')) {
+        if (!this.__is_visible()) {
           return this.show();
         }
         return this.hide();

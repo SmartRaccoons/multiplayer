@@ -174,6 +174,8 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
     @trigger 'hide'
     @
 
+  __is_visible: -> !@$el.hasClass('hidden')
+
   show: ->
     @$el.removeClass('hidden')
     @trigger 'show'
@@ -188,7 +190,7 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
     @
 
   show_hide: ->
-    if @$el.hasClass('hidden')
+    if !@__is_visible()
       return @show()
     @hide()
 
