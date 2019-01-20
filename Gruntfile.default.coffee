@@ -65,7 +65,7 @@ module.exports = (grunt, helpers, commands)->
         .filter (platform)-> template_config.indexOf(platform) >= 0
         .map (platform)->
           platform_compile_html {platform, template: 'game'}
-          platform_compile_js {platform}
+          platform_compile_js {platform, babel: true}
       )
     ).then => done()
 
