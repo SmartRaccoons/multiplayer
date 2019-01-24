@@ -1,11 +1,3 @@
-get_depth_object = (object, path)->
-  ob = null
-  for part in path.split('.')
-    if !(object and object[part])
-      return null
-    ob = object[part]
-  return ob
-
 config =
   config: {}
 callbacks = []
@@ -21,4 +13,5 @@ module.exports.config_get = config_get = (param)->
 module.exports.config_callback = (callback)->
   callbacks.push(callback)
   callback
-module.exports.module_get = (path)-> get_depth_object(config, path) or require("./#{path.replace(/\./g, '/')}")
+module.exports.module_get = (path)->
+  config[path] or require("./#{path.replace(/\./g, '/')}")
