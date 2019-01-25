@@ -52,4 +52,4 @@ window.o.PlatformFacebook = class Facebook extends window.o.PlatformCommon
   auth: -> window.FB.login ((response)=> @_auth_callback(response)), {scope: @_scope}
 
   auth_error: ->
-    @router.message(_l('standalone login error')).bind 'login', => @auth()
+    @router.message(_l('Authorize.standalone login error')).bind 'login', => @auth()

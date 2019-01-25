@@ -16,7 +16,7 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
     fn = (event, data)=>
       if event is 'authenticate:error'
         @_login_code_params.random = null
-        @router.message(_l('standalone login error')).bind 'login', =>
+        @router.message(_l('Authorize.standalone login error')).bind 'login', =>
           @auth_popup()
       if event is 'authenticate:success'
         @router.unbind 'request', fn
@@ -38,14 +38,33 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
       window.location.reload true
 
   connect: ->
-    super({mobile: true})
+    super({
+      mobile: true
+      version_callback: ({actual})=>
+        to_int = (v)-> v.split('.').map (v)-> parseInt(v)
+        version_diff = ((v1, v2)=>
+          for i in [0..1]
+            if v1[i] isnt v2[i]
+              return v1[i] - v2[i]
+          return 0
+        )(to_int(App.version), to_int(actual))
+        is_prev = => window.location.href.indexOf('prev.html') >= 0
+        redirect = (url)=>
+          window.location = url
+        if version_diff > 0 and !is_prev()
+          return redirect('prev.html')
+        if version_diff < 0 and is_prev()
+          return redirect('index.html')
+        @router.message(_l('Authorize.version error cordova')).bind 'open', =>
+          window.open App.config[window.App.config.platform.name].market, '_system'
+    })
 
   auth_popup_device: ({random, platform})->
     link = [App.config.server, App.config.login[platform], '/', random].join('')
     link_text = link.replace('https://', '').replace('http://', '')
     @router.subview_append(new PopupCode({
-      head: _l('Authorize') + ' ' + platform
-      body: _l('Authorize link', { link, link_text })
+      head: _l('Authorize.head') + ' ' + platform
+      body: _l('Authorize.Authorize link', {link: "<a target='_blank' href='#{link}'>#{link_text}</a>"})
     }))
     .bind 'remove', => @auth_popup()
     .render().$el.appendTo @router.$el

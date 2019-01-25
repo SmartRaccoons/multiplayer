@@ -74,11 +74,12 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
     updated.forEach (option)=> @trigger "#{update_ev}:#{option}"
     @trigger update_ev
 
-  options_update_bind: (option, exec)-> @bind "#{update_ev}:#{option}", exec
+  options_update_bind: (option, exec)-> @bind "#{update_ev}:#{option}", => exec(@options[option])
 
   _option_get_from_str: (str)->
     res = str.trim()
-    .match /^(?:\&|\&amp;)\=([\w]*)$/
+    .replace '&amp;', '&'
+    .match /^(?:\&)\=([\w\.&]*)$/
     if res
       return res[1]
     return null
@@ -97,16 +98,30 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
       @option_bind_el_attr(el, 'html', option)()
 
   option_bind_el_attr: (el, attr, option)=>
-    val_get = if @options_html[option] then => @options_html[option].bind(@)(@options[option]) else => @options[option]
+    opt_get = =>
+      op = @options
+      for v in option.split('.')
+        op = op[v]
+      return op
+    val_get = if @options_html[option] then =>
+      @options_html[option].bind(@)(opt_get())
+    else => opt_get()
+    options = [option]
+    if option.indexOf('&') >= 0
+      options = option.split '&'
+      val_get = do (options)=>
+        =>
+          options.filter( (option)=> @options[option] ).length is options.length
     exec = =>
       val = val_get()
       if attr is 'html'
         return $(el)[attr](val)
-      if val is null or val is false
+      if !val? or val is false
         return $(el).removeAttr(attr)
       $(el).attr attr, val
-    @bind "#{update_ev}:#{option}", exec
-    @__events_binded_el.push "#{update_ev}:#{option}"
+    options.forEach (option)=>
+      @bind "#{update_ev}:#{option}", exec
+      @__events_binded_el.push "#{update_ev}:#{option}"
     return exec
 
   render: ->

@@ -10,7 +10,7 @@ window.o.PlatformStandalone = class Standalone extends window.o.PlatformCommon
     @router.$el.appendTo('body')
     fn = (event, data)=>
       if event is 'authenticate:error'
-        @router.message(_l('standalone login error')).bind 'login', =>
+        @router.message(_l('Authorize.standalone login error')).bind 'login', =>
           @auth_popup()
       if event is 'authenticate:success'
         @router.unbind 'request', fn

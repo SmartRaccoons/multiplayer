@@ -6,15 +6,16 @@ module_get = require('../../config').module_get
 
 User = null
 config_callback( ->
-  User = module_get('server.room.user').User
+  User = module_get('server.user').User
 )()
 
 
 _ids = 1
 exports.Room = class Room extends PubsubModule
-  _module: 'room'
+  _module: 'Room'
   game: class Game
     constructor: -> throw 'no game class'
+  game_player_params: ['id']
   # game_methods:
   #   method:
   #     waiting: false
@@ -26,7 +27,7 @@ exports.Room = class Room extends PubsubModule
   #
 
   constructor: (attributes)->
-    super({id: "#{config_get('server_id')}:#{_ids++}"})
+    super({id: if attributes.id then attributes.id else "#{config_get('server_id')}:#{_ids++}"})
     @attributes = attributes
     @users = []
     @spectators = []
@@ -35,7 +36,14 @@ exports.Room = class Room extends PubsubModule
       @attributes.users.forEach (user)=> @user_add(user)
 
   _game_start: (attributes)->
-    @_game = new (@game) Object.assign {}, attributes, {users: @users.map (u)-> u.id}
+    @_game = new (@game) Object.assign {}, attributes, {
+      users: @users.map (u)=>
+        @game_player_params.reduce (acc, v)->
+          if !(v of u)
+            return acc
+          Object.assign acc, {[v]: u[v]}
+        , {}
+    }
 
   _exec_user: -> User::emit_self_exec.apply User::, arguments
 
@@ -61,7 +69,8 @@ exports.Room = class Room extends PubsubModule
 
   user_add: (user)->
     @users.push user
-    @_exec_user(user.id, '_room_add', {id: @id, type: 'user'})
+    @_exec_user(user.id, '_room_add', {id: @id, module: @_module, type: 'user'})
+    @emit 'update', {users: @users}
 
   user_exist: (user_id)-> @user_get(user_id, true) >= 0
 
@@ -79,7 +88,7 @@ exports.Room = class Room extends PubsubModule
       type = 'spectator'
     else
       return false
-    @_exec_user(id, '_room_add', {id: @id, type})
+    @_exec_user(id, '_room_add', {id: @id, module: @_module, type})
     return true
 
   user_remove: ({id, disconnect})->
@@ -88,19 +97,25 @@ exports.Room = class Room extends PubsubModule
       return
     if @user_exist(id)
       @users.splice(@user_get(id, true), 1)
+      @emit 'update', {users: @users}
     else if @spectator_exist(id)
       @spectators.splice(@spectator_get(id, true), 1)
+      @emit 'update', {spectators: @spectators}
     @_exec_user(id, '_room_remove', @id)
 
-  user_to_spectator: (id)->
-    @spectators.push @users.splice(@user_get(id, true), 1)[0]
-    @_exec_user(id, '_room_update', {id: @id, type: 'spectator'})
+  user_to_spectator: (user)->
+    if !@user_exist(user.id)
+      return false
+    @spectators.push @users.splice(@user_get(user.id, true), 1)[0]
+    @_exec_user(user.id, '_room_update', {id: @id, type: 'spectator'})
+    @emit 'update', {users: @users, spectators: @spectators}
+    return true
 
   spectator_exist: (id)-> @spectator_get(id, true) >= 0
 
   spectator_get: (id, index = false)-> @spectators[if index then 'findIndex' else 'find']( (u)-> u.id is id )
 
-  data_public: -> {id: @id}
+  data_public: -> {id: @id, users: @users, spectators: @spectators}
 
   remove: ->
     @users

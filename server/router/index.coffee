@@ -9,9 +9,9 @@ Anonymous = null
 Users = null
 Rooms = null
 config_callback( ->
-  Anonymous = module_get('server.room.anonymous').Anonymous
-  Users = module_get('server.room.users').Users
-  Rooms = module_get('server.room.rooms').Rooms
+  Anonymous = module_get('server.authorize').Anonymous
+  Users = module_get('server.user').Users
+  Rooms = module_get('server.room').Rooms
 )()
 
 module.exports.Router = class Router

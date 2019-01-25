@@ -11,12 +11,12 @@
   "dependencies": {
     "emailjs": "^2.2.0",
     "fbgraph": "^1.4.4",
-    "google-auth-library": "^2.0.1",
+    "google-auth-library": "^2.0.2",
     "mysql": "^2.16.0",
     "redis": "^2.8.0",
-    "sharp": "^0.21.1",
+    "sharp": "^0.21.3",
     "simple.event": "git+https://github.com/SmartRaccoons/simple.event.js.git",
-    "socket.io": "^2.1.1"
+    "socket.io": "^2.2.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",

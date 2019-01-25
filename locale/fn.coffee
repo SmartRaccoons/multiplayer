@@ -1,6 +1,10 @@
 translate_fn_generate = (locales)->
   (key, active = 'en', subparams)->
-    res = locales[active][key]
+    res = locales[active]
+    for subkey in key.split('.')
+      res = res[subkey]
+      if !res
+        return subkey
     if not subparams
       return res
     res.replace /\\?\{([^{}]+)\}/g, (match, name) ->

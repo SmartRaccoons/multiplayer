@@ -14,8 +14,10 @@ window.o.ViewPopup = class Popup extends window.o.View
   events:
     'click button[data-action="close"]': -> @remove()
     'click [data-click]': (e)->
-      @trigger $(e.target).attr('data-click'), $(e.target).attr('data-click-attr')
-      @remove()
+      el = $(e.target)
+      @trigger el.attr('data-click'), el.attr('data-click-attr')
+      if !el.is('[data-stay]')
+        @remove()
 
   constructor: ->
     super ...arguments

@@ -19,7 +19,7 @@ Rooms = proxyquire('../rooms', {
   '../../config':
     config_callback: (c)-> c
     module_get: -> {Room, User}
-  './default':
+  '../pubsub/objects':
     PubsubServerObjects: class PubsubServerObjects extends SimpleEvent
 }).Rooms
 
@@ -78,7 +78,7 @@ describe 'Rooms', ->
     it 'add', ->
       rooms._lobby_params = -> 'lp'
       assert.deepEqual([], rooms._lobby)
-      rooms.lobby_add({id: 5, bet: 6})
+      assert.equal true, rooms.lobby_add({id: 5, bet: 6})
       assert.deepEqual([{id: 5, bet: 6}], rooms._lobby)
       assert.equal(1, emit_user.callCount)
       assert.equal(5, emit_user.getCall(0).args[0])
@@ -87,7 +87,7 @@ describe 'Rooms', ->
 
     it 'add (existing)', ->
       rooms._lobby_index = sinon.fake.returns(0)
-      rooms.lobby_add({id: 5})
+      assert.equal false, rooms.lobby_add({id: 5})
       assert.deepEqual([], rooms._lobby)
       assert.equal(5, rooms._lobby_index.getCall(0).args[0])
       assert.equal(0, emit_user.callCount)
@@ -103,6 +103,12 @@ describe 'Rooms', ->
       assert.equal(5, emit_user.getCall(0).args[0])
       assert.equal('_lobby_remove',emit_user.getCall(0).args[1])
       assert.deepEqual({rooms: 'rooms'}, emit_user.getCall(0).args[2])
+
+    it 'remove (silent)', ->
+      rooms._lobby = [{id: 6}, {id: 5}, {id: 7}]
+      rooms._lobby_index = sinon.fake.returns(1)
+      rooms.lobby_remove(5, true)
+      assert.equal(0, emit_user.callCount)
 
     it 'remove (unexisting)', ->
       rooms._lobby = [{id: 6}]

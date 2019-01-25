@@ -11,12 +11,13 @@ class Model extends SimpleEvent
     @attributes = attributes
     @id = @attributes.id
   data_public: -> {id: @id}
+  emit_self_exec: ->
 
 
 PubsubServer_methods =
   constructor: ->
 
-PubsubServerObjects = proxyquire('../default', {
+PubsubServerObjects = proxyquire('../objects', {
   '../pubsub/multiserver':
     PubsubServer: class PubsubServer extends SimpleEvent
       constructor: ->
@@ -71,11 +72,20 @@ describe 'models', ->
       assert.deepEqual([{id: 1}, {id: 3}], models._all)
       assert.equal(1, spy.callCount)
 
+    it '_update', ->
+      models.bind 'update', spy
+      models._add({id: 1})
+      models._add({id: 3, 'z': 'g'})
+      models._update({id: 3, 'e': 'b'})
+      assert.deepEqual({id: 3, 'z': 'g', 'e': 'b'}, models._all[1])
+      assert.equal(1, spy.callCount)
+
     it '_create', ->
       model = models._create({type: 'sng', id: 1})
       assert.deepEqual({type: 'sng', id: 1}, model.attributes)
       assert.equal(1, models._objects.length)
       assert.equal(1, models._objects[0].id)
+      assert.deepEqual(models, models._objects[0].parent)
 
     it '_create (remove)', ->
       models._create({id: 1})
@@ -97,6 +107,14 @@ describe 'models', ->
       assert.equal(1, spy.callCount)
       assert.equal('_add', spy.getCall(0).args[0])
       assert.deepEqual({id: 1}, spy.getCall(0).args[1])
+
+    it '_create (emit update)', ->
+      m = models._create({type: 'sng', id: 1})
+      models.emit_immediate_exec = spy = sinon.spy()
+      m.trigger 'update', {p: 'par'}
+      assert.equal(1, spy.callCount)
+      assert.equal('_update', spy.getCall(0).args[0])
+      assert.deepEqual({id: 1, p: 'par'}, spy.getCall(0).args[1])
 
     it '_objects_exec', ->
       models._objects = [{exec: spy}, {exec: spy2}]
@@ -120,3 +138,19 @@ describe 'models', ->
       assert.equal(2, spy.callCount)
       assert.equal(1, spy2.callCount)
       assert.equal(0, spy3.callCount)
+
+    it '_object_exec', ->
+      Model::emit_self_exec = spy
+      models._object_exec(2, 'mt')
+      assert.equal 1, spy.callCount
+      assert.equal 2, spy.getCall(0).args[0]
+      assert.equal 'mt', spy.getCall(0).args[1]
+
+    it '_object_exec (inst)', ->
+      models.get = sinon.fake.returns({'mt': spy2})
+      Model::emit_self_exec = spy
+      models._object_exec(2, 'mt', 'a1', 'a2')
+      assert.equal 0, spy.callCount
+      assert.equal 1, spy2.callCount
+      assert.equal 'a1', spy2.getCall(0).args[0]
+      assert.equal 'a2', spy2.getCall(0).args[1]

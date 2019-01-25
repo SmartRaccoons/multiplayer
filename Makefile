@@ -1,6 +1,8 @@
 test_server :
 	 # --watch --watch-extensions coffee
 	./node_modules/mocha/bin/mocha --reporter dot --require coffeescript/register "./server/pubsub/test/*.coffee"
+	./node_modules/mocha/bin/mocha --reporter dot --require coffeescript/register "./server/authorize/test/*.coffee"
+	./node_modules/mocha/bin/mocha --reporter dot --require coffeescript/register "./server/user/test/*.coffee"
 	./node_modules/mocha/bin/mocha --reporter dot --require coffeescript/register "./server/room/test/*.coffee"
 	./node_modules/mocha/bin/mocha --reporter dot --require coffeescript/register "./server/api/test/*.coffee"
 	./node_modules/mocha/bin/mocha --reporter dot --require coffeescript/register "./server/pubsub/test/*.coffee"

@@ -1,11 +1,11 @@
 module_get = require('../../config').module_get
 config_callback = require('../../config').config_callback
-PubsubServerObjects = require('./default').PubsubServerObjects
+PubsubServerObjects = require('../pubsub/objects').PubsubServerObjects
 
 
 User = null
 config_callback( ->
-  User = module_get('server.room.user').User
+  User = module_get('server.user').User
 )()
 
 
@@ -18,13 +18,8 @@ module.exports.Users = class Users extends PubsubServerObjects
     if model
       model.remove('duplicate')
 
-  _add: (ob, server, server_self)->
-    if not server_self
-      @_check_duplicate(ob.id)
-    super ...arguments
-
   _create: (attributes)->
-    @_check_duplicate(attributes.id)
+    @emit_immediate_exec '_check_duplicate', attributes.id
     super ...arguments
 
   publish_menu: (event, params)->

@@ -12,7 +12,7 @@
         this.router.$el.appendTo('body');
         fn = (event, data) => {
           if (event === 'authenticate:error') {
-            this.router.message(_l('standalone login error')).bind('login', () => {
+            this.router.message(_l('Authorize.standalone login error')).bind('login', () => {
               return this.auth_popup();
             });
           }

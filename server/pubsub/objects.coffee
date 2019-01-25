@@ -16,6 +16,11 @@ module.exports.PubsubServerObjects = class PubsubServerObjects extends PubsubSer
     @_all.splice(index, 1)
     @trigger 'remove'
 
+  _update: (params)->
+    index = @_all.findIndex (ob)-> ob.id is params.id
+    @_all[index] = Object.assign {}, @_all[index], params
+    @trigger 'update'
+
   get: (id, index=false)->
     @_objects[if index then 'findIndex' else 'find'] (ob)-> ob.id is id
 
@@ -32,11 +37,20 @@ module.exports.PubsubServerObjects = class PubsubServerObjects extends PubsubSer
               return
         o[fn](args)
 
+  _object_exec: (id, method, ...args)->
+    ob = @get()
+    if ob
+      return ob[method].apply ob, args
+    model = @model()
+    model::emit_self_exec.apply model::, arguments
+
   _create: (attributes)->
     model = new (@model())(attributes)
+    model.parent = @
     @_objects.push model
     @emit_immediate_exec '_add', model.data_public()
     model.bind 'remove', =>
       @_objects.splice @get(model.id, true), 1
       @emit_immediate_exec '_remove', model.id
+    model.bind 'update', (pr)=> @emit_immediate_exec '_update', Object.assign( {id: model.id}, pr )
     model

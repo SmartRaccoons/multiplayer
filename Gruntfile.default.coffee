@@ -6,19 +6,18 @@ util = require('util')
 exec_promise = util.promisify(exec)
 
 
-directory_delete = (path)->
+directory_clear = (path, except = [], dir_main = true)->
   if !fs.existsSync(path)
     return
   fs.readdirSync(path).forEach (file)->
+    if except.indexOf(file) >= 0
+      return
     curPath = path + '/' + file
     if fs.lstatSync(curPath).isDirectory()
-      return directory_delete curPath
+      return directory_clear curPath, [], false
     fs.unlinkSync curPath
-  fs.rmdirSync path
-
-directory_clear = (path)->
-  directory_delete(path)
-  fs.mkdirSync path
+  if !dir_main
+    fs.rmdirSync path
 
 
 module.exports = (grunt, helpers, commands)->
@@ -166,7 +165,7 @@ module.exports = (grunt, helpers, commands)->
           platform_compile_js {platform: 'cordova', babel}
         ]).then =>
           path_www = "#{path}/www"
-          directory_clear(path_www)
+          directory_clear(path_www, ['prev', 'prev.html'])
           fs.mkdirSync "#{path_www}/d"
           fs.mkdirSync "#{path_www}/d/images"
           fs.mkdirSync "#{path_www}/d/sounds"
@@ -217,7 +216,8 @@ module.exports = (grunt, helpers, commands)->
       if android
         grunt.registerTask 'production_cordova_build_android', ->
           done = this.async()
-          exec_promise "cd cordova && cordova build android --release -- --keystore=#{android.keystore} --storePassword=#{android.storePassword} --alias=#{android.alias} --password=#{android.password} --gradleArg=-PcdvMinSdkVersion=#{android.minApi}"
+          cordova_config = helpers.cordova.config_get()
+          exec_promise "cd cordova && #{cordova_config.bin} build android --release -- --keystore=#{android.keystore} --storePassword=#{android.storePassword} --alias=#{android.alias} --password=#{android.password} --gradleArg=-PcdvMinSdkVersion=#{android.minApi}"
           .then (res)=>
             console.info 'out: ', res.stdout
             console.info 'error: ', res.stderr

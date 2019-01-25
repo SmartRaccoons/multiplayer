@@ -10,7 +10,7 @@
       this.router.$el.appendTo('body');
       fn = (event, data) => {
         if (event === 'authenticate:error') {
-          this.router.message(_l('integrated login error'));
+          this.router.message(_l('Authorize.integrated login error'));
         }
         if (event === 'authenticate:success') {
           return this.router.unbind('request', fn);

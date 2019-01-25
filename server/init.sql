@@ -90,3 +90,18 @@ CREATE TABLE `transaction_inbox` (
   KEY `transaction_inbox_user_id` (`user_id`),
   CONSTRAINT `transaction_inbox_auth_user_id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+
+
+CREATE TABLE `coins_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `coins` int(6) DEFAULT NULL,
+  `action` datetime NOT NULL,
+  `type` int(2) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `coins_history_user_id` (`user_id`),
+  KEY `coins_history_action` (`action`),
+  KEY `coins_history_type` (`type`),
+  CONSTRAINT `coins_history_user_id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
