@@ -27,10 +27,11 @@ __enable = true
           @_media_last.release()
         @_media_last = new Media("#{@options.path}#{sound}.wav")
         @_media_last.setVolume("#{@_volume}")
+        @_media_last.play({ playAudioWhenScreenIsLocked: false })
       else
         @_media_last = new Audio("#{@options.path}#{sound}.wav")
         @_media_last.volume = @_volume
-      @_media_last.play()
+        @_media_last.play()
     catch
 
   is_enable: -> __enable

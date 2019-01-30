@@ -41,11 +41,14 @@
             }
             this._media_last = new Media(`${this.options.path}${sound}.wav`);
             this._media_last.setVolume(`${this._volume}`);
+            return this._media_last.play({
+              playAudioWhenScreenIsLocked: false
+            });
           } else {
             this._media_last = new Audio(`${this.options.path}${sound}.wav`);
             this._media_last.volume = this._volume;
+            return this._media_last.play();
           }
-          return this._media_last.play();
         } catch (error) {
 
         }
