@@ -13,6 +13,11 @@ Multiserver = proxyquire('../multiserver', {
 class ModuleUser extends Multiserver.PubsubModule
   _module: 'user'
 
+class ModuleUserIfoffline extends ModuleUser
+  _module: 'user'
+  set: ->
+  set_ifoffline: ->
+
 class ServerRooms extends Multiserver.PubsubServer
   _module: 'rooms'
 
@@ -33,23 +38,10 @@ describe 'Multiserver', ->
     it 'constructor', ->
       assert.equal('5', m.id)
       assert.equal(1, pubsub.on_module_exec.callCount)
-      assert.equal('user', pubsub.on_module_exec.getCall(0).args[0])
-      assert.equal('5', pubsub.on_module_exec.getCall(0).args[1])
-
-    it 'execute', ->
-      m.public = sinon.spy()
-      pubsub.on_module_exec.getCall(0).args[2]({method: 'public', params: 'pr'})
-      assert.equal(1, m.public.callCount)
-      assert.equal('pr', m.public.getCall(0).args[0])
+      assert.deepEqual(m, pubsub.on_module_exec.getCall(0).args[0])
 
     it 'emtpy', ->
       assert.throws -> new (Multiserver.PubsubModule)()
-
-    it 'remove', ->
-      m.remove()
-      assert.equal(1, pubsub.remove_module_exec.callCount)
-      assert.equal('user', pubsub.remove_module_exec.getCall(0).args[0])
-      assert.equal('5', pubsub.remove_module_exec.getCall(0).args[1])
 
     it 'emit_module_exec', ->
       m.emit_module_exec('room', '4', 'me', 'pa')
@@ -68,6 +60,39 @@ describe 'Multiserver', ->
       assert.equal('pa', pubsub.emit_module_exec.getCall(0).args[3])
 
 
+  describe 'ModuleUserIfoffline', ->
+    m = null
+    beforeEach ->
+      pubsub.on_module_exec = sinon.spy()
+      m = new ModuleUserIfoffline({id: '7'})
+      m.emit_module_exec = sinon.spy()
+      m.set = sinon.spy()
+      m.set_ifoffline = sinon.spy()
+
+    it 'emit ', ->
+      m.emit_self_exec '6', 'set', 'a1', 'a2', spy
+      assert.equal 1, m.emit_module_exec.callCount
+      m.emit_module_exec.getCall(0).args[5](null, 0)
+      assert.equal 1, m.set_ifoffline.callCount
+      assert.equal '6', m.set_ifoffline.getCall(0).args[0]
+      assert.equal 'a1', m.set_ifoffline.getCall(0).args[1]
+      assert.equal 'a2', m.set_ifoffline.getCall(0).args[2]
+      assert.equal 1, spy.callCount
+
+    it 'emit (online) ', ->
+      m.emit_self_exec '6', 'set', 'a1', 'a2', spy
+      assert.equal 1, m.emit_module_exec.callCount
+      m.emit_module_exec.getCall(0).args[5](null, 1)
+      assert.equal 0, m.set_ifoffline.callCount
+      assert.equal 1, spy.callCount
+
+    it 'emit (unknown method) ', ->
+      m.emit_self_exec '6', 'unknown', 'a1', 'a2', spy
+      assert.equal 1, m.emit_module_exec.callCount
+      m.emit_module_exec.getCall(0).args[5](null, 1)
+      assert.equal 1, spy.callCount
+
+
   describe 'Server', ->
     m = null
     beforeEach ->
@@ -84,15 +109,7 @@ describe 'Multiserver', ->
     it 'constructor', ->
       assert.equal(1, pubsub.on_all_exec.callCount)
       assert.equal(1, pubsub.on_server_exec.callCount)
-      assert.equal('rooms', pubsub.on_all_exec.getCall(0).args[0])
-
-    it 'execute', ->
-      m.public = sinon.spy()
-      pubsub.on_all_exec.getCall(0).args[1]({method: 'public', params: 'pr'})
-      assert.equal(1, m.public.callCount)
-      assert.equal('pr', m.public.getCall(0).args[0])
-      pubsub.on_server_exec.getCall(0).args[1]({method: 'public', params: 'pr'})
-      assert.equal(2, m.public.callCount)
+      assert.deepEqual(m, pubsub.on_all_exec.getCall(0).args[0])
 
     it 'emit_immediate_exec (with other)', ->
       m._method = sinon.spy()
@@ -103,7 +120,6 @@ describe 'Multiserver', ->
       assert.equal('params', m.emit_server_other_exec.getCall(0).args[1])
       assert.equal(1, m._method.callCount)
       assert.equal('params', m._method.getCall(0).args[0])
-      assert.equal(true, m._method.getCall(0).args[2])
 
     it 'emit', ->
       m.emit_all_exec('arg')

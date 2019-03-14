@@ -29,8 +29,12 @@
         return this.remove();
       },
       'click [data-click]': function(e) {
-        this.trigger($(e.target).attr('data-click'), $(e.target).attr('data-click-attr'));
-        return this.remove();
+        var el;
+        el = $(e.target);
+        this.trigger(el.attr('data-click'), el.attr('data-click-attr'));
+        if (!el.is('[data-stay]')) {
+          return this.remove();
+        }
       }
     };
 

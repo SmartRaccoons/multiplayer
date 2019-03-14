@@ -86,7 +86,7 @@
       }
 
       auth_error() {
-        return this.router.message(_l('standalone login error')).bind('login', () => {
+        return this.router.message(_l('Authorize.standalone login error')).bind('login', () => {
           return this.auth();
         });
       }

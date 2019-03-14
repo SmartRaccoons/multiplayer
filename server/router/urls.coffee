@@ -1,5 +1,5 @@
 crypto = require('crypto')
-Authorize = require('../room/authorize')
+Authorize = require('../authorize')
 SocketIO = require('socket.io')
 module_get = require('../../config').module_get
 config_get = require('../../config').config_get
@@ -11,7 +11,7 @@ Anonymous = null
 locale = null
 template = null
 config_callback( ->
-  Anonymous = module_get('server.room.anonymous').Anonymous
+  Anonymous = module_get('server.authorize').Anonymous
   locale = module_get('locale')
   template = module_get('server.helpers.template')
 )()

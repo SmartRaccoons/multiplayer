@@ -10,7 +10,7 @@ io = @io ? require 'socket.io-client'
   ['connect', 'request'].forEach (ev)->
     connector.on ev, (data)->
       router[ev].apply router, data
-  connector.on 'version', -> params.version_callback()
+  connector.on 'version', (data)-> params.version_callback(data)
   delay = 0
   connector.on 'error:duplicate', ->
     delay = 15

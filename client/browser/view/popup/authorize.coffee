@@ -5,7 +5,7 @@ window.o.ViewPopupAuthorize = class PopupAuthorize extends Popup
   className: Popup::className + '-authorize'
   options_default:
     close: false
-    head: _.template """<%= _l('Authorize') %>"""
+    head: _.template """<%= _l('Authorize.head') %>"""
     body: _.template """
       <p>
         <% self.options.platforms.forEach(function (platform) { %>
@@ -14,6 +14,6 @@ window.o.ViewPopupAuthorize = class PopupAuthorize extends Popup
         <% }) %>
       </p>
       <p>
-        <%= _l('Authorize desc') %>
+        <%= _l('Authorize.desc') %>
       </p>
     """

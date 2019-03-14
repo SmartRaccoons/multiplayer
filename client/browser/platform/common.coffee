@@ -14,10 +14,10 @@ window.o.PlatformCommon = class Common
     window.o.Connector Object.assign({
       router: @router
       address: App.config.server
-      version: document.body.getAttribute('data-version')
-      version_callback: => @router.message(_l('version error'))
+      version: App.version
+      version_callback: => @router.message(_l('Authorize.version error'))
     }, params)
 
   auth_send: (p)->
-    @router.message(_l('Authorizing'))
+    @router.message(_l('Authorize.Authorizing'))
     @router.send 'authenticate:try', p

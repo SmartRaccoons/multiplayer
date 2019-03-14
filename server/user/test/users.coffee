@@ -14,16 +14,14 @@ class User extends SimpleEvent
 
 
 PubsubServer_methods =
-  _add: ->
   _create: ->
 
 Users = proxyquire('../users', {
   '../../config':
     config_callback: (c)-> c
     module_get: -> {User}
-  './default':
+  '../pubsub/objects':
     PubsubServerObjects: class PubsubServerObjects extends SimpleEvent
-      _add: -> PubsubServer_methods._add.apply(@, arguments)
       _create: -> PubsubServer_methods._create.apply(@, arguments)
 }).Users
 
@@ -53,23 +51,13 @@ describe 'Users', ->
       assert.equal('users', users._module)
       assert.deepEqual(User, users.model())
 
-    it '_add', ->
-      users._check_duplicate = sinon.spy()
-      users._add({id: 2}, '', true)
-      assert.equal(0, users._check_duplicate.callCount)
-      assert.equal(1, PubsubServer_methods._add.callCount)
-
-    it '_add (other)', ->
-      users._check_duplicate = sinon.spy()
-      users._add({id: 2}, '', false)
-      assert.equal(1, users._check_duplicate.callCount)
-      assert.equal(2, users._check_duplicate.getCall(0).args[0])
-
     it '_create', ->
       users._check_duplicate = sinon.spy()
+      users.emit_immediate_exec = sinon.spy()
       user = users._create({id: 5})
-      assert.equal(1, users._check_duplicate.callCount)
-      assert.equal(5, users._check_duplicate.getCall(0).args[0])
+      assert.equal(1, users.emit_immediate_exec.callCount)
+      assert.equal('_check_duplicate', users.emit_immediate_exec.getCall(0).args[0])
+      assert.equal(5, users.emit_immediate_exec.getCall(0).args[1])
       assert.equal(1, PubsubServer_methods._create.callCount)
 
     it '_check_duplicate', ->

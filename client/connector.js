@@ -22,8 +22,8 @@
         return router[ev].apply(router, data);
       });
     });
-    connector.on('version', function() {
-      return params.version_callback();
+    connector.on('version', function(data) {
+      return params.version_callback(data);
     });
     delay = 0;
     connector.on('error:duplicate', function() {

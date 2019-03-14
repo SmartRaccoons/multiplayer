@@ -2,6 +2,7 @@ events = require('events')
 assert = require('assert')
 sinon = require('sinon')
 proxyquire = require('proxyquire')
+SimpleEvent = require('simple.event').SimpleEvent
 
 
 PubsubModule_methods =
@@ -19,8 +20,10 @@ Room = proxyquire('../room', {
       {User}
     config_get: -> 5
   '../pubsub/multiserver':
-    PubsubModule: class PubsubModule
-      constructor: -> PubsubModule_methods.constructor.apply(@, arguments)
+    PubsubModule: class PubsubModule extends SimpleEvent
+      constructor: ->
+        super ...arguments
+        PubsubModule_methods.constructor.apply(@, arguments)
       remove: -> PubsubModule_methods.remove.apply(@, arguments)
 }).Room
 
@@ -56,7 +59,7 @@ describe 'Room', ->
     it 'pubsub ', ->
       room.users = []
       room.spectators = []
-      assert.equal('room', room._module)
+      assert.equal('Room', room._module)
       assert.equal(1, PubsubModule_methods.constructor.callCount)
       assert.deepEqual({id: '5:1'}, PubsubModule_methods.constructor.getCall(0).args[0])
       room.remove()
@@ -64,10 +67,12 @@ describe 'Room', ->
 
     it 'pubsub (auto id)', ->
       assert.deepEqual({id: '5:2'}, PubsubModule_methods.constructor.getCall(0).args[0])
+      new RoomGame({id: '2'})
+      assert.deepEqual({id: '2'}, PubsubModule_methods.constructor.getCall(1).args[0])
 
     it 'data_public', ->
       room.id = '5'
-      assert.deepEqual({id: '5'}, room.data_public())
+      assert.deepEqual({id: '5', users: [{id: 5}, {id: 6}], spectators: [{id: 3}, {id: 4}]}, room.data_public())
 
     it 'remove', ->
       room.user_remove = sinon.spy()
@@ -86,6 +91,8 @@ describe 'Room', ->
       assert.deepEqual({id: 3}, spy.getCall(1).args[0])
 
     it 'user_add', ->
+      update = sinon.spy()
+      room.on 'update', update
       room.id = 1
       room._exec_user = spy = sinon.spy()
       room.users = []
@@ -94,7 +101,9 @@ describe 'Room', ->
       assert.equal(1, spy.callCount)
       assert.equal(5, spy.getCall(0).args[0])
       assert.equal('_room_add', spy.getCall(0).args[1])
-      assert.deepEqual({id: 1, type: 'user'}, spy.getCall(0).args[2])
+      assert.deepEqual({id: 1, module: 'Room', type: 'user'}, spy.getCall(0).args[2])
+      assert.equal(1, update.callCount)
+      assert.deepEqual({users: [{id: 5}]}, update.getCall(0).args[0])
 
     it 'user_exist', ->
       room.user_get = sinon.fake.returns(-1)
@@ -126,7 +135,7 @@ describe 'Room', ->
       assert.equal(1, spy.callCount)
       assert.equal(5, spy.getCall(0).args[0])
       assert.equal('_room_add', spy.getCall(0).args[1])
-      assert.deepEqual({id: 1, type: 'user'}, spy.getCall(0).args[2])
+      assert.deepEqual({id: 1, module: 'Room', type: 'user'}, spy.getCall(0).args[2])
 
     it 'user_reconnect (spectator)', ->
       room.id = 1
@@ -159,6 +168,8 @@ describe 'Room', ->
       assert.equal(undefined, room.spectator_get(5))
 
     it 'user_remove', ->
+      update = sinon.spy()
+      room.on 'update', update
       room.id = 1
       room._exec_user = sinon.spy()
       room.user_remove({id: 6})
@@ -169,12 +180,18 @@ describe 'Room', ->
       assert.equal('_room_remove', room._exec_user.getCall(0).args[1])
       assert.equal(1, room._exec_user.getCall(0).args[2])
       assert.deepEqual([], room._disconected)
+      assert.equal(1, update.callCount)
+      assert.deepEqual({users: [{id: 5}]}, update.getCall(0).args[0])
 
     it 'user_remove (spectator)', ->
+      update = sinon.spy()
+      room.on 'update', update
       room._exec_user = sinon.spy()
       room.user_remove({id: 4})
       assert.deepEqual([{id: 5}, {id: 6}], room.users)
       assert.deepEqual([{id: 3}], room.spectators)
+      assert.equal(1, update.callCount)
+      assert.deepEqual({spectators: [{id: 3}]}, update.getCall(0).args[0])
 
     it 'user_remove (disconnect)', ->
       room._exec_user = sinon.spy()
@@ -183,15 +200,27 @@ describe 'Room', ->
       assert.equal(0, room._exec_user.callCount)
 
     it 'user_to_specator', ->
+      update = sinon.spy()
+      room.user_exist = sinon.fake.returns true
+      room.on 'update', update
       room.id = 1
       room._exec_user = spy = sinon.spy()
-      room.user_to_spectator(6)
+      assert.equal(true, room.user_to_spectator({id: 6}))
+      assert.equal(1, room.user_exist.callCount)
+      assert.equal(6, room.user_exist.getCall(0).args[0])
       assert.deepEqual([{id: 5}], room.users)
       assert.deepEqual([{id: 3}, {id: 4}, {id: 6}], room.spectators)
       assert.equal(1, spy.callCount)
       assert.equal(6, spy.getCall(0).args[0])
       assert.equal('_room_update', spy.getCall(0).args[1])
       assert.deepEqual({id: 1, type: 'spectator'}, spy.getCall(0).args[2])
+      assert.equal 1, update.callCount
+      assert.deepEqual {users: [{id: 5}], spectators: [{id: 3}, {id: 4}, {id: 6}]}, update.getCall(0).args[0]
+
+    it 'user_to_specator (not exist)', ->
+      room.user_exist = sinon.fake.returns false
+      assert.equal(false, room.user_to_spectator({id: 6}))
+      assert.deepEqual([{id: 5}, {id: 6}], room.users)
 
     it '_publish_user', ->
       User::emit_self_publish = spy = sinon.spy()
@@ -247,7 +276,14 @@ describe 'Room', ->
       RoomGame_methods.constructor = sinon.spy()
       room._game_start({type: 'sng'})
       assert.equal(1, RoomGame_methods.constructor.callCount)
-      assert.deepEqual({users: [5, 6], type: 'sng'}, RoomGame_methods.constructor.getCall(0).args[0])
+      assert.deepEqual({users: [{id: 5}, {id: 6}], type: 'sng'}, RoomGame_methods.constructor.getCall(0).args[0])
+
+    it 'pass attributes (game_player_params)', ->
+      RoomGame_methods.constructor = sinon.spy()
+      room.users = [{id: 5, coins: 2}, {id: 6}]
+      room.game_player_params = ['id', 'coins']
+      room._game_start({type: 'sng'})
+      assert.deepEqual({users: [{id: 5, coins: 2}, {id: 6}], type: 'sng'}, RoomGame_methods.constructor.getCall(0).args[0])
 
     it '_game_exec', ->
       room._game_exec({user_id: 5, method: 'move', params: {p: 'pr'}})

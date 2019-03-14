@@ -5,7 +5,7 @@ window.o.PlatformInbox = class Inbox extends window.o.PlatformCommon
     @router.$el.appendTo('body')
     fn = (event, data)=>
       if event is 'authenticate:error'
-        @router.message(_l('integrated login error'))
+        @router.message(_l('Authorize.integrated login error'))
       if event is 'authenticate:success'
         @router.unbind 'request', fn
     @router.bind 'request', fn

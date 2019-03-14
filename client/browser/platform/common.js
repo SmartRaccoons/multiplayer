@@ -18,15 +18,15 @@
       return window.o.Connector(Object.assign({
         router: this.router,
         address: App.config.server,
-        version: document.body.getAttribute('data-version'),
+        version: App.version,
         version_callback: () => {
-          return this.router.message(_l('version error'));
+          return this.router.message(_l('Authorize.version error'));
         }
       }, params));
     }
 
     auth_send(p) {
-      this.router.message(_l('Authorizing'));
+      this.router.message(_l('Authorize.Authorizing'));
       return this.router.send('authenticate:try', p);
     }
 

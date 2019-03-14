@@ -105,12 +105,14 @@
       }
 
       options_update_bind(option, exec) {
-        return this.bind(`${update_ev}:${option}`, exec);
+        return this.bind(`${update_ev}:${option}`, () => {
+          return exec(this.options[option]);
+        });
       }
 
       _option_get_from_str(str) {
         var res;
-        res = str.trim().match(/^(?:\&|\&amp;)\=([\w]*)$/);
+        res = str.trim().replace('&amp;', '&').match(/^(?:\&)\=([\w\.&]*)$/);
         if (res) {
           return res[1];
         }
@@ -142,26 +144,49 @@
       }
 
       option_bind_el_attr(el, attr, option) {
-        var exec, val_get;
+        var exec, opt_get, options, val_get;
         boundMethodCheck(this, View);
-        val_get = this.options_html[option] ? () => {
-          return this.options_html[option].bind(this)(this.options[option]);
-        } : () => {
-          return this.options[option];
+        opt_get = () => {
+          var j, len, op, ref, v;
+          op = this.options;
+          ref = option.split('.');
+          for (j = 0, len = ref.length; j < len; j++) {
+            v = ref[j];
+            op = op[v];
+          }
+          return op;
         };
+        val_get = this.options_html[option] ? () => {
+          return this.options_html[option].bind(this)(opt_get());
+        } : () => {
+          return opt_get();
+        };
+        options = [option];
+        if (option.indexOf('&') >= 0) {
+          options = option.split('&');
+          val_get = ((options) => {
+            return () => {
+              return options.filter((option) => {
+                return this.options[option];
+              }).length === options.length;
+            };
+          })(options);
+        }
         exec = () => {
           var val;
           val = val_get();
           if (attr === 'html') {
             return $(el)[attr](val);
           }
-          if (val === null || val === false) {
+          if ((val == null) || val === false) {
             return $(el).removeAttr(attr);
           }
           return $(el).attr(attr, val);
         };
-        this.bind(`${update_ev}:${option}`, exec);
-        this.__events_binded_el.push(`${update_ev}:${option}`);
+        options.forEach((option) => {
+          this.bind(`${update_ev}:${option}`, exec);
+          return this.__events_binded_el.push(`${update_ev}:${option}`);
+        });
         return exec;
       }
 

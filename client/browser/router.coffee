@@ -22,13 +22,13 @@ window.o.Router = class Router extends window.o.View
     @render()
     @trigger 'connect'
 
-  connecting: -> @message(_l('Connecting'))
+  connecting: -> @message(_l('Authorize.Connecting'))
 
-  disconnect: -> @message(_l('Disconnect'))
+  disconnect: -> @message(_l('Authorize.Disconnect'))
 
-  login_duplicate: -> @message(_l('Login duplicate'))
+  login_duplicate: -> @message(_l('Authorize.Login duplicate'))
 
-  connect_failed: -> @message(_l('connect failed'))
+  connect_failed: -> @message(_l('Authorize.connect failed'))
 
   request: (event, data)->
     @trigger 'request', event, data

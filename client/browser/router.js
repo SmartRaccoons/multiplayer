@@ -30,19 +30,19 @@
       }
 
       connecting() {
-        return this.message(_l('Connecting'));
+        return this.message(_l('Authorize.Connecting'));
       }
 
       disconnect() {
-        return this.message(_l('Disconnect'));
+        return this.message(_l('Authorize.Disconnect'));
       }
 
       login_duplicate() {
-        return this.message(_l('Login duplicate'));
+        return this.message(_l('Authorize.Login duplicate'));
       }
 
       connect_failed() {
-        return this.message(_l('connect failed'));
+        return this.message(_l('Authorize.connect failed'));
       }
 
       request(event, data) {
