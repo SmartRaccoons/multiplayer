@@ -137,8 +137,9 @@ module.exports.payments = (app, callback_router)->
 module.exports.socket = ({ server, log, version, callback })->
   Socket = require('../helpers/socket')({ version })
   SocketIO(server, {
-    pingTimeout: 10 * 1000
-    pingInterval: 5 * 1000
+      serveClient: false
+      # pingInterval: 7 * 1000
+      # pingTimeout: 30 * 1000
   }).on 'connection', (client)->
     socket = new Socket(client.handshake.query)
     socket.send = ->
