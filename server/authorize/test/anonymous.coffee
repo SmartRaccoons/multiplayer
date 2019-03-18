@@ -58,6 +58,7 @@ describe 'Anonymous', ->
     Test_authorize = sinon.spy()
     dbmemory.random = sinon.spy()
     dbmemory.random_remove = sinon.spy()
+    dbmemory.random_get = sinon.spy()
     locale.validate = sinon.fake.returns('en')
     locale.lang_short = sinon.fake.returns('e')
 
@@ -118,13 +119,36 @@ describe 'Anonymous', ->
       socket.emit 'authenticate:code', {language: 'lv'}
       assert.equal('lv', locale.validate.getCall(0).args[0])
 
-    it 'remove', ->
-      anonymous._codes = [1, 2]
-      anonymous.remove()
-      assert.equal(2, dbmemory.random_remove.callCount)
-      assert.equal('m', dbmemory.random_remove.getCall(0).args[0])
-      assert.equal(1, dbmemory.random_remove.getCall(0).args[1])
-      assert.equal(2, dbmemory.random_remove.getCall(1).args[1])
+    it 'check', ->
+      socket.emit 'authenticate:code_check', {random: 'r23'}
+      assert.equal 1, dbmemory.random_get.callCount
+      assert.equal 'm', dbmemory.random_get.getCall(0).args[0]
+      assert.equal '23', dbmemory.random_get.getCall(0).args[1]
+      anonymous.authenticate = sinon.spy()
+      dbmemory.random_get.getCall(0).args[2]({authenticate: 'p'})
+      assert.equal 1, anonymous.authenticate.callCount
+      assert.equal 'p', anonymous.authenticate.getCall(0).args[0]
+      assert.equal 0, socket.send.callCount
+
+    it 'check (no data)', ->
+      socket.emit 'authenticate:code_check', {random: 'r23'}
+      anonymous.authenticate = sinon.spy()
+      dbmemory.random_get.getCall(0).args[2]()
+      assert.equal 0, anonymous.authenticate.callCount
+      assert.equal 1, socket.send.callCount
+      assert.equal 'authenticate:code_error', socket.send.getCall(0).args[0]
+
+    it 'check (no authorize data)', ->
+      socket.emit 'authenticate:code_check', {random: 'r23'}
+      anonymous.authenticate = sinon.spy()
+      dbmemory.random_get.getCall(0).args[2]({s: 'd'})
+      assert.equal 0, anonymous.authenticate.callCount
+      assert.equal 1, socket.send.callCount
+
+    it 'check (no params)', ->
+      socket.emit 'authenticate:code_check'
+      assert.equal 0, dbmemory.random_get.callCount
+      assert.equal 1, socket.send.callCount
 
 
   describe 'Login', ->

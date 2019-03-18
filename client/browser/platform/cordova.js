@@ -14,12 +14,23 @@
   window.o.PlatformCordova = Cordova = (function() {
     class Cordova extends window.o.PlatformCommon {
       constructor(options) {
-        var fn;
+        var connect_fresh, fn;
         super();
         this.options = options;
         this._login_code_params = {};
         this.router = new window.o.Router();
         this.router.$el.appendTo('body');
+        connect_fresh = () => {
+          this._login_code_params.random = null;
+          if (!this.auth()) {
+            if (!this.options.language_check) {
+              return this.auth_popup();
+            }
+            return this.language_check(() => {
+              return this.auth_popup();
+            });
+          }
+        };
         fn = (event, data) => {
           var platform, results, value;
           if (event === 'authenticate:error') {
@@ -27,6 +38,9 @@
             this.router.message(_l('Authorize.standalone login error')).bind('login', () => {
               return this.auth_popup();
             });
+          }
+          if (event === 'authenticate:code_error') {
+            return connect_fresh();
           }
           if (event === 'authenticate:success') {
             this.router.unbind('request', fn);
@@ -46,15 +60,12 @@
         };
         this.router.bind('request', fn);
         this.router.bind('connect', () => {
-          this._login_code_params.random = null;
-          if (!this.auth()) {
-            if (!this.options.language_check) {
-              return this.auth_popup();
-            }
-            return this.language_check(() => {
-              return this.auth_popup();
+          if (this._login_code_params.random) {
+            return this.router.send('authenticate:code_check', {
+              random: this._login_code_params.random
             });
           }
+          return connect_fresh();
         });
         this.router.bind('logout', () => {
           this._auth_clear();

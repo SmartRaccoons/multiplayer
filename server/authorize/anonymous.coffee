@@ -21,6 +21,7 @@ module.exports.Anonymous = class Anonymous extends PubsubModule
     ['remove', 'remove']
     ['authenticate:try', 'authenticate']
     ['authenticate:code', 'authenticate_code']
+    ['authenticate:code_check', 'authenticate_code_check']
   ]
   constructor: (@_socket)->
     _ids++
@@ -35,6 +36,15 @@ module.exports.Anonymous = class Anonymous extends PubsubModule
     dbmemory.random @_module, {id: @id}, ({random})=>
       @_codes.push random
       @_socket.send 'authenticate:code', {random: [language, random].join('') }
+
+  authenticate_code_check: (params)->
+    error = => @_socket.send 'authenticate:code_error'
+    if !(params and params.random)
+      return error()
+    dbmemory.random_get @_module, params.random.substr(1), (v)=>
+      if !(v and v.authenticate)
+        return error()
+      @authenticate(v.authenticate)
 
   authenticate: (params)->
     error = => @_socket.send 'authenticate:error'
@@ -51,7 +61,5 @@ module.exports.Anonymous = class Anonymous extends PubsubModule
     return error()
 
   remove: ->
-    while code = @_codes.shift()
-      dbmemory.random_remove(@_module, code)
     @_socket_bind.forEach (p)=> @_socket.removeListener p[0], @[p[1]]
     super()

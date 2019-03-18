@@ -70,7 +70,9 @@ module.exports.authorize = (app)->
           })
         for platform, param_url of platforms
           if req.query[param_url]
-            Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', { [platform]: decodeURIComponent(req.query[param_url]), params: {code_url: true}} ]
+            params.authenticate = { [platform]: decodeURIComponent(req.query[param_url]), params: {code_url: true}}
+            config_get('dbmemory').random_up 'anonymous', code, params
+            Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', params.authenticate ]
             res.send code_template({message: locale._('A code ok', language)})
             return
         return res.send code_template({error: locale._('Error', language)})

@@ -13,11 +13,19 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
     @_login_code_params = {}
     @router = new window.o.Router()
     @router.$el.appendTo('body')
+    connect_fresh = =>
+      @_login_code_params.random = null
+      if !@auth()
+        if !@options.language_check
+          return @auth_popup()
+        @language_check => @auth_popup()
     fn = (event, data)=>
       if event is 'authenticate:error'
         @_login_code_params.random = null
         @router.message(_l('Authorize.standalone login error')).bind 'login', =>
           @auth_popup()
+      if event is 'authenticate:code_error'
+        return connect_fresh()
       if event is 'authenticate:success'
         @router.unbind 'request', fn
       if event is 'authenticate:code'
@@ -28,11 +36,9 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
           Cookies.set(platform, value)
     @router.bind 'request', fn
     @router.bind 'connect', =>
-      @_login_code_params.random = null
-      if !@auth()
-        if !@options.language_check
-          return @auth_popup()
-        @language_check => @auth_popup()
+      if @_login_code_params.random
+        return @router.send 'authenticate:code_check', {random: @_login_code_params.random}
+      connect_fresh()
     @router.bind 'logout', =>
       @_auth_clear()
       window.location.reload true
