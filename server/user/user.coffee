@@ -30,46 +30,48 @@ _pick = (ob, params)->
 module.exports.User = class User extends User
   _coins_history_params:
     table: 'coins_history'
-  _coins_daily_params: null
-    # after: 60 * 60 * 8
-    # type: 1
-    # coins: 150
+  _coins_bonus_params: {}
+    # daily:
+    #   after: 60 * 60 * 8
+    #   type: 1
+    #   coins: 150
   _module: 'user'
   constructor: (attributes)->
     super({id: attributes.id})
     @attributes = Object.assign({alive: new Date()}, attributes)
     @_bind_socket()
     @publish 'authenticate:success', @data()
-    if @_coins_daily_params
-      @_coins_daily()
+    Object.keys(@_coins_bonus_params).forEach (bonus)=> @_coins_bonus(bonus)
     @
 
-  __coins_daily_check: (callback)->
+  __coins_bonus_check: (type, callback)->
+    bonus = @_coins_bonus_params[type]
     config.db.select_one
       select: ['action']
       table: @_coins_history_params.table
       where:
         user_id: @id
-        type: @_coins_daily_params.type
+        type: bonus.type
       order: ['-action']
     , (result)=>
       if !result
         return callback(0)
-      left = Math.ceil( (@_coins_daily_params.after * 1000 + new Date(result.action).getTime() - new Date().getTime() ) / 1000 )
+      left = Math.ceil( (bonus.after * 1000 + new Date(result.action).getTime() - new Date().getTime() ) / 1000 )
       if left < 0
         left = 0
       callback(left)
 
-  _coins_daily: ->
-    mt = 'coins:daily'
-    @__coins_daily_check (left)=>
-      @publish mt, {left, coins: @_coins_daily_params.coins}
+  _coins_bonus: (type)->
+    mt = "coins:bonus:#{type}"
+    bonus = @_coins_bonus_params[type]
+    @__coins_bonus_check type, (left)=>
+      @publish mt, {left, coins: bonus.coins}
       @attributes.socket.on mt, =>
-        @__coins_daily_check (left)=>
+        @__coins_bonus_check type, (left)=>
           if left is 0
-            @set_coins {type: @_coins_daily_params.type, coins: @_coins_daily_params.coins}
-            left = @_coins_daily_params.after
-          @publish mt, {left, coins: @_coins_daily_params.coins}
+            @set_coins {type: bonus.type, coins: bonus.coins}
+            left = bonus.after
+          @publish mt, {left, coins: bonus.coins}
 
   emit_self_publish: (id, ev, params)-> @emit_self_exec.apply @, [id, 'publish', [ev, params]]
 
