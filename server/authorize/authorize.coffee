@@ -12,11 +12,11 @@ inbox = null
 google = null
 config_callback ->
   config.db = config_get('db')
-  config.buy = config_get('buy')
   if config_get('facebook')
     config.facebook =
       id: config_get('facebook').id
       key: config_get('facebook').key
+      buy_price: config_get('facebook').buy_price
   if config_get('draugiem')
     ApiDraugiem::app_id = config_get('draugiem').key
     config.draugiem =
@@ -132,8 +132,6 @@ module.exports.Login = class Login
           @_user_session_save Object.assign({user_id: user.id, code}, session)
 
   _transaction_create: (params, callback)->
-    if !(params.service of config.buy)
-      return
     config.db.insert
       table: @_table_transaction
       data: Object.assign {created: new Date()}, params
@@ -169,6 +167,8 @@ module.exports.facebook = class LoginFacebook extends Login
       callback({facebook_uid: res.id}, {facebook_token_for_business: res.token_for_business, name: res.name, language: res.locale, img: if res.picture and res.picture.data then res.picture.data.url else null})
 
   buy: (params, callback)->
+    if !(params.service of config.facebook.buy_price)
+      return
     @_transaction_create params, callback
 
   buy_complete: (id, callback_save, callback_end)->

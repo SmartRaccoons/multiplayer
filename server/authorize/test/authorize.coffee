@@ -50,8 +50,6 @@ describe 'Athorize', ->
   beforeEach ->
     clock = sinon.useFakeTimers()
     config =
-      buy:
-        1: 3
       draugiem:
         buy_transaction:
           1: 444
@@ -63,6 +61,8 @@ describe 'Athorize', ->
       facebook:
         id: 'fid'
         key: 'fkey'
+        buy_price:
+          2: 70
       db: db
     Login::_attr.language.validate = ->
     config_callbacks[0]()
@@ -233,10 +233,6 @@ describe 'Athorize', ->
       db.insert.getCall(0).args[1](10)
       assert.equal(1, spy.callCount)
       assert.deepEqual({id: 10}, spy.getCall(0).args[0])
-
-    it '_transaction_create (check service)', ->
-      login._transaction_create({service: 5}, spy)
-      assert.equal(0, db.insert.callCount)
 
     it '_transaction_get', ->
       login._table_transaction = 's_trans'
@@ -482,6 +478,10 @@ describe 'Athorize', ->
       login._transaction_create.getCall(0).args[1]({id: 10})
       assert.equal(1, spy.callCount)
       assert.deepEqual({id: 10}, spy.getCall(0).args[0])
+
+    it 'buy (no transaction)', ->
+      login.buy({user_id: 5, service: 1}, spy)
+      assert.equal(0, login._transaction_create.callCount)
 
     it 'buy_complete', ->
       TestFacebook.get = sinon.spy()
