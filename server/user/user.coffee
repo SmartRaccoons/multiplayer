@@ -17,6 +17,17 @@ config_callback( ->
   _attr = Authorize.Login::_attr
   User::_attr = Object.keys(_attr)
   User::_attr_public = Object.keys(_attr).filter (k)-> !_attr[k].private
+  if User::_coins_buy_params
+    User::_coins_buy_callback = Object.keys(User::_coins_buy_params.service).reduce (acc, v)->
+      Object.assign(acc, {
+        [v]: (params)->
+          User::emit_self_exec.apply User::, [
+            params.user_id, 'set_coins', {coins: User::_coins_buy_params.service[params.service], type: User::_coins_buy_params.type},
+            =>
+              params.complete()
+          ]
+      })
+    , {}
 )()
 
 _pick = (ob, params)->
@@ -30,6 +41,12 @@ _pick = (ob, params)->
 module.exports.User = class User extends User
   _coins_history_params:
     table: 'coins_history'
+  # _coins_buy_params:
+  #   type: 8
+  #   service:
+  #     1: 250
+  #     2: 1000
+  #     3: 5000
   _coins_bonus_params: {}
     # daily:
     #   after: 60 * 60 * 8
@@ -95,6 +112,18 @@ module.exports.User = class User extends User
         return
       @room_exec_game event, params_new
     @attributes.socket.on 'remove', => @remove()
+
+  _bind_socket_coins_buy: (platforms = ['facebook', 'draugiem', 'inbox'])->
+    mt = 'coins:buy'
+    ['facebook', 'draugiem', 'inbox'].forEach (platform)=>
+      if ! (platforms.indexOf(platform) >= 0 and @attributes.api._name is platform)
+        return
+      @attributes.socket.on "#{mt}:#{platform}", (service)=>
+        @attributes.api.buy {service, user_id: @id, language: @get('language')}, (params)=>
+          @publish "#{mt}:#{platform}", Object.assign({service}, params)
+    # @attributes.socket.on "#{mt}:cordova", (service)=>
+    #   @attributes.api.buy_cordova {service, user_id: @id(), language: @get('language')}, (params)->
+    #     @publish "buy:#{platform}:response", Object.assign({service}, params)
 
   _bind_socket_coins_history: ->
     mt = 'coins:history'

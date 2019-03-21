@@ -5,10 +5,14 @@ window.o.ViewPopup = class Popup extends window.o.View
        <% if (!('close' in self.options) || self.options.close){ %>
         <button data-action='close' class='popup-close'>×</button>
        <% } %>
+
        <% if (self.options.head) { %>
         <h1><%= typeof self.options.head === 'function' ? self.options.head({'self': self}) : self.options.head %></h1>
        <% } %>
-       <%= typeof self.options.body === 'function' ? self.options.body({'self': self}) : self.options.body %>
+
+       <div>
+         <%= typeof self.options.body === 'function' ? self.options.body({'self': self}) : self.options.body %>
+       </div>
     </div>
   """
   events:

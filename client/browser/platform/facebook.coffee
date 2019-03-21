@@ -1,4 +1,5 @@
 window.o.PlatformFacebook = class Facebook extends window.o.PlatformCommon
+  _name: 'facebook'
   _scope: ''
   constructor: (@options)->
     super()
@@ -12,6 +13,13 @@ window.o.PlatformFacebook = class Facebook extends window.o.PlatformCommon
     @router.bind 'request', fn
     @router.bind 'connect', =>
       window.FB.getLoginStatus ((response)=> @_auth_callback(response, @auth.bind(@))), {scope: @_scope}
+    @router.bind "request:coins:buy:#{@_name}", ({service, id})=>
+      window.FB.ui
+        method: 'pay'
+        action: 'purchaseitem'
+        product: "#{App.config.server}/d/og/service-#{service}-#{App.lang}.html"
+        request_id: id
+      , ->
     @
 
   init: (callback)->
@@ -26,14 +34,6 @@ window.o.PlatformFacebook = class Facebook extends window.o.PlatformCommon
         xfbml      : true
         version    : 'v2.5'
       callback()
-
-  buy: ({service, id})=>
-    window.FB.ui
-      method: 'pay'
-      action: 'purchaseitem'
-      product: "https://#{App.config.server}/d/og/#{service}#{App.lang}.html"
-      request_id: id
-    , ->
 
   share: (params = {}, callback=->)->
     window.FB.ui

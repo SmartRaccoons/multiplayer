@@ -338,6 +338,7 @@ describe 'Athorize', ->
     it 'default', ->
       assert.equal('auth_user_session_draugiem', login._table_session)
       assert.equal('transaction_draugiem', login._table_transaction)
+      assert.equal('draugiem', login._name)
 
     it 'success', ->
       login._api_call({'code'}, spy)
@@ -448,6 +449,7 @@ describe 'Athorize', ->
     it 'default', ->
       assert.equal('auth_user_session_facebook', login._table_session)
       assert.equal('transaction_facebook', login._table_transaction)
+      assert.equal('facebook', login._name)
 
     it 'success', ->
       login._api_call({code: 'code'}, spy)
@@ -549,6 +551,7 @@ describe 'Athorize', ->
 
     it 'default', ->
       assert.equal('transaction_inbox', login._table_transaction)
+      assert.equal('inbox', login._name)
 
     it 'success', ->
       login.authorize({code: 'code'}, spy)

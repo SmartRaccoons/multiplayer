@@ -25,6 +25,10 @@
       }, params));
     }
 
+    buy(service) {
+      return this.router.send(`coins:buy:${this._name}`, service);
+    }
+
     auth_send(p) {
       this.router.message(_l('Authorize.Authorizing'));
       return this.router.send('authenticate:try', p);

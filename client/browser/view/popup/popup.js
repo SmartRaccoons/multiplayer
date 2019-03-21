@@ -22,7 +22,7 @@
 
     Popup.prototype.className = 'popup';
 
-    Popup.prototype.template = "<div>\n   <% if (!('close' in self.options) || self.options.close){ %>\n    <button data-action='close' class='popup-close'>×</button>\n   <% } %>\n   <% if (self.options.head) { %>\n    <h1><%= typeof self.options.head === 'function' ? self.options.head({'self': self}) : self.options.head %></h1>\n   <% } %>\n   <%= typeof self.options.body === 'function' ? self.options.body({'self': self}) : self.options.body %>\n</div>";
+    Popup.prototype.template = "<div>\n   <% if (!('close' in self.options) || self.options.close){ %>\n    <button data-action='close' class='popup-close'>×</button>\n   <% } %>\n\n   <% if (self.options.head) { %>\n    <h1><%= typeof self.options.head === 'function' ? self.options.head({'self': self}) : self.options.head %></h1>\n   <% } %>\n\n   <div>\n     <%= typeof self.options.body === 'function' ? self.options.body({'self': self}) : self.options.body %>\n   </div>\n</div>";
 
     Popup.prototype.events = {
       'click button[data-action="close"]': function() {

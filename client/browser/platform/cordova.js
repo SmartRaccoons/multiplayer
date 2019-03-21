@@ -67,6 +67,8 @@
           }
           return connect_fresh();
         });
+        this.router.bind(`request:coins:buy:${this._name}`, ({service, id}) => {});
+        // {App.config.server}/d/og/service-#{service}-#{App.lang}
         this.router.bind('logout', () => {
           this._auth_clear();
           return window.location.reload(true);
@@ -105,7 +107,7 @@
               return redirect('index.html');
             }
             return this.router.message(_l('Authorize.version error cordova')).bind('open', () => {
-              return window.open(App.config[window.App.config.platform.name].market, '_system');
+              return window.open(App.config[this.options.platform].market, '_system');
             });
           }
         });
@@ -164,6 +166,8 @@
       }
 
     };
+
+    Cordova.prototype._name = 'cordova';
 
     Cordova.prototype._authorize = {
       draugiem: 'dr_auth_code',

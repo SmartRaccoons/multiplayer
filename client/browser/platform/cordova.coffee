@@ -3,6 +3,7 @@ class PopupCode extends window.o.ViewPopup
 
 
 window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
+  _name: 'cordova'
   _authorize:
     draugiem: 'dr_auth_code'
     facebook: 'access_token'
@@ -39,6 +40,9 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
       if @_login_code_params.random
         return @router.send 'authenticate:code_check', {random: @_login_code_params.random}
       connect_fresh()
+    @router.bind "request:coins:buy:#{@_name}", ({service, id})=>
+      # {App.config.server}/d/og/service-#{service}-#{App.lang}
+
     @router.bind 'logout', =>
       @_auth_clear()
       window.location.reload true
@@ -62,7 +66,7 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
         if version_diff < 0 and is_prev()
           return redirect('index.html')
         @router.message(_l('Authorize.version error cordova')).bind 'open', =>
-          window.open App.config[window.App.config.platform.name].market, '_system'
+          window.open App.config[@options.platform].market, '_system'
     })
 
   auth_popup_device: ({random, platform})->

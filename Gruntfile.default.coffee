@@ -88,6 +88,20 @@ module.exports = (grunt, helpers, commands)->
         if i is files.length
           compile()
 
+  grunt.registerTask 'compile_facebook_payment', ->
+    tml = helpers.template.facebook_payment()
+    Object.keys(helpers.config.facebook.buy_price).forEach (id)->
+      helpers.config.locales.forEach (lang)->
+        file = "service-#{id}-#{lang}"
+        fs.writeFileSync "public/d/og/#{file}.html", tml({
+          id, lang, file,
+          server: helpers.config.server
+          locale: helpers.locale
+          price: helpers.config.facebook.buy_price[id]
+          coins: helpers.config.buy_coins[id]
+        })
+
+
   grunt.initConfig
     watch:
       coffee:
