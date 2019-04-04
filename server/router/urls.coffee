@@ -10,10 +10,12 @@ template_local = require('../helpers/template').generate_local
 Anonymous = null
 locale = null
 template = null
+User = null
 config_callback( ->
   Anonymous = module_get('server.authorize').Anonymous
   locale = module_get('locale')
   template = module_get('server.helpers.template')
+  User = module_get('server.user').User
 )()
 
 
@@ -91,11 +93,11 @@ module.exports.index = (app, locales)->
     res.send index[language]
 
 
-module.exports.payments = (app, callback_router)->
+module.exports.payments = (app)->
   transaction =
     callback: (id, platform, callback)=>
       new (Authorize[platform])().buy_complete id, (params)=>
-        callback_router Object.assign {platform}, params
+        User::_coins_buy_callback[params.service](Object.assign {platform}, params)
       , callback
     platforms:
       draugiem: (platform, url)->

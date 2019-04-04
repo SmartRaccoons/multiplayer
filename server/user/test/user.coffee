@@ -95,6 +95,22 @@ describe 'User', ->
       user.id = 5
       user.emit_module_exec = sinon.spy()
 
+    it 'config (coins buy params)', ->
+      User::_coins_buy_params =
+        type: 8
+        service:
+          1: 250
+      config_callbacks[0]()
+      User::emit_self_exec = spy = sinon.spy()
+      complete = sinon.spy()
+      User::_coins_buy_callback[1]({user_id: 5, service: 1, complete})
+      assert.equal 1, spy.callCount
+      assert.equal 5, spy.getCall(0).args[0]
+      assert.equal 'set_coins', spy.getCall(0).args[1]
+      assert.deepEqual {type: 8, coins: 250}, spy.getCall(0).args[2]
+      spy.getCall(0).args[3]()
+      assert.equal 1, complete.callCount
+
     it 'default attributes', ->
       user = new User({socket: socket})
       assert.equal('user', user._module)
@@ -401,7 +417,7 @@ describe 'User', ->
     beforeEach ->
       socket = new SimpleEvent()
       socket.send = sinon.spy()
-      user = new User({id: 5, socket: socket})
+      user = new User({id: 5, socket: socket, language: 'en', api: {buy: sinon.spy()}})
       user.room = {id: 3, module: 'Room'}
       user.room_exec = sinon.spy()
 
@@ -469,6 +485,58 @@ describe 'User', ->
       user.remove = sinon.spy()
       socket.emit 'remove'
       assert.equal(1, user.remove.callCount)
+
+    it '_bind_socket_coins_buy (facebook)', ->
+      db.select = sinon.spy()
+      user.id = 5
+      user.publish = sinon.spy()
+      user.attributes.api._name = 'facebook'
+      user._bind_socket_coins_buy()
+      socket.emit 'coins:buy:facebook', 2
+      assert.equal 1, user.attributes.api.buy.callCount
+      assert.deepEqual {service: 2, user_id: 5, language: 'en'} , user.attributes.api.buy.getCall(0).args[0]
+      user.attributes.api.buy.getCall(0).args[1]({id: 10})
+      assert.equal 'coins:buy:facebook', user.publish.getCall(0).args[0]
+      assert.deepEqual {service: 2, id: 10}, user.publish.getCall(0).args[1]
+
+    it '_bind_socket_coins_buy (draugiem)', ->
+      db.select = sinon.spy()
+      user.id = 5
+      user.publish = sinon.spy()
+      user.attributes.api._name = 'draugiem'
+      user._bind_socket_coins_buy()
+      socket.emit 'coins:buy:draugiem', 2
+      user.attributes.api.buy.getCall(0).args[1]({id: 10})
+      assert.equal 'coins:buy:draugiem', user.publish.getCall(0).args[0]
+
+    it '_bind_socket_coins_buy (inbox)', ->
+      db.select = sinon.spy()
+      user.id = 5
+      user.publish = sinon.spy()
+      user.attributes.api._name = 'inbox'
+      user._bind_socket_coins_buy()
+      socket.emit 'coins:buy:inbox', 2
+      user.attributes.api.buy.getCall(0).args[1]({id: 10})
+      assert.equal 'coins:buy:inbox', user.publish.getCall(0).args[0]
+
+    it '_bind_socket_coins_buy (not included)', ->
+      db.select = sinon.spy()
+      user.id = 5
+      user.publish = sinon.spy()
+      user.attributes.api._name = 'inbox'
+      user._bind_socket_coins_buy(['facebook'])
+      socket.emit 'coins:buy:inbox', 2
+      assert.equal 0, user.attributes.api.buy.callCount
+
+    it '_bind_socket_coins_buy (unexisting)', ->
+      db.select = sinon.spy()
+      user.id = 5
+      user.publish = sinon.spy()
+      user.attributes.api._name = 'boom'
+      user._bind_socket_coins_buy()
+      socket.emit 'coins:buy:inbox', 2
+      socket.emit 'coins:buy:boom', 2
+      assert.equal 0, user.attributes.api.buy.callCount
 
     it '_bind_socket_coins_history', ->
       db.select = sinon.spy()

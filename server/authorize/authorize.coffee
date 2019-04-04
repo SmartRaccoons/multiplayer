@@ -156,7 +156,16 @@ module.exports.Login = class Login
         service: data.service
 
 
+# moduele.exports.cordova = class LoginCordova extends Login
+#   _table_transaction: 'transaction_cordova'
+#   buy: (params, callback)->
+#     if !(params.service of config.cordova.buy_transaction)
+#       return
+#     @_transaction_create params, callback
+
+
 module.exports.facebook = class LoginFacebook extends Login
+  _name: 'facebook'
   _table_session: 'auth_user_session_facebook'
   _table_transaction: 'transaction_facebook'
   _api_call: ({code}, callback)->
@@ -190,6 +199,7 @@ module.exports.google = class LoginGoogle extends Login
 
 
 module.exports.draugiem = class LoginDraugiem extends Login
+  _name: 'draugiem'
   _table_session: 'auth_user_session_draugiem'
   _table_transaction: 'transaction_draugiem'
 
@@ -224,6 +234,7 @@ module.exports.draugiem = class LoginDraugiem extends Login
 
 
 module.exports.inbox = class LoginInbox extends Login
+  _name: 'inbox'
   _table_transaction: 'transaction_inbox'
   authorize: ({code, language}, callback)->
     where = {inbox_uid: code}

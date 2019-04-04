@@ -122,6 +122,17 @@ module.exports.generate = (tmp_params)->
         dir: "#{__dirname}/../templates/"
       }, tmp_params)
   _template(template_read(tmp_params))(params)
+module.exports.facebook_payment = (template = 'facebook-payment')->
+  _facebook_og = _template(template_read({template}))
+  ({id, lang, file, price, coins, locale, server})->
+    _facebook_og {
+      server
+      file
+      coins
+      head: locale._("Buy.head", lang, {coins})
+      desc: locale._("Buy.desc", lang, {coins})
+      price: [Math.floor(price / 100), price % 100].join('.')
+    }
 
 module.exports.generate_local = (template)->
   _template(template_read({template, dir: "#{__dirname}/../templates/"}))

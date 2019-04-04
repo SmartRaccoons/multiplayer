@@ -18,6 +18,8 @@ window.o.PlatformCommon = class Common
       version_callback: => @router.message(_l('Authorize.version error'))
     }, params)
 
+  buy: (service)-> @router.send "coins:buy:#{@_name}", service
+
   auth_send: (p)->
     @router.message(_l('Authorize.Authorizing'))
     @router.send 'authenticate:try', p
