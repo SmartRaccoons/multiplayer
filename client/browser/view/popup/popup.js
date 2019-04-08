@@ -12,16 +12,6 @@
         this;
       }
 
-      remove() {
-        if (!this._remove_timeout) {
-          return super.remove(...arguments);
-        }
-        this.$el.addClass('popup-before-remove');
-        return setTimeout(() => {
-          return super.remove(...arguments);
-        }, this._remove_timeout);
-      }
-
       render() {
         super.render(...arguments);
         this.$container = $(this.$('div')[0]);
@@ -41,7 +31,13 @@
 
     Popup.prototype.events = {
       'click button[data-action="close"]': function() {
-        return this.remove();
+        if (!this._remove_timeout) {
+          return this.remove();
+        }
+        this.$el.addClass('popup-before-remove');
+        return setTimeout(() => {
+          return this.remove();
+        }, this._remove_timeout);
       },
       'click [data-click]': function(e) {
         var el;

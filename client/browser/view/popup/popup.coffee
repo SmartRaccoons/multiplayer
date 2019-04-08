@@ -17,7 +17,13 @@ window.o.ViewPopup = class Popup extends window.o.View
     </div>
   """
   events:
-    'click button[data-action="close"]': -> @remove()
+    'click button[data-action="close"]': ->
+      if !@_remove_timeout
+        return @remove()
+      @$el.addClass('popup-before-remove')
+      setTimeout =>
+        @remove()
+      , @_remove_timeout
     'click [data-click]': (e)->
       el = $(e.target)
       @trigger el.attr('data-click'), el.attr('data-click-attr')
@@ -29,15 +35,6 @@ window.o.ViewPopup = class Popup extends window.o.View
     if @options.parent
       @$el.appendTo @options.parent
     @
-
-  remove: ->
-    if !@_remove_timeout
-      return super ...arguments
-    @$el.addClass('popup-before-remove')
-    setTimeout =>
-      super ...arguments
-    , @_remove_timeout
-
 
   render: ->
     super ...arguments
