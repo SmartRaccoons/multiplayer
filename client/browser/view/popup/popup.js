@@ -12,13 +12,28 @@
         this;
       }
 
+      remove() {
+        if (!this._remove_timeout) {
+          return super.remove(...arguments);
+        }
+        this.$el.addClass('popup-before-remove');
+        return setTimeout(() => {
+          return super.remove(...arguments);
+        }, this._remove_timeout);
+      }
+
       render() {
         super.render(...arguments);
         this.$container = $(this.$('div')[0]);
+        this.$el.addClass('popup-before-render');
+        this.$el.height();
+        this.$el.removeClass('popup-before-render');
         return this;
       }
 
     };
+
+    Popup.prototype._remove_timeout = 200;
 
     Popup.prototype.className = 'popup';
 

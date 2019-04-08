@@ -1,4 +1,5 @@
 window.o.ViewPopup = class Popup extends window.o.View
+  _remove_timeout: 200
   className: 'popup'
   template: """
     <div>
@@ -29,7 +30,19 @@ window.o.ViewPopup = class Popup extends window.o.View
       @$el.appendTo @options.parent
     @
 
+  remove: ->
+    if !@_remove_timeout
+      return super ...arguments
+    @$el.addClass('popup-before-remove')
+    setTimeout =>
+      super ...arguments
+    , @_remove_timeout
+
+
   render: ->
     super ...arguments
     @$container = $(@$('div')[0])
+    @$el.addClass('popup-before-render')
+    @$el.height()
+    @$el.removeClass('popup-before-render')
     @
