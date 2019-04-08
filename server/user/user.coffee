@@ -13,16 +13,17 @@ config_callback( ->
   config.db = config_get('db')
   Authorize = module_get('server.authorize')
   RoomModule = module_get('server.room')
+  User2 = module_get('server.user').User or User
   Login = Authorize.Login
   _attr = Authorize.Login::_attr
-  User::_attr = Object.keys(_attr)
-  User::_attr_public = Object.keys(_attr).filter (k)-> !_attr[k].private
-  if User::_coins_buy_params
-    User::_coins_buy_callback = Object.keys(User::_coins_buy_params.service).reduce (acc, v)->
+  User2::_attr = Object.keys(_attr)
+  User2::_attr_public = Object.keys(_attr).filter (k)-> !_attr[k].private
+  if User2::_coins_buy_params
+    User2::_coins_buy_callback = Object.keys(User2::_coins_buy_params.service).reduce (acc, v)->
       Object.assign(acc, {
         [v]: (params)->
-          User::emit_self_exec.apply User::, [
-            params.user_id, 'set_coins', {coins: User::_coins_buy_params.service[params.service], type: User::_coins_buy_params.type},
+          User2::emit_self_exec.apply User2::, [
+            params.user_id, 'set_coins', {coins: User2::_coins_buy_params.service[params.service], type: User2::_coins_buy_params.type},
             =>
               params.complete()
           ]

@@ -44,7 +44,7 @@ User = proxyquire('../user', {
     module_get: (module)->
       if 'server.authorize' is module
         return {Login}
-      return {Room, Room2}
+      return {Room, Room2, User}
     config_get: (param)-> config[param]
   '../pubsub/multiserver':
     PubsubModule: class PubsubModule
