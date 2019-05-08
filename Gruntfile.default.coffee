@@ -139,7 +139,7 @@ module.exports = (grunt, helpers, commands)->
           .then (screen)->
             sharp(scr.screen_background)
             .resize(img.width, img.height, {fit: 'fill'})
-            .overlayWith(screen)
+            .composite([{ input: screen }])
             .jpeg({quality: 100, progressive: true})
             .toFile(img.dest)
         Promise.all scr.sizes.map (size)->
@@ -211,7 +211,7 @@ module.exports = (grunt, helpers, commands)->
               if img.width
                 sh2 = sh2.resize(img.width, img.height, {fit: 'fill'})
               sh2
-              .overlayWith(screen)
+              .composite([{ input: screen }])
               .toFile(img.dest)
         Object.keys(medias).forEach (media)->
           fs.mkdirSync "#{path_res}/#{media}"

@@ -15,7 +15,7 @@ exports.Room = class Room extends PubsubModule
   _module: 'Room'
   game: class Game
     constructor: -> throw 'no game class'
-  game_player_params: ['id']
+  game_player_params: {id: 'id'}
   # game_methods:
   #   method:
   #     waiting: false
@@ -35,14 +35,16 @@ exports.Room = class Room extends PubsubModule
     if @attributes.users
       @attributes.users.forEach (user)=> @user_add(user)
 
+  _game_player_parse: (user)->
+    Object.keys(@game_player_params).reduce (acc, v)=>
+      if !(v of user)
+        return acc
+      Object.assign acc, if typeof @game_player_params[v] is 'function' then @game_player_params[v].bind(@)(user[v]) else {[@game_player_params[v]]: user[v]}
+    , {}
+
   _game_start: (attributes)->
     @_game = new (@game) Object.assign {}, attributes, {
-      users: @users.map (u)=>
-        @game_player_params.reduce (acc, v)->
-          if !(v of u)
-            return acc
-          Object.assign acc, {[v]: u[v]}
-        , {}
+      users: @users.map (u)=> @_game_player_parse(u)
     }
 
   _exec_user: -> User::emit_self_exec.apply User::, arguments
@@ -52,8 +54,9 @@ exports.Room = class Room extends PubsubModule
       return
     User::emit_self_publish.apply User::, arguments
 
-  publish: (ev, pr, pr_additional = [])->
-    additional = pr_additional.reduce ( (acc, v)-> Object.assign acc, {[v[0]]: v[1]} ), {}
+  publish: (ev, pr, additional = {})->
+    if Array.isArray(additional)
+      additional = additional.reduce ( (acc, v)-> Object.assign acc, {[v[0]]: v[1]} ), {}
     @users
     .concat(@spectators)
     .forEach (user)=>
