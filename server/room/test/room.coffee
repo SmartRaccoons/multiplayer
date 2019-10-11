@@ -252,6 +252,12 @@ describe 'Room', ->
       assert.deepEqual({p: 'pr'}, spy.getCall(0).args[2])
       assert.deepEqual({p: 'pr', z: 'p'}, spy.getCall(1).args[2])
 
+    it 'publish (additional - objects)', ->
+      room._publish_user = spy = sinon.spy()
+      room.publish('ev', {p: 'pr'}, {6: {z: 'p'} })
+      assert.deepEqual({p: 'pr'}, spy.getCall(0).args[2])
+      assert.deepEqual({p: 'pr', z: 'p'}, spy.getCall(1).args[2])
+
     it '_exec_user', ->
       User::emit_self_exec = spy = sinon.spy()
       room._exec_user(5, 'me', 'pr')
@@ -272,18 +278,22 @@ describe 'Room', ->
       room = new Room({})
       assert.throws -> room._game_start()
 
+    it '_game_player_parse', ->
+      fake = sinon.fake.returns {fa: 'ke'}
+      room.game_player_params = {id: 'id', coins: 'co', fake}
+      assert.deepEqual {id: 5, co: 2, fa: 'ke'}, room._game_player_parse({id: 5, coins: 2, fake: 'fu', touch: 'none'})
+      assert.equal 1, fake.callCount
+      assert.equal 'fu', fake.getCall(0).args[0]
+
     it 'pass attributes', ->
       RoomGame_methods.constructor = sinon.spy()
+      room._game_player_parse = sinon.fake.returns {p: 'parsed'}
+      room.users = [{id: 5}, {id: 6}]
       room._game_start({type: 'sng'})
-      assert.equal(1, RoomGame_methods.constructor.callCount)
-      assert.deepEqual({users: [{id: 5}, {id: 6}], type: 'sng'}, RoomGame_methods.constructor.getCall(0).args[0])
-
-    it 'pass attributes (game_player_params)', ->
-      RoomGame_methods.constructor = sinon.spy()
-      room.users = [{id: 5, coins: 2}, {id: 6}]
-      room.game_player_params = ['id', 'coins']
-      room._game_start({type: 'sng'})
-      assert.deepEqual({users: [{id: 5, coins: 2}, {id: 6}], type: 'sng'}, RoomGame_methods.constructor.getCall(0).args[0])
+      assert.deepEqual { type: 'sng', users: [{p: 'parsed'}, {p: 'parsed'}] }, RoomGame_methods.constructor.getCall(0).args[0]
+      assert.equal 2, room._game_player_parse.callCount
+      assert.deepEqual {id: 5}, room._game_player_parse.getCall(0).args[0]
+      assert.deepEqual {id: 6}, room._game_player_parse.getCall(1).args[0]
 
     it '_game_exec', ->
       room._game_exec({user_id: 5, method: 'move', params: {p: 'pr'}})

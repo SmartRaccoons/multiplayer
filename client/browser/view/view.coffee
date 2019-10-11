@@ -7,45 +7,54 @@ touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigat
 
 __body = new SimpleEvent()
 $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click'
+if touch
+  $('body').addClass('touch')
 
 
 
 @o.View = class View extends SimpleEvent
   background_click_hide: false
+  smooth_appear: false
   className: null
   el: 'div'
   template: ''
   events: {}
   options_html: {}
+  #   data-s=' &=attr&attr2 '
+  #   data-s=' &=options_html[1] '
   options_bind: {}
   options_bind_el_self: {} # or []
+  options_pre: {}
 
-  constructor: (options)->
+  constructor: (options = {})->
     super()
     @__touch = touch
-    @options = _.extend(_.cloneDeep(@options_default), options)
+    @options = _.extend _.cloneDeep(@options_default), _.omit(options, ['el'])
     view_id++
     @_id = view_id
-    @$el = $("<#{@el}>")
+    @$el = options.el or $("<#{@el}>")
     if @className
       @$el.addClass(@className)
     @__events_delegate()
     @__events_binded_el = []
-    @_options_bind = Object.keys(@options_bind).reduce (acc, v)=>
+    @__options_bind = Object.keys(@options_bind).reduce (acc, v)=>
       acc.concat { events: v.split(','), fn: @options_bind[v].bind(@) }
     , []
     @
 
+  options_default_over: (options)-> @options_update _.extend( _.cloneDeep(@options_default), options )
+
   __events_delegate: ->
     if !@events
       return
-    for k, v of @events
-      m = k.match /^(\S+)\s*(.*)$/
-      fn = if typeof v isnt 'string' then _.bind(v, @) else ((v)=>
-        => @[v]()
-      )(v)
-      el = @__selector_parse(m[2], true)
-      m[1].split(',').forEach (event)=>
+    Object.keys(@events).sort().forEach (event_params)=>
+      fn = @events[event_params]
+      event_match = event_params.match /^(\S+)\s*(.*)$/
+      fn_binded = if typeof fn isnt 'string' then _.bind(fn, @) else ((fn)=>
+        => @[fn]()
+      )(fn)
+      el = @__selector_parse(event_match[2], true)
+      event_match[1].split(',').forEach (event)=>
         [ev, pr] = event.split(':')
         if pr is 'nt' and @__touch
           return
@@ -53,25 +62,28 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
           return
         if ev is 'click' and @__touch
           ev = 'touchstart'
-        @$el.on "#{ev}.delegateEvents#{@_id}", el, fn
+        @$el.on "#{ev}.delegateEvents#{@_id}", el, fn_binded
 
   __events_undelegate: -> @$el.off('.delegateEvents' + @_id)
 
   options_update: (options, force = false)->
-    updated = []
+    previous = {}
     for k, v of options
       if force or !_.isEqual(@options[k], v)
-        @options[k] = v
-        updated.push k
-    if updated.length is 0
+        previous[k] = _.cloneDeep(@options[k])
+        @options[k] = if @options_pre[k] then @options_pre[k].bind(@)(v) else v
+    if Object.keys(previous).length is 0
       return
-    @_options_bind
-    .concat @_subview_options_binded()
+    @__options_bind
+    .concat (@__views or []).reduce(
+      (acc, view)->
+        acc.concat(view.__subview_options_binded or [])
+    , [])
     .filter (v)->
-      updated.filter( (up)-> v.events.indexOf(up) >= 0 ).length > 0
+      Object.keys(previous).filter( (up)-> v.events.indexOf(up) >= 0 ).length > 0
     .forEach (v)->
-      v.fn()
-    updated.forEach (option)=> @trigger "#{update_ev}:#{option}"
+      v.fn(previous)
+    Object.keys(previous).forEach (option)=> @trigger "#{update_ev}:#{option}"
     @trigger update_ev
 
   options_update_bind: (option, exec)-> @bind "#{update_ev}:#{option}", => exec(@options[option])
@@ -79,7 +91,7 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
   _option_get_from_str: (str)->
     res = str.trim()
     .replace '&amp;', '&'
-    .match /^(?:\&)\=([\w\.&]*)$/
+    .match /^(?:\&)\=([\w\.&\]\[]*)$/
     if res
       return res[1]
     return null
@@ -98,14 +110,20 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
       @option_bind_el_attr(el, 'html', option)()
 
   option_bind_el_attr: (el, attr, option)=>
+    # check is array
+    arrayed = option.match /^([\w]*)\[([\d]*)\]$/
+    if arrayed
+      option = arrayed[1]
     opt_get = =>
       op = @options
       for v in option.split('.')
         op = op[v]
       return op
     val_get = if @options_html[option] then =>
-      @options_html[option].bind(@)(opt_get())
-    else => opt_get()
+      (if arrayed then @options_html[option][arrayed[2]] else @options_html[option])
+      .bind(@)(opt_get())
+    else =>
+      opt_get()
     options = [option]
     if option.indexOf('&') >= 0
       options = option.split '&'
@@ -126,28 +144,33 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
 
   render: ->
     @subview_remove()
-    if @__rendering or not @template
+    if @__rendering
       return @
     @__rendering = true
     do =>
       while ev = @__events_binded_el.shift()
         @unbind(ev)
-    @_options_bind.forEach (v)-> v.fn()
-    @$el.html _.template(@template)({self: @})
+    @__options_bind.forEach (v)=> v.fn(@options)
+    if @template
+      @$el.html _.template(@template)({self: @})
     @$el.find('[class]').forEach (el)=>
       $(el).attr 'class', @__selector_parse($(el).attr('class'))
     do =>
       get = =>
         if !Array.isArray(@options_bind_el_self)
           return @options_bind_el_self
-        opt = {}
-        @options_bind_el_self.forEach (v)-> opt["data-#{v}"] = v
-        return opt
+        @options_bind_el_self.reduce (acc, v)->
+          Object.assign acc, {["data-#{v}"]: v}
+        , {}
       for attr, option of get()
         @option_bind_el_attr(@$el, attr, option)()
     @$el.find('*').forEach (el)=>
       @option_bind_el(el)
     @__rendering = false
+    if @smooth_appear
+      @$el.attr('data-add', '')
+      @$el.height()
+      @$el.removeAttr('data-add')
     return @
 
   subview_append: (view, events = [], options_bind = {})->
@@ -155,24 +178,22 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
       @__subview = []
     @__subview.push(view)
     @subview_events_pass(events, view, @)
+    @subview_options_bind(options_bind, view, @)
+    view
+
+  subview_options_bind: (options_bind, view, parent = @)->
     if Array.isArray(options_bind)
       options_bind = options_bind.reduce (acc, v)->
         Object.assign acc, {[v]: v}
       , {}
-    view._options_bind_parent = Object.keys(options_bind).reduce (acc, key)=>
+    parent.__views = (parent.__views or []).concat view
+    view.__subview_options_binded = Object.keys(options_bind).reduce (acc, key)=>
       value = options_bind[key]
-      fn = => view.options_update { [value]: @options[key] }
+      fn = => view.options_update { [value]: parent.options[key] }, true
       fn()
       acc.concat {events: key.split(','), fn}
-    , []
-    view
-
-  _subview_options_binded: ->
-    if !@__subview
-      return []
-    @__subview.reduce (acc, v)=>
-      acc.concat v._options_bind_parent
-    , []
+    , view.__subview_options_binded or []
+    @
 
   subview_events_pass: (events, view, parent = @)->
     events.forEach (ev)=>
@@ -195,13 +216,7 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
     @$el.removeClass('hidden')
     @trigger 'show'
     if @background_click_hide
-      @__background_click_callback_remove()
-      setTimeout =>
-        if @__removed
-          return
-        @__background_click_callback = => @hide()
-        __body.bind 'click', @__background_click_callback
-      , 0
+      @__background_click_callback_add(@hide.bind(@))
     @
 
   show_hide: ->
@@ -210,6 +225,15 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
     @hide()
 
   hide_show: -> @show_hide()
+
+  __background_click_callback_add: (callback)->
+    @__background_click_callback_remove()
+    setTimeout =>
+      if @__removed
+        return
+      @__background_click_callback = => callback()
+      __body.bind 'click', @__background_click_callback
+    , 0
 
   __background_click_callback_remove: ->
     if @__background_click_callback
@@ -221,8 +245,9 @@ $('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click
     @subview_remove()
     super ...arguments
     @__events_undelegate()
+    delete @__subview_options_binded
     @$el.remove()
 
-  __selector_parse: (s, point = false)-> s.replace '&-', "#{if point then '.' else ''}#{@className}-"
+  __selector_parse: (s, point = false)-> s.replace /&-/g, "#{if point then '.' else ''}#{@className}-"
 
   $: (selector)-> @$el.find(@__selector_parse(selector, true))
