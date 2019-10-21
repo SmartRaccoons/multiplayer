@@ -1,5 +1,15 @@
 class PopupCode extends window.o.ViewPopup
   className: window.o.ViewPopupAuthorize::className
+  events: Object.assign {}, window.o.ViewPopup::events, {
+    'click [data-authorize]': (e)->
+      if window.SafariViewController
+        window.SafariViewController.isAvailable (available)=>
+          if !available
+            return
+          e.preventDefault()
+          url = $(e.target).attr('href')
+          window.SafariViewController.show({url})
+  }
 
 
 window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
@@ -28,6 +38,8 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
       if event is 'authenticate:code_error'
         return connect_fresh()
       if event is 'authenticate:success'
+        if window.SafariViewController
+          window.SafariViewController.hide()
         @router.unbind 'request', fn
       if event is 'authenticate:code'
         @_login_code_params.random = data.random
@@ -74,7 +86,7 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformCommon
     link_text = link.replace('https://', '').replace('http://', '')
     @router.subview_append(new PopupCode({
       head: _l('Authorize.head') + ' ' + platform
-      body: _l('Authorize.Authorize link', {link: "<a target='_blank' href='#{link}'>#{link_text}</a>"})
+      body: _l('Authorize.Authorize link', {link: "<a data-authorize target='_blank' href='#{link}'>#{link_text}</a>"})
     }))
     .bind 'remove', => @auth_popup()
     .render().$el.appendTo @router.$el

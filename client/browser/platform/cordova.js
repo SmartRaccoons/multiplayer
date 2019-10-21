@@ -7,6 +7,22 @@
 
     PopupCode.prototype.className = window.o.ViewPopupAuthorize.prototype.className;
 
+    PopupCode.prototype.events = Object.assign({}, window.o.ViewPopup.prototype.events, {
+      'click [data-authorize]': function(e) {
+        if (window.SafariViewController) {
+          return window.SafariViewController.isAvailable((available) => {
+            var url;
+            if (!available) {
+              return;
+            }
+            e.preventDefault();
+            url = $(e.target).attr('href');
+            return window.SafariViewController.show({url});
+          });
+        }
+      }
+    });
+
     return PopupCode;
 
   }).call(this);
@@ -43,6 +59,9 @@
             return connect_fresh();
           }
           if (event === 'authenticate:success') {
+            if (window.SafariViewController) {
+              window.SafariViewController.hide();
+            }
             this.router.unbind('request', fn);
           }
           if (event === 'authenticate:code') {
@@ -120,7 +139,7 @@
         return this.router.subview_append(new PopupCode({
           head: _l('Authorize.head') + ' ' + platform,
           body: _l('Authorize.Authorize link', {
-            link: `<a target='_blank' href='${link}'>${link_text}</a>`
+            link: `<a data-authorize target='_blank' href='${link}'>${link_text}</a>`
           })
         })).bind('remove', () => {
           return this.auth_popup();

@@ -56,7 +56,7 @@ module.exports.authorize = (app)->
             })
           res.redirect links[platform](code_url, req.params.id)
   do =>
-    a_code = template_local('a-code')()
+    a_code = template_local('a-code')({code_url})
     app.get code_url, (req, res)-> res.send a_code
     platforms =
       draugiem: 'dr_auth_code'
