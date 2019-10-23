@@ -53,7 +53,16 @@ if touch
       fn_binded = if typeof fn isnt 'string' then _.bind(fn, @) else ((fn)=>
         => @[fn]()
       )(fn)
-      el = @__selector_parse(event_match[2], true)
+      el_str = @__selector_parse(event_match[2], true)
+      if el_str.substr(0, 1) is '&'
+        ((self)->
+          el_str_parse = el_str.substr(1).split(' ')
+          el_str = el_str_parse[1]
+          fn_binded_prev = fn_binded
+          fn_binded = ->
+            if self.$el.is(el_str_parse[0])
+              fn_binded_prev.apply(@, arguments)
+        )(@)
       event_match[1].split(',').forEach (event)=>
         [ev, pr] = event.split(':')
         if pr is 'nt' and @__touch
@@ -62,7 +71,7 @@ if touch
           return
         if ev is 'click' and @__touch
           ev = 'touchstart'
-        @$el.on "#{ev}.delegateEvents#{@_id}", el, fn_binded
+        @$el.on "#{ev}.delegateEvents#{@_id}", el_str, fn_binded
 
   __events_undelegate: -> @$el.off('.delegateEvents' + @_id)
 

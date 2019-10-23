@@ -53,7 +53,7 @@
           return;
         }
         return Object.keys(this.events).sort().forEach((event_params) => {
-          var el, event_match, fn, fn_binded;
+          var el_str, event_match, fn, fn_binded;
           fn = this.events[event_params];
           event_match = event_params.match(/^(\S+)\s*(.*)$/);
           fn_binded = typeof fn !== 'string' ? _.bind(fn, this) : ((fn) => {
@@ -61,7 +61,20 @@
               return this[fn]();
             };
           })(fn);
-          el = this.__selector_parse(event_match[2], true);
+          el_str = this.__selector_parse(event_match[2], true);
+          if (el_str.substr(0, 1) === '&') {
+            (function(self) {
+              var el_str_parse, fn_binded_prev;
+              el_str_parse = el_str.substr(1).split(' ');
+              el_str = el_str_parse[1];
+              fn_binded_prev = fn_binded;
+              return fn_binded = function() {
+                if (self.$el.is(el_str_parse[0])) {
+                  return fn_binded_prev.apply(this, arguments);
+                }
+              };
+            })(this);
+          }
           return event_match[1].split(',').forEach((event) => {
             var ev, pr;
             [ev, pr] = event.split(':');
@@ -74,7 +87,7 @@
             if (ev === 'click' && this.__touch) {
               ev = 'touchstart';
             }
-            return this.$el.on(`${ev}.delegateEvents${this._id}`, el, fn_binded);
+            return this.$el.on(`${ev}.delegateEvents${this._id}`, el_str, fn_binded);
           });
         });
       }
