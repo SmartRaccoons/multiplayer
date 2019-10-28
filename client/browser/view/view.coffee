@@ -97,7 +97,7 @@ if touch
 
   options_update_bind: (option, exec)-> @bind "#{update_ev}:#{option}", => exec(@options[option])
 
-  _option_get_from_str: (str)->
+  __option_get_from_str: (str)->
     res = str.trim()
     .replace '&amp;', '&'
     .match /^(?:\&)\=([\w\.&\]\[]*)$/
@@ -109,12 +109,12 @@ if touch
     attributes = $(el)[0].attributes
     [0...attributes.length].map (i)=>
       {
-        option: @_option_get_from_str attributes[i].value
+        option: @__option_get_from_str attributes[i].value
         name: attributes[i].name
       }
     .filter ({option})-> !!option
     .forEach ({name, option})=> @option_bind_el_attr(el, name, option)()
-    option = @_option_get_from_str $(el).html()
+    option = @__option_get_from_str $(el).html()
     if option
       @option_bind_el_attr(el, 'html', option)()
 
@@ -186,8 +186,8 @@ if touch
     if !@__subview
       @__subview = []
     @__subview.push(view)
-    @subview_events_pass(events, view, @)
-    @subview_options_bind(options_bind, view, @)
+    @subview_events_pass(events, view)
+    @subview_options_bind(options_bind, view)
     view
 
   subview_options_bind: (options_bind, view, parent = @)->
