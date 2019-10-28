@@ -39,10 +39,18 @@ module.exports.Login = class Login
     'google_uid': {db: true, private: true}
     'inbox_uid': {db: true, private: true}
     'img': {default: '', db: true}
-
+    # 'params':
+    #   parse:
+    #     to: JSON.stringify
+    #     from: JSON.parse
     'new': {private: true}
 
   _table: 'auth_user'
+
+  _parse: ->
+    Object.keys(@_attr)
+    .filter (v)=> !!@_attr[v].parse
+    .map (v)=> [v, @_attr[v].parse]
 
   _user_get: (where, update, callback)->
     if !callback
@@ -52,6 +60,7 @@ module.exports.Login = class Login
       select: Object.keys(@_attr).filter (v)=> @_attr[v].db
       table: @_table
       where: where
+      parse: @_parse()
     , (user)=>
       if !user
         return callback(null)
@@ -73,6 +82,7 @@ module.exports.Login = class Login
         table: @_table
         data: data
         where: {id: update.id}
+        parse: @_parse()
 
   _user_create: (data, callback)->
     data.language = @_attr.language.validate(data.language)
@@ -84,6 +94,7 @@ module.exports.Login = class Login
     config.db.insert
       table: @_table
       data: Object.assign({last_login: new Date(), date_joined: new Date()}, data)
+      parse: @_parse()
     , (id)-> callback(Object.assign({id: id, new: true}, data))
 
   _user_create_or_update: (where, data, callback)->

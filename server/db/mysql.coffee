@@ -43,6 +43,12 @@ module.exports.Mysql = class Mysql
       where_str.push("`#{key}`=#{@_escape(value)}")
     where_str
 
+  _parse: (parse, data, to_db = true)->
+    parse.forEach (parse)->
+      if data[parse[0]]
+        data[parse[0]] = parse[1][if to_db then 'to' else 'from'](data[parse[0]])
+    data
+
   select_raw: (query, data, callback)->
     @query query, data, (err, rows)->
       if err
@@ -91,7 +97,10 @@ module.exports.Mysql = class Mysql
             if v.substr(0, 1) is '-' then "s.`#{v.substr(1)}` DESC" else "s.`#{v}` ASC"}
       """ else ''}
       LIMIT #{data.limit or '1000'}
-    """, where.map( (v)-> v[1] ), callback
+    """, where.map( (v)-> v[1] ), (rows)=>
+      if data.parse
+        rows = rows.map (v)=> @_parse(data.parse, v, false)
+      callback(rows)
 
   select_one: (data, callback)->
     @select Object.assign({limit: 1}, data), (rows)=>
@@ -102,14 +111,14 @@ module.exports.Mysql = class Mysql
       if data.data[key] and data.data[key].increase?
         v = data.data[key].increase
         data.data[key] = {toSqlString: -> "`#{key}` #{if v < 0 then '-' else '+'} #{Math.abs(v)}"}
-    @query "UPDATE `#{data.table}` SET ? WHERE  #{@_where(data.where).join(' AND ')}", data.data, (err, result)->
+    @query "UPDATE `#{data.table}` SET ? WHERE  #{@_where(data.where).join(' AND ')}", (if data.parse then @_parse(data.parse, data.data, true) else data.data), (err, result)->
       if err
         console.info data
         throw err
       callback(result)
 
   insert: (data, callback=->)->
-    @query "INSERT INTO `#{data.table}` SET ?", data.data, (err, result)->
+    @query "INSERT INTO `#{data.table}` SET ?", (if data.parse then @_parse(data.parse, data.data, true) else data.data), (err, result)->
       if err
         console.info data
         if not data.ignore

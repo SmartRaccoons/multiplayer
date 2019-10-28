@@ -85,12 +85,21 @@ describe 'Athorize', ->
     beforeEach ->
       login = new Login()
 
+
+    it '_parse', ->
+      login._attr =
+        'some':
+          parse: 'p'
+      assert.deepEqual [ ['some', 'p'] ], login._parse()
+
     it '_user_get', ->
+      login._parse = sinon.fake.returns 'p'
       login._user_get({id: 5}, spy)
       assert.equal(1, db.select_one.callCount)
       assert(db.select_one.getCall(0).args[0].select.indexOf('id') >= 0)
       assert.equal('auth_user', db.select_one.getCall(0).args[0].table)
       assert.deepEqual({id: 5}, db.select_one.getCall(0).args[0].where)
+      assert.equal('p', db.select_one.getCall(0).args[0].parse)
       db.select_one.getCall(0).args[1]({id: 5})
       assert.equal(1, spy.callCount)
       assert.deepEqual({id: 5, new: false}, spy.getCall(0).args[0])
@@ -118,11 +127,13 @@ describe 'Athorize', ->
       assert.equal(0, db.update.callCount)
 
     it '_user_create', ->
+      login._parse = sinon.fake.returns 'p'
       login._user_create({draugiem_uid: 5}, spy)
       assert.equal(1, db.insert.callCount)
       assert.equal('auth_user', db.insert.getCall(0).args[0].table)
       assert.equal(5, db.insert.getCall(0).args[0].data.draugiem_uid)
       assert.equal('', db.insert.getCall(0).args[0].data.img)
+      assert.equal('p', db.insert.getCall(0).args[0].parse)
       db.insert.getCall(0).args[1](2)
       assert.equal(1, spy.callCount)
       assert.equal(2, spy.getCall(0).args[0].id)
@@ -166,11 +177,13 @@ describe 'Athorize', ->
       assert.deepEqual({id: 5}, spy.getCall(0).args[0])
 
     it '_user_update', ->
+      login._parse = sinon.fake.returns 'p'
       login._user_update({name: 's', new: false, id: 3})
       assert.equal(1, db.update.callCount)
       assert.equal('auth_user', db.update.getCall(0).args[0].table)
       assert.deepEqual({id: 3}, db.update.getCall(0).args[0].where)
       assert.deepEqual({name: 's'}, db.update.getCall(0).args[0].data)
+      assert.equal('p', db.update.getCall(0).args[0].parse)
 
     it '_user_update (no params)', ->
       login._user_update({new: false, id: 3})
