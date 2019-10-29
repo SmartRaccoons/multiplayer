@@ -130,7 +130,7 @@
         });
       }
 
-      _option_get_from_str(str) {
+      __option_get_from_str(str) {
         var res;
         res = str.trim().replace('&amp;', '&').match(/^(?:\&)\=([\w\.&\]\[]*)$/);
         if (res) {
@@ -149,7 +149,7 @@
           return results;
         }).apply(this).map((i) => {
           return {
-            option: this._option_get_from_str(attributes[i].value),
+            option: this.__option_get_from_str(attributes[i].value),
             name: attributes[i].name
           };
         }).filter(function({option}) {
@@ -157,7 +157,7 @@
         }).forEach(({name, option}) => {
           return this.option_bind_el_attr(el, name, option)();
         });
-        option = this._option_get_from_str($(el).html());
+        option = this.__option_get_from_str($(el).html());
         if (option) {
           return this.option_bind_el_attr(el, 'html', option)();
         }
@@ -277,8 +277,8 @@
           this.__subview = [];
         }
         this.__subview.push(view);
-        this.subview_events_pass(events, view, this);
-        this.subview_options_bind(options_bind, view, this);
+        this.subview_events_pass(events, view);
+        this.subview_options_bind(options_bind, view);
         return view;
       }
 
