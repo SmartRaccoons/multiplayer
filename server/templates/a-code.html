@@ -17,7 +17,7 @@
       }
       return false;
     };
-    window.location.href = '/<%= code_url %>/' + get('state') + '?' + ['access_token', 'code'].filter(function(v) { return !!get(v); }).map(function (v){
+    window.location.href = '<%= code_url %>/' + get('state') + '?' + ['access_token', 'code'].filter(function(v) { return !!get(v); }).map(function (v){
         return v + '=' + get(v)
       }).join('&');
   })();
