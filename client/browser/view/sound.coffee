@@ -2,7 +2,7 @@ cordova = -> !!window.cordova
 
 
 __ids = 0
-class Media extends SimpleEvent
+class SoundMedia extends SimpleEvent
   constructor: (@options)->
     super()
     __ids++
@@ -79,7 +79,7 @@ __enable = true
     if @__muted
       return
     try
-      media = new Media({
+      media = new SoundMedia({
         volume: @options.volume
         url: "#{@options.path}#{sound}.#{@options.extension}"
       }).play()
