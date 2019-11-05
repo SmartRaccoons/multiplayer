@@ -81,7 +81,7 @@ __enable = true
     try
       media = new Media({
         volume: @options.volume
-        url: "#{@options.path}#{sound}.wav"
+        url: "#{@options.path}#{sound}.#{@options.extension}"
       }).play()
       @__medias.push media
       media.on 'remove', =>

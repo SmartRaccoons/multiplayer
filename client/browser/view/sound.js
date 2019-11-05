@@ -116,7 +116,7 @@
       try {
         media = new Media({
           volume: this.options.volume,
-          url: `${this.options.path}${sound}.wav`
+          url: `${this.options.path}${sound}.${this.options.extension}`
         }).play();
         this.__medias.push(media);
         media.on('remove', () => {
