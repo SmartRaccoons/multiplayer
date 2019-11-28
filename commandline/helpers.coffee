@@ -4,6 +4,26 @@ util = require('util')
 exec_promise = util.promisify(exec)
 
 
+exec_callback = (callback = ->)->
+  (error, stdout, stderr)->
+    if error
+      console.log('exec error: ' + error)
+    callback()
+
+
+exports.compile_file = ({coffee, file, callback})->
+  file_parts = file.split('.')
+  ext = file_parts.pop()
+  if ext is 'coffee'
+    exec("#{coffee or './node_modules/coffeescript/bin/coffee -m -c'} #{file}", exec_callback( =>
+      callback(file_parts.concat('js').join('.'))
+    ))
+  if ext is 'sass'
+    exec("cd client/browser && compass compile --sourcemap sass/screen.sass -c ../../node_modules/multiplayer/client/browser/config.rb", exec_callback( =>
+      callback('client/browser/css/screen.css')
+    ))
+
+
 exports.directory_clear = directory_clear = (path, except = [], dir_main = true)->
   if !fs.existsSync(path)
     return
@@ -32,8 +52,10 @@ exports.platform_compile_js = ({platform, babel, uglifyjs, template})->
     .map (ex)-> exec_promise "#{ex} public/d/j-#{platform}.js -o public/d/j-#{platform}.js"
   )
 
+
 exports.platform_compile_css = ({uglifycss})->
   exec_promise "#{uglifycss} client/browser/css/screen.css > public/d/c.css"
+
 
 exports.platform_compile_html = ({template, params})->
   fs.writeFileSync "public/#{params.platform}.#{params.extension or 'html'}", template.generate(Object.assign({development: false}, params))

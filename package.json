@@ -11,6 +11,7 @@
   "dependencies": {
     "emailjs": "^2.2.0",
     "fbgraph": "^1.4.4",
+    "firebase": "^7.5.0",
     "firebase-admin": "^8.7.0",
     "google-auth-library": "^5.3.0",
     "mysql": "^2.17.1",
@@ -20,8 +21,9 @@
     "socket.io": "^2.3.0"
   },
   "devDependencies": {
+    "browserify": "^16.5.0",
     "chai": "^4.2.0",
-    "coffeescript": "^2.3.2",
+    "coffeescript": "^2.4.1",
     "grunt": "1.0",
     "grunt-contrib-watch": "^1.1.0",
     "mocha": "^6.2.1",
