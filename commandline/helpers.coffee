@@ -1,5 +1,6 @@
 fs = require('fs')
 exec = require('child_process').exec
+execSync = require('child_process').execSync
 util = require('util')
 exec_promise = util.promisify(exec)
 
@@ -11,13 +12,41 @@ exec_callback = (callback = ->)->
     callback()
 
 
-exports.compile_file = ({coffee, file, callback})->
+exports.compile_file = ({coffee, file, file_str, file_out, haml, callback})->
   file_parts = file.split('.')
   ext = file_parts.pop()
   if ext is 'coffee'
-    exec("#{coffee or './node_modules/coffeescript/bin/coffee -m -c'} #{file}", exec_callback( =>
-      callback(file_parts.concat('js').join('.'))
-    ))
+    do =>
+      if !coffee
+        coffee = './node_modules/coffeescript/bin/coffee'
+      if !file_out
+        file_out = file_parts.concat('js').join('.')
+      if file_str
+        file_str_matched = true
+      else
+        file_str = fs.readFileSync(file).toString()
+        file_str_matched = false
+        [...file_str.matchAll(/template_haml: """(.*)"""/s)].forEach (m)->
+          file_str_matched = true
+          lines = m[1].split("\n").filter (l)-> l.trim().length > 0
+          spaces = lines[0].match /(\s*)/
+          if spaces[0]
+            spaces_length = spaces[0].length
+            lines = lines.map (line)-> line.substr(spaces_length)
+          try
+            html = execSync( "#{haml or 'haml'} --no-escape-attrs --remove-whitespace -s", { input: lines.join("\n") } )
+          catch
+            return
+          file_str = file_str.replace m[0], 'template: """' + (html + '').trim() + '"""'
+      if file_str_matched
+        try
+          fs.writeFileSync file_out, execSync( "#{coffee} -c -s ", {input: file_str} )
+        catch
+      else
+        try
+          execSync "#{coffee} -c -m -o #{file_out} #{file}"
+        catch
+      return callback(file_out)
   if ext is 'sass'
     exec("cd client/browser && compass compile --sourcemap sass/screen.sass -c ../../node_modules/multiplayer/client/browser/config.rb", exec_callback( =>
       callback('client/browser/css/screen.css')

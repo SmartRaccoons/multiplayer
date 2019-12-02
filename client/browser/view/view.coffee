@@ -42,7 +42,8 @@ if touch
     , []
     @
 
-  options_default_over: (options)-> @options_update _.extend( _.cloneDeep(@options_default), options )
+  options_default_over: (options, options_default = Object.keys(@options_default))->
+    @options_update _.extend( _.cloneDeep( _.pick(@options_default, options_default) ), options )
 
   __events_delegate: ->
     if !@events

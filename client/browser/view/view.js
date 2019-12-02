@@ -44,8 +44,8 @@
         this;
       }
 
-      options_default_over(options) {
-        return this.options_update(_.extend(_.cloneDeep(this.options_default), options));
+      options_default_over(options, options_default = Object.keys(this.options_default)) {
+        return this.options_update(_.extend(_.cloneDeep(_.pick(this.options_default, options_default)), options));
       }
 
       __events_delegate() {
