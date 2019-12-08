@@ -9,7 +9,7 @@ exec_callback = (callback = ->)->
   (error, stdout, stderr)->
     if error
       console.log('exec error: ' + error)
-    callback()
+    callback(error)
 
 
 exports.compile_file = ({coffee, file, file_str, file_out, haml, callback})->
@@ -45,11 +45,12 @@ exports.compile_file = ({coffee, file, file_str, file_out, haml, callback})->
       else
         try
           execSync "#{coffee} -c -m -o #{file_out} #{file}"
-        catch
-      return callback(file_out)
+        catch e
+          return callback(e, file_out)
+      return callback(null, file_out)
   if ext is 'sass'
-    exec("cd client/browser && compass compile --sourcemap sass/screen.sass -c ../../node_modules/multiplayer/client/browser/config.rb", exec_callback( =>
-      callback('client/browser/css/screen.css')
+    exec("cd client/browser && compass compile --sourcemap sass/screen.sass -c ../../node_modules/multiplayer/client/browser/config.rb", exec_callback( (error)=>
+      callback(error, 'client/browser/css/screen.css')
     ))
 
 
