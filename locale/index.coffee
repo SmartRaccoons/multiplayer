@@ -1,3 +1,4 @@
+_merge = require('lodash').merge
 coffeescript = require('coffeescript')
 fs = require('fs')
 translate_fn_generate = require('./fn').translate_fn_generate
@@ -15,14 +16,15 @@ module.exports.config = (config)->
       return false
   locales = {}
   locales_available = config.locales.slice(0)
-  locale_default = get_config('en')
+  locale_default = get_config(locales_available[0])
   locales_available.forEach (language)->
     language_common = get_config(language)
     ['server', 'client'].forEach (platform)->
+      locale_default_platform = get_config("#{locales_available[0]}.#{platform}")
       language_platform = get_config("#{language}.#{platform}")
       if !locales[language]
         locales[language] = {}
-      locales[language][platform] = Object.assign({}, locale_default, language_common, language_platform)
+      locales[language][platform] = _merge({}, locale_default, language_common, locale_default_platform, language_platform)
 
   translate_fn = translate_fn_generate(
     Object.keys(locales)
