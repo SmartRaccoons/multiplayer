@@ -1,17 +1,27 @@
 window.o.PlatformStandalone = class Standalone extends window.o.PlatformCommon
+  Authorize: window.o.ViewPopupAuthorize
   _authorize:
     draugiem: 'dr_auth_code'
     facebook: 'access_token'
     google: 'code'
 
-  constructor: (@options)->
-    super()
-    @router = new window.o.Router()
-    @router.$el.appendTo('body')
+  constructor: ->
+    super ...arguments
     fn = (event, data)=>
       if event is 'authenticate:error'
-        @router.message(_l('Authorize.standalone login error')).bind 'login', =>
+        @router
+        .message
+          body: _l('Authorize.standalone login error')
+          actions: [
+            {'reload': _l('Authorize.button.reload')}
+            {'login': _l('Authorize.button.login')}
+          ]
+        .bind 'login', =>
           @auth_popup()
+      if event is 'authenticate:params'
+        @_auth_clear()
+        for platform, value of data
+          Cookies.set(platform, value)
       if event is 'authenticate:success'
         @router.unbind 'request', fn
     @router.bind 'request', fn
@@ -25,9 +35,12 @@ window.o.PlatformStandalone = class Standalone extends window.o.PlatformCommon
       window.location.reload true
 
   auth_popup: ->
-    authorize = @router.subview_append new window.o.ViewPopupAuthorize({platforms: Object.keys(App.config.login)})
-    authorize.bind 'authorize', (platform)-> window.location.href = App.config.login[platform]
-    authorize.render().$el.appendTo @router.$el
+    authorize = @router.subview_append new @Authorize({platforms: Object.keys(App.config.login), parent: @router.$el})
+    authorize.bind 'authorize', (platform)=>
+      if platform is 'email'
+        return @auth_email()
+      window.location.href = App.config.login[platform]
+    authorize.render()
 
   _auth_clear: -> Object.keys(App.config.login).forEach (c)-> Cookies.set(c, '')
 

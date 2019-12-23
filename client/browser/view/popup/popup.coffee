@@ -13,15 +13,33 @@ window.o.ViewPopup = class Popup extends window.o.View
        <% } %>
 
        <div>
-         <%= typeof self.options.body === 'function' ? self.options.body({'self': self}) : self.options.body %>
+         <% if(self.options.body){ %>
+            <%= typeof self.options.body === 'function' ? self.options.body({'self': self}) : self.options.body %>
+         <% } %>
+         <% if (self.options.actions) { %>
+
+           <div class='popup-actions'>
+             <% self.options.actions.forEach(function (button) {
+               var event, body;
+               if (!button.event) {
+                 event = Object.keys(button)[0];
+                 body = button[event];
+               }
+
+               %><button data-click='<%= event || button.event %>'<%= button.attr ? ' data-click-attr="' + button.attr + '"' : ''%><%= button.stay ? ' data-stay' : '' %>><%= body || button.body %></button><%
+             }); %>
+
+          </div>
+         <% } %>
        </div>
     </div>
   """
   options_default:
     close: true
     close_delay: null
-    head: false
-    body: ''
+    # head: false
+    # body: ''
+    # actions: [] # {event, attr, stay, body}
 
   options_bind:
     close_delay: ->
@@ -51,6 +69,10 @@ window.o.ViewPopup = class Popup extends window.o.View
     if @options.parent
       @$el.appendTo @options.parent
     @
+
+  remove: ->
+    clearTimeout @__close_delay_timeout
+    super ...arguments
 
   render: ->
     super ...arguments

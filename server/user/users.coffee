@@ -10,7 +10,6 @@ config_callback( ->
 
 
 module.exports.Users = class Users extends PubsubServerObjects
-  _module: 'users'
   model: -> User
 
   _check_duplicate: (id)->
@@ -18,8 +17,8 @@ module.exports.Users = class Users extends PubsubServerObjects
     if model
       model.remove('duplicate')
 
-  _create: (attributes)->
-    @emit_immediate_exec '_check_duplicate', attributes.id
+  _create: (options)->
+    @emit_immediate_exec '_check_duplicate', options.id
     super ...arguments
 
   publish_menu: (event, params)->

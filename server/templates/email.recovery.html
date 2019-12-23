@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta content='text/html;charset=utf-8' http-equiv='Content-Type' />
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <style>
+        html, body{
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            width: 100%;
+            display: table;
+            font-size: 20px;
+            font-size: 6vw;
+            text-align: center;
+        }
+        div {
+          display: table-cell;
+          vertical-align: middle;
+        }
+
+        input, button {
+          font-size: inherit;
+          margin: 0.1em;
+          width: 10em;
+        }
+        span {
+          display: block;
+        }
+        .error {
+          color: red;
+        }
+        .success {
+          color: green;
+        }
+    </style>
+</head>
+<body><div>
+  <% if (error) { %>
+    <span class='error'><%= error %></span>
+  <% } else if (success) { %>
+    <span class='success'><%= success %></span>
+  <% } else { %>
+    <form method='post' autocomplete='off'>
+      <input type='password' required name='pass' placeholder='<%= password %>' /><br />
+      <button><%= button %></button>
+    </form>
+  <% } %>
+</div></body>
+</html>

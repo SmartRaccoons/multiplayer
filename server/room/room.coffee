@@ -12,7 +12,6 @@ config_callback( ->
 
 _ids = 1
 exports.Room = class Room extends PubsubModule
-  _module: 'Room'
   game: class Game
     constructor: -> throw 'no game class'
   game_player_params: {id: 'id'}
@@ -26,14 +25,14 @@ exports.Room = class Room extends PubsubModule
   #        return false
   #
 
-  constructor: (attributes)->
-    super({id: if attributes.id then attributes.id else "#{config_get('server_id')}:#{_ids++}"})
-    @attributes = attributes
+  constructor: (options)->
+    super({id: if options.id then options.id else "#{config_get('server_id')}:#{_ids++}"})
+    @options = options
     @users = []
     @spectators = []
     @_disconected = []
-    if @attributes.users
-      @attributes.users.forEach (user)=> @user_add(user)
+    if @options.users
+      @options.users.forEach (user)=> @user_add(user)
 
   _game_player_parse: (user)->
     Object.keys(@game_player_params).reduce (acc, v)=>
@@ -42,14 +41,14 @@ exports.Room = class Room extends PubsubModule
       Object.assign acc, if typeof @game_player_params[v] is 'function' then @game_player_params[v].bind(@)(user[v]) else {[@game_player_params[v]]: user[v]}
     , {}
 
-  _game_start: (attributes)->
-    @_game = new (@game) Object.assign {}, attributes, {
+  _game_start: (options)->
+    @_game = new (@game) Object.assign {}, options, {
       users: @users.map (u)=> @_game_player_parse(u)
     }
 
-  _exec_user: -> User::emit_self_exec.apply User::, arguments
+  emit_user_exec: -> User::emit_self_exec.apply User::, arguments
 
-  _publish_user: (user_id)->
+  emit_user_publish: (user_id)->
     if @_disconected.indexOf(user_id) >= 0
       return
     User::emit_self_publish.apply User::, arguments
@@ -60,7 +59,7 @@ exports.Room = class Room extends PubsubModule
     @users
     .concat(@spectators)
     .forEach (user)=>
-      @_publish_user.apply @, [user.id].concat [ ev, if additional[user.id] then Object.assign({}, pr, additional[user.id]) else pr ]
+      @emit_user_publish.apply @, [user.id].concat [ ev, if additional and additional[user.id] then Object.assign({}, pr, additional[user.id]) else pr ]
 
   _game_exec: ({user_id, method, params})->
     if not (@_game and @game_methods[method] and
@@ -72,7 +71,7 @@ exports.Room = class Room extends PubsubModule
 
   user_add: (user)->
     @users.push user
-    @_exec_user(user.id, '_room_add', {id: @id, module: @_module, type: 'user'})
+    @emit_user_exec(user.id, '_room_add', {id: @id, module: @_module(), type: 'user'})
     @emit 'update', {users: @users}
 
   user_exist: (user_id)-> @user_get(user_id, true) >= 0
@@ -91,7 +90,7 @@ exports.Room = class Room extends PubsubModule
       type = 'spectator'
     else
       return false
-    @_exec_user(id, '_room_add', {id: @id, module: @_module, type})
+    @emit_user_exec(id, '_room_add', {id: @id, module: @_module(), type})
     return true
 
   user_remove: ({id, disconnect})->
@@ -104,13 +103,13 @@ exports.Room = class Room extends PubsubModule
     else if @spectator_exist(id)
       @spectators.splice(@spectator_get(id, true), 1)
       @emit 'update', {spectators: @spectators}
-    @_exec_user(id, '_room_remove', @id)
+    @emit_user_exec(id, '_room_remove', @id)
 
   user_to_spectator: (user)->
     if !@user_exist(user.id)
       return false
     @spectators.push @users.splice(@user_get(user.id, true), 1)[0]
-    @_exec_user(user.id, '_room_update', {id: @id, type: 'spectator'})
+    @emit_user_exec(user.id, '_room_update', {id: @id, type: 'spectator'})
     @emit 'update', {users: @users, spectators: @spectators}
     return true
 

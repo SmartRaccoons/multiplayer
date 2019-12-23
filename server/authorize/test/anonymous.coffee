@@ -26,15 +26,20 @@ class TestAuthorizeFacebook extends TestAuthorize
 
 dbmemory = {}
 locale = {}
-params = {draugiem: 'good', facebook: 'good', server_id: 5, dbmemory}
+params = {draugiem: 'good', facebook: 'good', server_id: 5, dbmemory, server: 'serv'}
+email = { send: -> }
+modules = {locale, 'server.helpers.email': email}
+_Email_check_email = ->
 Anonymous = proxyquire '../anonymous',
   './authorize':
     draugiem: TestAuthorizeDraugiem
     facebook: TestAuthorizeFacebook
+    email: class Email
+      _check_email: -> _Email_check_email.apply(@, arguments)
   '../../config':
     config_get: (p)-> params[p]
     config_callback: (callback)-> callback()
-    module_get: -> locale
+    module_get: (p)-> modules[p]
   '../pubsub/multiserver':
     PubsubModule: class PubsubModule extends SimpleEvent
       constructor: ->
@@ -70,7 +75,6 @@ describe 'Anonymous', ->
       anonymous = new Anonymous(socket)
 
     it 'pubsub ', ->
-      assert.equal('anonymous', anonymous._module)
       assert.equal(1, PubsubModule_methods.constructor.callCount)
       assert.deepEqual({id: '5:1'}, PubsubModule_methods.constructor.getCall(0).args[0])
       anonymous.remove()
@@ -96,7 +100,7 @@ describe 'Anonymous', ->
     anonymous = null
     beforeEach ->
       anonymous = new Anonymous(socket)
-      anonymous._module = 'm'
+      anonymous._module = -> 'm'
       anonymous.id = 'id'
 
     it 'random', ->
@@ -151,6 +155,66 @@ describe 'Anonymous', ->
       assert.equal 1, socket.send.callCount
 
 
+  describe 'email recover password', ->
+    anonymous = null
+    beforeEach ->
+      email.send = sinon.spy()
+      anonymous = new Anonymous(socket)
+      anonymous._module = -> 'mo'
+      _Email_check_email = sinon.fake ->
+      locale._ = sinon.fake (p)-> p
+      locale.validate = sinon.fake -> 'lv'
+      locale.lang_short = sinon.fake -> 5
+      params['email'] =
+        forget: 'forg'
+
+    it 'default', ->
+      socket.emit 'authenticate:email_forget', {email: 's@p.lv', language: 'ru'}
+      assert.equal 1, _Email_check_email.callCount
+      assert.deepEqual {email: 's@p.lv', language: 'ru'}, _Email_check_email.getCall(0).args[0]
+      assert.equal 1, locale.validate.callCount
+      assert.equal 'ru', locale.validate.getCall(0).args[0]
+      _Email_check_email.getCall(0).args[1]({id: 5})
+      assert.equal 1, dbmemory.random.callCount
+      assert.equal 'mo', dbmemory.random.getCall(0).args[0]
+      assert.deepEqual {user_id: 5}, dbmemory.random.getCall(0).args[1]
+      assert.equal 1000 * 60 * 30, dbmemory.random.getCall(0).args[3]
+      assert.equal 10, dbmemory.random.getCall(0).args[4]
+      dbmemory.random.getCall(0).args[2]({random: 'ra'})
+      assert.equal 1, email.send.callCount
+      assert.equal 's@p.lv', email.send.getCall(0).args[0].to
+      assert.equal 'UserNotify.Forget email subject', email.send.getCall(0).args[0].subject
+      assert.equal 'UserNotify.Forget email text', email.send.getCall(0).args[0].text
+      assert.equal 'UserNotify.Forget email html', email.send.getCall(0).args[0].html
+      assert.equal 4, locale._.callCount
+      assert.equal 'lv', locale._.getCall(0).args[1]
+      assert.deepEqual {link_full: 'servforg/5ra/5'}, locale._.getCall(1).args[2]
+      assert.deepEqual {link_full: 'servforg/5ra/5'}, locale._.getCall(2).args[2]
+      assert.equal 1, locale.lang_short.callCount
+      assert.equal 'lv', locale.lang_short.getCall(0).args[0]
+      assert.equal 1, socket.send.callCount
+      assert.equal 'authenticate:email_forget', socket.send.getCall(0).args[0]
+      assert.deepEqual {body: 'UserNotify.Forget email response'}, socket.send.getCall(0).args[1]
+      assert.deepEqual {email: 's@p.lv'}, locale._.getCall(3).args[2]
+
+    it 'user not found', ->
+      socket.emit 'authenticate:email_forget', {email: 's@p.lv', language: 'ru'}
+      _Email_check_email.getCall(0).args[1](null)
+      assert.deepEqual {body: 'UserNotify.Forget email error'}, socket.send.getCall(0).args[1]
+      assert.equal 1, locale._.callCount
+      assert.equal 'lv', locale._.getCall(0).args[1]
+      assert.deepEqual {email: 's@p.lv'}, locale._.getCall(0).args[2]
+
+    it 'no config', ->
+      params['email'] = null
+      socket.emit 'authenticate:email_forget', {email: 's@p.lv'}
+      assert.equal 0, socket.send.callCount
+
+    it 'no email', ->
+      socket.emit 'authenticate:email_forget'
+      assert.equal 0, socket.send.callCount
+
+
   describe 'Login', ->
     login = null
     anonymous = null
@@ -168,6 +232,12 @@ describe 'Anonymous', ->
       assert.equal('auth', spy.getCall(0).args[1].api)
       assert.equal('authenticate:params', socket.send.getCall(0).args[0])
       assert.deepEqual({draugiem: 'cd'}, socket.send.getCall(0).args[1])
+
+    it 'draugiem authenticate (other _coins_buy_params)', ->
+      anonymous.bind 'login', spy
+      socket.emit 'authenticate:try', {draugiem: 'cd', language: 'lv', other: 'param', params: 'pr'}
+      Test_authorize.getCall(0).args[1]({id: 5}, 'new code')
+      assert.deepEqual({draugiem: 'new code'}, socket.send.getCall(0).args[1])
 
     it 'draugiem authenticate (error)', ->
       anonymous.bind 'login', spy

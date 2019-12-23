@@ -63,7 +63,7 @@ __enable = true
 @o.Sound = class Sound
   constructor: (@options)->
     @__medias = []
-    @__muted = if Cookies then !!parseInt(Cookies.get('__sound_muted')) else false
+    @__muted = if Cookies? then !!parseInt(Cookies.get('__sound_muted')) else false
     fn = =>
       @__enable = true
       document.body.removeEventListener('click', fn)
@@ -109,5 +109,5 @@ __enable = true
 
   mute: (@__muted)->
     @clear()
-    if Cookies
+    if Cookies?
       Cookies.set('__sound_muted', if @__muted then 1 else 0)

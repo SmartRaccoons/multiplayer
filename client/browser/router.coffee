@@ -24,11 +24,20 @@ window.o.Router = class Router extends window.o.View
 
   connecting: -> @message(_l('Authorize.Connecting'))
 
-  disconnect: -> @message(_l('Authorize.Disconnect'))
+  disconnect: ->
+    @message
+      body:_l('Authorize.Disconnect')
+      actions: [ {'reload': _l('Authorize.button.reload')} ]
 
-  login_duplicate: -> @message(_l('Authorize.Login duplicate'))
+  login_duplicate: ->
+    @message
+      body: _l('Authorize.Login duplicate')
+      actions: [ {'reload': _l('Authorize.button.reload')} ]
 
-  connect_failed: -> @message(_l('Authorize.connect failed'))
+  connect_failed: ->
+    @message
+      body: _l('Authorize.connect failed')
+      actions: [ {'reload': _l('Authorize.button.reload')} ]
 
   request: (event, data)->
     @trigger 'request', event, data
@@ -58,7 +67,9 @@ window.o.Router = class Router extends window.o.View
   _load: (view, options)->
     @_unload()
     @_active = new window.o['View' + view.charAt(0).toUpperCase() + view.slice(1)](options)
-    @$el.prepend @_active.$el
+    @_load_append(@_active.$el)
     @_active.render()
     @_active._name = view
     @_active
+
+  _load_append: (el)-> el.appendTo @$el

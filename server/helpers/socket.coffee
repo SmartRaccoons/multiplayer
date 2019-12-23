@@ -19,9 +19,9 @@ class Socket extends SimpleEvent
   version_check: ->
     mobile = @_query._mobile is '1'
     version_client = (@_query._version || '0.0.0').split('.')
-    for i in [0..2]
+    for i in [0..1]
       if parseInt(version_client[i]) isnt _version_server[i]
-        if i is 2 and mobile
+        if i is 1 and mobile
           return true
         return false
     return true

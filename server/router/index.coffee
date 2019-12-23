@@ -15,7 +15,6 @@ config_callback( ->
 )()
 
 module.exports.Router = class Router
-  module: 'router'
 
   constructor: ->
     @users = new Users()
@@ -46,9 +45,9 @@ module.exports.Router = class Router
     #   user.get('socket').disconnect(null, false)
     #   user.set({'socket': socket})
     #   return
-    anonymous = new Anonymous(socket).bind 'login', (attr, api)=>
+    anonymous = new Anonymous(socket).bind 'login', (options, api)=>
       anonymous.remove()
-      user = @users._create(Object.assign({socket: socket}, attr))
+      user = @users._create(Object.assign({socket: socket}, options))
     #   user.on 'room:set', => user.get('socket')._game = true
     #   user.on 'room:remove', => user.get('socket')._game = false
       # user.publish 'authenticate:success', user.data()

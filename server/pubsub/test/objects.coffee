@@ -6,10 +6,11 @@ SimpleEvent = require('simple.event').SimpleEvent
 
 
 class Model extends SimpleEvent
-  constructor: (attributes)->
+  constructor: (options, parent)->
     super()
-    @attributes = attributes
-    @id = @attributes.id
+    @_constructor_parent = parent
+    @options = options
+    @id = @options.id
   data_public: -> {id: @id}
   emit_self_exec: ->
 
@@ -62,6 +63,7 @@ describe 'models', ->
       models._add({id: 2})
       assert.deepEqual([{id: 2}], models._all)
       assert.equal(1, spy.callCount)
+      assert.deepEqual {id: 2}, spy.getCall(0).args[0]
 
     it '_remove', ->
       models.bind 'remove', spy
@@ -82,7 +84,8 @@ describe 'models', ->
 
     it '_create', ->
       model = models._create({type: 'sng', id: 1})
-      assert.deepEqual({type: 'sng', id: 1}, model.attributes)
+      assert.deepEqual({type: 'sng', id: 1}, model.options)
+      assert.deepEqual(models, model._constructor_parent)
       assert.equal(1, models._objects.length)
       assert.equal(1, models._objects[0].id)
       assert.deepEqual(models, models._objects[0].parent)

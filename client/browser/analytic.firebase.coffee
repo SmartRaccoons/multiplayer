@@ -1,13 +1,6 @@
 firebase = require('firebase/app')
 require('firebase/analytics')
 
-# wrap = (f)->
-#   (=>
-#     try
-#       f.apply(@, arguments)
-#     catch error
-#   )()
-
 
 window.o.Analytic = class AnalyticFirebase
   init: ({firebase_config})->
@@ -16,9 +9,12 @@ window.o.Analytic = class AnalyticFirebase
 
   config: (params = {})->
     firebase.analytics().setUserId("#{params.user_id}")
-    firebase.analytics().setUserProperties({
+    @user_property {
       'Language': App.lang
-    })
+    }
+
+  user_property: (params = {})->
+    firebase.analytics().setUserProperties(params)
 
   screen: (view)->
     firebase.analytics().setCurrentScreen(view)
@@ -29,3 +25,6 @@ window.o.Analytic = class AnalyticFirebase
   buy_start: (params)->
 
   buy_complete: (params)->
+
+  event: (event, params)->
+    firebase.analytics().logEvent(event, params)

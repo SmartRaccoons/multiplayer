@@ -17,7 +17,13 @@ module.exports.send = email_send = (params, callback=->)->
   email.send Object.assign({}, params, {
     subject: "#{config.name} #{params.subject}"
     from: "<#{config.email}>"
-  }), (err)->
+  }, if params.html then {
+    attachment: [{
+      alternative: true
+      data: params.html
+    }]
+    html: null
+  } ), (err)->
     if err
       console.log 'EMAIL ERROR', new Date(), err
     callback(err)

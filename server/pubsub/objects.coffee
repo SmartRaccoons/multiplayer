@@ -7,9 +7,9 @@ module.exports.PubsubServerObjects = class PubsubServerObjects extends PubsubSer
     @_objects = []
     @_all = []
 
-  _add: (attributes)->
-    @_all.push attributes
-    @trigger 'add'
+  _add: (options)->
+    @_all.push options
+    @trigger 'add', options
 
   _remove: (id)->
     index = @_all.findIndex (ob)-> ob.id is id
@@ -44,8 +44,8 @@ module.exports.PubsubServerObjects = class PubsubServerObjects extends PubsubSer
     model = @model()
     model::emit_self_exec.apply model::, arguments
 
-  _create: (attributes)->
-    model = new (@model())(attributes)
+  _create: (options)->
+    model = new (@model())(options, @)
     model.parent = @
     @_objects.push model
     @emit_immediate_exec '_add', model.data_public()

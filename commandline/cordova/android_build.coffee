@@ -7,7 +7,7 @@ exec_promise = util.promisify(exec)
 exports.android_build = (op, done)->
   op = Object.assign {}, {
     path: 'cordova'
-    bin: ''
+    bin: 'cordova'
     android:
       keystore: ''
       storePassword: ''

@@ -70,8 +70,6 @@ if touch
           return
         if pr is 't' and !@__touch
           return
-        if ev is 'click' and @__touch
-          ev = 'touchstart'
         @$el.on "#{ev}.delegateEvents#{@_id}", el_str, fn_binded
 
   __events_undelegate: -> @$el.off('.delegateEvents' + @_id)
@@ -86,8 +84,9 @@ if touch
       return
     @__options_bind
     .concat (@__views or []).reduce(
-      (acc, view)->
-        acc.concat(view.__subview_options_binded or [])
+      (acc, view)=>
+        view_filter = (view.__subview_options_binded or []).filter (event)=> event.id is @_id
+        acc.concat (view.__subview_options_binded or [])
     , [])
     .filter (v)->
       Object.keys(previous).filter( (up)-> v.events.indexOf(up) >= 0 ).length > 0
@@ -199,10 +198,17 @@ if touch
     parent.__views = (parent.__views or []).concat view
     view.__subview_options_binded = Object.keys(options_bind).reduce (acc, key)=>
       value = options_bind[key]
-      fn = => view.options_update { [value]: parent.options[key] }, true
+      fn = =>
+        view.options_update { [value]: parent.options[key] }, true
       fn()
-      acc.concat {events: key.split(','), fn}
+      acc.concat {events: key.split(','), fn, id: parent._id}
     , view.__subview_options_binded or []
+    view.on 'remove', =>
+      if parent.__views
+        parent.__views = parent.__views.filter (v)-> v._id isnt view._id
+    parent.on 'remove', =>
+      if view.__subview_options_binded
+        view.__subview_options_binded = view.__subview_options_binded.filter (event)-> event.id isnt parent._id
     @
 
   subview_events_pass: (events, view, parent = @)->

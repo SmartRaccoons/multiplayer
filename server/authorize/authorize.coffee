@@ -1,3 +1,5 @@
+crypto = require('crypto')
+uuidv4 = require('uuid/v4')
 fbgraph = require('fbgraph')
 ApiGoogle = require('../api/google').ApiGoogle
 ApiInbox = require('../api/inbox').ApiInbox
@@ -12,6 +14,7 @@ inbox = null
 google = null
 config_callback ->
   config.db = config_get('db')
+  config.buy = config_get('buy')
   if config_get('facebook')
     config.facebook =
       id: config_get('facebook').id
@@ -21,43 +24,47 @@ config_callback ->
     ApiDraugiem::app_id = config_get('draugiem').key
     config.draugiem =
       buy_transaction: config_get('draugiem').buy_transaction
+      buy_price: config_get('draugiem').buy_price
   if config_get('inbox')
     config.inbox =
       buy_price: config_get('inbox').buy_price
     inbox = new ApiInbox(config_get(['inbox', 'server']))
   if config_get('google')
     google = new ApiGoogle(config_get(['google', 'server', 'code_url']))
+  if config_get('email')
+    config.email = config_get('email')
 
 
 module.exports.Login = class Login
-  _attr:
-    'id': {db: true}
-    'name': {default: '', db: true}
-    'language': {db: true, private: true}
-    'draugiem_uid': {db: true, private: true}
-    'facebook_uid': {db: true, private: true}
-    'google_uid': {db: true, private: true}
-    'inbox_uid': {db: true, private: true}
-    'img': {default: '', db: true}
+  _opt:
+    'id': {db: true, public: true}
+    'name': {default: '', db: true, public: true}
+    'language': {db: true}
+    'draugiem_uid': {db: true}
+    'facebook_uid': {db: true}
+    'google_uid': {db: true}
+    'inbox_uid': {db: true}
+    'img': {default: '', db: true, public: true}
     # 'params':
     #   parse:
     #     to: JSON.stringify
     #     from: JSON.parse
-    'new': {private: true}
+    'new': {}
+    'date_joined': {db: true, default: -> new Date()}
 
   _table: 'auth_user'
 
   _parse: ->
-    Object.keys(@_attr)
-    .filter (v)=> !!@_attr[v].parse
-    .map (v)=> [v, @_attr[v].parse]
+    Object.keys(@_opt)
+    .filter (v)=> !!@_opt[v].parse
+    .map (v)=> [v, @_opt[v].parse]
 
   _user_get: (where, update, callback)->
     if !callback
       callback = update
       update = {}
     config.db.select_one
-      select: Object.keys(@_attr).filter (v)=> @_attr[v].db
+      select: Object.keys(@_opt).filter (v)=> @_opt[v].db
       table: @_table
       where: where
       parse: @_parse()
@@ -73,7 +80,7 @@ module.exports.Login = class Login
 
   _user_update: (update)->
     data = Object.keys(update).reduce (result, item)=>
-      if item isnt 'id' and @_attr[item].db
+      if item isnt 'id' and @_opt[item].db
         result[item] = update[item]
       return result
     , {}
@@ -85,15 +92,15 @@ module.exports.Login = class Login
         parse: @_parse()
 
   _user_create: (data, callback)->
-    data.language = @_attr.language.validate(data.language)
-    data = Object.assign Object.keys(@_attr).reduce( (result, item)=>
-      if @_attr[item].db and 'default' of @_attr[item]
-        result[item] = @_attr[item].default
+    data.language = @_opt.language.validate(data.language)
+    data = Object.assign Object.keys(@_opt).reduce( (result, item)=>
+      if @_opt[item].db and 'default' of @_opt[item]
+        result[item] = if typeof @_opt[item].default is 'function' then @_opt[item].default() else @_opt[item].default
       result
     , {}), data
     config.db.insert
       table: @_table
-      data: Object.assign({last_login: new Date(), date_joined: new Date()}, data)
+      data: Object.assign {last_login: new Date()}, data
       parse: @_parse()
     , (id)-> callback(Object.assign({id: id, new: true}, data))
 
@@ -112,7 +119,7 @@ module.exports.Login = class Login
       where:
         code: code
         last_updated:
-          sign: ['>', new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 30) ]
+          date: -30
     , (session)=>
       if !session
         return callback()
@@ -151,28 +158,35 @@ module.exports.Login = class Login
   _transaction_get: (where, callback_save, callback_end)->
     config.db.select_one
       table: @_table_transaction
-      where: Object.assign({fulfill: '0'}, where)
+      where: where
     , (data)=>
       if !data
         return callback_end('transaction not found')
+      subscription = config.buy.subscription and data.service in Object.keys(config.buy.subscription)
+      if data.fulfill > 0 and !subscription
+        return callback_end('transaction already completed')
       callback_save
         complete: =>
           config.db.update
             table: @_table_transaction
             where: {id: data.id}
-            data: {fulfill: '1', fulfilled: new Date()}
+            data: {fulfill: data.fulfill + 1, fulfilled: new Date()}
           , -> callback_end()
-        transaction_id: data.id
+        transaction:
+          id: data.id
+          service: data.service
         user_id: data.user_id
-        service: data.service
 
 
-# moduele.exports.cordova = class LoginCordova extends Login
-#   _table_transaction: 'transaction_cordova'
-#   buy: (params, callback)->
-#     if !(params.service of config.cordova.buy_transaction)
-#       return
-#     @_transaction_create params, callback
+module.exports.cordova = class LoginCordova extends Login
+  _table_transaction: 'transaction_cordova'
+
+  buy_complete: (params, callback_save, callback_end)->
+    @_transaction_get params, callback_save, (error)=>
+      if error is 'transaction not found'
+        return @_transaction_create params, ({id})=>
+          @_transaction_get {id}, callback_save, callback_end
+      return callback_end(error)
 
 
 module.exports.facebook = class LoginFacebook extends Login
@@ -191,13 +205,39 @@ module.exports.facebook = class LoginFacebook extends Login
       return
     @_transaction_create params, callback
 
-  buy_complete: (id, callback_save, callback_end)->
-    fbgraph.get "/#{id}?fields=request_id,user,actions,items&access_token=#{config.facebook.id}|#{config.facebook.key}", (err, res)=>
+  buy_complete: ({ id, subscription }, callback_save, callback_end)->
+    fbgraph.get "/#{id}?fields=#{if subscription then 'status,next_period_product,next_bill_time,user' else 'request_id,user,actions,items'}&access_token=#{config.facebook.id}|#{config.facebook.key}", (err, res)=>
       if err
         return callback_end(err)
-      if res.actions[0].status isnt 'completed'
-        return callback_end "incompleted: #{id}"
-      @_transaction_get {id: res.request_id}, callback_save, callback_end
+      if !subscription
+        if res.actions[0].status isnt 'completed'
+          return callback_end "incompleted"
+        @_transaction_get {id: res.request_id}, callback_save, callback_end
+        return
+      if res.status isnt 'active'
+        return callback_end "status not active"
+      @_user_get {facebook_uid: res.user.id}, (user)=>
+        if !user
+          return callback_end("user not found: #{res.user.id}")
+        match = res.next_period_product.match( /\/\w+\-(\d+)\-\w+\.html/ )
+        if !match
+          return callback_end "service error: #{res.next_period_product}"
+        service = match[1]
+        if ! (user.facebook_subscriptions and user.facebook_subscriptions[service] is id)
+          @_user_update
+            id: user.id
+            facebook_subscriptions: Object.assign {}, user.facebook_subscriptions, { [service]: id }
+        if !config.buy.subscription[service]
+          return callback_end("service not found: #{service}")
+        expire = Math.ceil ( new Date(res.next_bill_time).getTime() - new Date().getTime() ) / ( 1000 * 60 * 60 * 24 )
+        if expire <= 0
+          return callback_end()
+        callback_save
+          complete: => callback_end()
+          transaction:
+            service: service
+            expire: expire
+          user_id: user.id
 
 
 module.exports.google = class LoginGoogle extends Login
@@ -217,7 +257,7 @@ module.exports.draugiem = class LoginDraugiem extends Login
   buy: ({service, user_id}, callback)->
     if !(service of config.draugiem.buy_transaction)
       return
-    @api.transactionCreate config.draugiem.buy_transaction[service], null, (transaction)=>
+    @api.transactionCreate config.draugiem.buy_transaction[service], Math.round(config.draugiem.buy_price[service] * 0.702804 ), (transaction)=>
       @_transaction_create
         transaction_id: transaction.id
         service: service
@@ -262,9 +302,36 @@ module.exports.inbox = class LoginInbox extends Login
     inbox.transaction_create config.inbox.buy_price[service], language, (transaction)=>
       @_transaction_create
         transaction_id: transaction.id
+        language: transaction.language
         service: service
         user_id: user_id
-      , => callback({link: transaction.link})
+      , ( => callback({link: transaction.link}) )
 
   buy_complete: (transaction_id, callback_save, callback_end)->
     @_transaction_get {transaction_id}, callback_save, callback_end
+
+
+module.exports.email = class LoginEmail extends Login
+  _name: 'email'
+  _table_session: 'auth_user_session_email'
+
+  _password: (msg)->
+    crypto.pbkdf2Sync(msg, config.email.salt, 4096, 16, config.email.sha).toString('hex')
+
+  _check_email: ({email}, callback)-> @_user_get {email}, callback
+
+  _update_password: ({id, password})->
+    @_user_update {id, password: @_password(password)}
+
+  authorize: ({code, language}, callback)->
+    if Array.isArray(code)
+      [email, pass] = code
+      return @_user_get {email}, (user)=>
+        if !user
+          return callback(null)
+        if @_password(pass) isnt user.password
+          return callback(null)
+        session_code = [user.id, uuidv4()].join '-'
+        callback(user, session_code)
+        @_user_session_save {user_id: user.id, code: session_code}
+    @_user_session_check code, (user)=> callback(user)

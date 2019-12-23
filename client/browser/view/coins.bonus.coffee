@@ -19,8 +19,11 @@
 
 
 @o.ViewCoinsBonusTimed = class CoinsBonusTimed extends CoinsBonus
+  template: """
+    <span> &=left_updated </span>
+  """
   options_html:
-    left: (v)->
+    left_updated: (v)->
       if v and v > 0
         return _l("coinsbonus.#{@type}.wait", {
           time: [60 * 60, 60, 1].map (seconds)=>
@@ -35,11 +38,21 @@
       return CoinsBonus::options_html['left'].apply(@, [v])
   options_bind:
     left: ->
+      @_start_timer = new Date()
       clearTimeout @_left_timeout
-      if @options.left and @options.left > 0
+      @options_update { left_updated: @options.left }
+      if @options.left is null or @options.left is 0
+        return
+      update = =>
         @_left_timeout = setTimeout =>
-          @options_update {left: @options.left - 1}
+          left_updated = @options.left - Math.round( ( new Date().getTime() - @_start_timer.getTime() ) / 1000 )
+          if left_updated < 0
+            left_updated = 0
+          @options_update { left_updated }
+          if left_updated > 0
+            update()
         , 1000
+      update()
 
   remove: ->
     clearTimeout @_left_timeout

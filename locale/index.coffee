@@ -13,7 +13,9 @@ module.exports.config = (config)->
     try
       return require("#{config.dirname}/#{f}")
     catch e
-      return false
+      if e.code is 'MODULE_NOT_FOUND'
+        return false
+      throw e
   locales = {}
   locales_available = config.locales.slice(0)
   locale_default = get_config(locales_available[0])
