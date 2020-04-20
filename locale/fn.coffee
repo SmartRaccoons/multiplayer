@@ -1,14 +1,15 @@
 translate_fn_generate = (locales)->
-  (key, active = 'en', subparams)->
+  (key, active = 'en', subparams = {})->
     locale = locales[active]
     get = (key)->
       for subkey in key.split('.')
         res = (res or locale)[subkey]
         if !res
-          return subkey
+          console.info key
+          throw 'not found'
       return res
     res = get(key)
-    if not subparams
+    if typeof res isnt 'string'
       return res
     [
       (match, name)->
@@ -21,14 +22,15 @@ translate_fn_generate = (locales)->
               return if subparams[array_param[1]] then array else ''
             if array[ subparams[array_param[1]] ]
               return array[ subparams[array_param[1]] ]
-        res_replace = get(name)
-        if !subparams[name] and res_replace
-          return res_replace
         return match.slice(0)
+      (match, name)->
+        if name.indexOf('.') < 0
+          return match.slice(0)
+        return get(name)
       (match, name)->
         if subparams[name]?
           return subparams[name]
-        return ''
+        return match.slice(0)
     ].reduce ((acc, fn)->
       acc.replace /\\?\{([^{}]+)\}/g, (match, name)->
         if match.charAt(0) == '\\'

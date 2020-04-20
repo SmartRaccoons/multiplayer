@@ -1,1 +1,1 @@
-module.exports = Object.assign require('./authorize'), require('./anonymous')
+module.exports = Object.assign {}, require('./authorize'), require('./anonymous')

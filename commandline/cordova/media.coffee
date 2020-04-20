@@ -16,7 +16,7 @@ medias =
       [1024, 1]
 
     ].concat(
-      [24, 27.5, 86, 98].map (v)->
+      [24, 27.5, 86, 98, 108].map (v)->
         ["AppIcon#{v}x#{v}", v, 2]
     ).reduce (acc, params)->
       if typeof params[0] isnt 'string'

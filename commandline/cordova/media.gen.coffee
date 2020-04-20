@@ -19,8 +19,20 @@ exports.mediagen = (op, done)->
     icon: (img)->
       sh = sharp(op.icon)
       if img.width
-        sh = sh.resize(img.width)
-      sh.toFile(img.dest)
+        sh = sh.resize(img.width, img.height, {fit: 'inside'})
+      if !op.icon_background
+        return sh.toFile(img.dest)
+      sh.toBuffer()
+      .then (screen)->
+        sh.metadata()
+        .then (metadata)->
+          width = if !img.width then metadata.width else img.width
+          height = if !img.height then metadata.height else img.height
+          sharp(op.icon_background)
+          .resize(width, height, {fit: 'fill'})
+          .composite([{ input: screen }])
+          .toFile(img.dest)
+
     screen: (img)->
       sh = sharp(op.screen)
       if img.width
@@ -33,6 +45,7 @@ exports.mediagen = (op, done)->
         sh2
         .composite([{ input: screen }])
         .toFile(img.dest)
+
   Object.keys(medias).forEach (media)->
     fs.mkdirSync "#{path_res}/#{media}"
     Object.keys(medias[media]).forEach (platform)->

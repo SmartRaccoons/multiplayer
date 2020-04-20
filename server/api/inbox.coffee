@@ -30,17 +30,21 @@ module.exports.ApiInbox = class ApiInbox
     , callback_error
 
   transaction_create: (price, lang, callback, callback_error=->)->
+    language = if ['en', 'ru'].indexOf(lang) >= 0 then lang else 'lv'
+    methods = ['hbl', 'sebl', 'paypal', 'ccard']
+    if price <= 711
+      methods.push 'sms'
     @_get_data true, {
       action: 'transactions/create'
       dev: @config.inbox.dev_id
       apiKey: @config.inbox.application_id
-      prices: ['hbl', 'sebl', 'sms', 'paypal', 'ccard'].map((v)-> "#{v}-#{price}").join(', ')
-      language: if ['en', 'ru'].indexOf(lang) >= 0 then lang else 'lv'
+      prices: methods.map((v)-> "#{v}-#{price}").join(', ')
+      language
       skin: 'popup'
       callbackURI: @_payment_callback
-      returnURI: "#{@_payment_completed}#{lang}.html"
-      cancelURI: "#{@_payment_completed}#{lang}.html"
-    }, ( (data)-> callback({id: data.id, link: data.link}) ), callback_error
+      returnURI: "#{@_payment_completed}#{language}.html"
+      cancelURI: "#{@_payment_completed}#{language}.html"
+    }, ( (data)-> callback({id: data.id, link: data.link, language}) ), callback_error
 
   transaction_check: (transaction_id, callback, callback_error=->)->
     @_get_data true, {

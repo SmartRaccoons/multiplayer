@@ -1,5 +1,6 @@
+bodyParser = require('body-parser')
+typeis = require('type-is')
 crypto = require('crypto')
-Authorize = require('../authorize')
 SocketIO = require('socket.io')
 module_get = require('../../config').module_get
 config_get = require('../../config').config_get
@@ -8,11 +9,15 @@ template_local = require('../helpers/template').generate_local
 
 
 Anonymous = null
+Authorize = null
+AuthorizeEmail = null
 locale = null
 template = null
 User = null
 config_callback( ->
   Anonymous = module_get('server.authorize').Anonymous
+  Authorize = module_get('server.authorize')
+  AuthorizeEmail = module_get('server.authorize').email
   locale = module_get('locale')
   template = module_get('server.helpers.template')
   User = module_get('server.user').User
@@ -48,11 +53,11 @@ module.exports.authorize = (app)->
       app.get config_get(platform).login_full, (req, res)-> res.redirect links[platform]()
       app.get config_get(platform).login + '/:id', (req, res)->
         [language, code] = code_parse(req.params.id)
-        config_get('dbmemory').random_get 'anonymous', code, (params)=>
+        config_get('dbmemory').random_get Anonymous::_module(), code, (params)=>
           if !params
             return res.send code_template({
-              error: locale._('Link error', language)
-              message: locale._('Link error desc', language)
+              error: locale._('UserNotify.Link error', language)
+              message: locale._('UserNotify.Link error desc', language)
             })
           res.redirect links[platform](code_url, req.params.id)
   do =>
@@ -64,29 +69,61 @@ module.exports.authorize = (app)->
       google: 'code'
     app.get "#{code_url}/:id", (req, res)->
       [language, code] = code_parse(req.params.id)
-      config_get('dbmemory').random_get 'anonymous', code, (params)=>
+      config_get('dbmemory').random_get Anonymous::_module(), code, (params)=>
         if !params
           return res.send code_template({
-            error: locale._('Link error', language)
-            message: locale._('Link error device', language)
+            error: locale._('UserNotify.Link error', language)
+            message: locale._('UserNotify.Link error device', language)
           })
         for platform, param_url of platforms
           if req.query[param_url]
             params.authenticate = { [platform]: decodeURIComponent(req.query[param_url]), params: {code_url: true}}
-            config_get('dbmemory').random_up 'anonymous', code, params
+            config_get('dbmemory').random_up Anonymous::_module(), code, params
             Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', params.authenticate ]
-            res.send code_template({message: locale._('A code ok', language)})
+            res.send code_template({message: locale._('UserNotify.A code ok', language)})
             return
-        return res.send code_template({error: locale._('Error', language)})
+        return res.send code_template({error: locale._('UserNotify.Error', language)})
 
+  do =>
+    email = config_get('email')
+    if !email
+      return
+    template_email_recovery = do =>
+      template_email = template_local('email.recovery')
+      (params)=> template_email Object.assign({error: '', success: ''}, params)
+    app.all email.forget + '/:id/:user_id', (req, res)->
+      [language, code] = code_parse(req.params.id)
+      user_id = parseInt(req.params.user_id)
+      _l = (text)=> locale._(text, language)
+      config_get('dbmemory').random_get Anonymous::_module(), code, (params)=>
+        if ! (params and params.user_id is user_id)
+          return res.send template_email_recovery({
+            error: _l('UserNotify.Forget email link error')
+          })
+        if req.method is 'POST'
+          password = req.body.pass
+          if !password
+            return res.send template_email_recovery({
+              error: _l('UserNotify.Forget email link error')
+            })
+          AuthorizeEmail::_update_password {id: user_id, password}
+          config_get('dbmemory').random_remove Anonymous::_module(), code
+          return res.send template_email_recovery({
+            success: _l('UserNotify.Forget email success')
+          })
+
+        res.send template_email_recovery({
+          password: _l('UserNotify.Forget email password')
+          button: _l('UserNotify.Forget email button')
+        })
 
 module.exports.index = (app, locales)->
   index = locales.reduce (acc, language)->
-    acc[language] = template.generate({
-      template: 'index'
-      _l: (v)-> locale._(v, language)
-    })
-    acc
+    Object.assign acc, {
+      [language]: template.generate
+        template: 'index'
+        _l: (v)-> locale._(v, language)
+      }
   , {}
   app.get '/', (req, res)->
     language = if req.query and locales.indexOf(req.query.lang) >= 0 then req.query.lang else locales[0]
@@ -97,7 +134,7 @@ module.exports.payments = (app)->
   transaction =
     callback: (id, platform, callback)=>
       new (Authorize[platform])().buy_complete id, (params)=>
-        User::_coins_buy_callback[params.service](Object.assign {platform}, params)
+        User::_buy_callback(Object.assign {platform}, params)
       , callback
     platforms:
       draugiem: (platform, url)->
@@ -110,15 +147,24 @@ module.exports.payments = (app)->
         app.all url, (req, res)->
           if req.method is 'GET'
             return res.send(req.query['hub.challenge'])
-          if not (req.body and req.body.object is 'payments')
+          params = do =>
+            if !req.body
+              return null
+            if req.body.object is 'payments'
+              if req.body.entry.length isnt 1
+                console.info 'facebook payment', req.body.entry
+                return null
+              return {id: req.body.entry[0].id}
+            if req.body.object is 'payment_subscriptions'
+              return {id: req.body.entry[0].id, subscription: true}
+            return null
+          if !params
             return res.sendStatus(404)
-          if req.body.entry.length isnt 1
-            console.info 'facebook payment', req.body.entry
-            return res.sendStatus(404)
-          transaction.callback req.body.entry[0].id, platform, (err)->
+          transaction.callback params, platform, (err)->
             if err
-              console.info 'facebook payment', err, req.body
-              return res.sendStatus(404)
+              console.info 'facebook payment', err, JSON.stringify(req.body)
+              if err isnt 'incompleted'
+                return res.sendStatus(404)
             res.send('OK')
       inbox: (platform, url)->
         app.post url, (req, res)->
@@ -136,6 +182,20 @@ module.exports.payments = (app)->
       return
     if config_get(platform).transaction
       transaction.platforms[platform](platform, config_get(platform).transaction)
+  if config_get('inbox')
+    app.use bodyParser.json {
+      type: (req)->
+        if req.url.indexOf("/#{config_get('inbox').transaction}") >= 0
+          return false
+        return typeis(req, 'application/json')
+    }
+    do =>
+      transaction_url = config_get('inbox').transaction_completed
+      template = template_local('inbox-callback')
+      ['en', 'ru', 'lv'].forEach (language)=>
+        template_generated = template { text: locale._( 'Inbox transaction completed', language ) }
+        app.get "#{transaction_url}#{language}.html", (req, res)->
+          res.send template_generated
 
 
 module.exports.socket = ({ server, log, version, callback })->
@@ -153,7 +213,7 @@ module.exports.socket = ({ server, log, version, callback })->
       client.emit 'version', {'actual': version}
       return
     client.on 'request', (data)->
-      if !(data and Array.isArray(data) and data[0])
+      if !(data and Array.isArray(data) and data[0] and typeof data[0] is 'string')
         return console.info client.id + ': request error: ' + JSON.stringify(data)
       log("receive:#{client.id}:#{JSON.stringify(data)}")
       socket.emit('alive')

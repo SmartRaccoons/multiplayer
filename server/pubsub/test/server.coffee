@@ -35,8 +35,8 @@ describe 'Pubsub', ->
       server_all: ['m2', 'm1', 'm3']
       redis: 'rd'
     })
-    module_server = {_module: 'room', on_to: sinon.spy()}
-    module_id = {_module: 'ro', id: 'i1', on_to: sinon.spy()}
+    module_server = {_module: (-> 'room'), on_to: sinon.spy()}
+    module_id = {_module: (-> 'ro'), id: 'i1', on_to: sinon.spy()}
 
 
   it '_events', ->
@@ -170,6 +170,26 @@ describe 'Pubsub', ->
     m.emit_server_circle_exec('module', 'method', 'params')
     assert.equal(4, emit.callCount)
     assert.equal(0, emit.getCall(3).args[1])
+
+  it 'emit_server_circle_slave_exec', ->
+    m.emit_server_exec = emit = sinon.spy()
+    m.emit_server_circle_slave_exec('module', 'method', 'params')
+    assert.equal(1, emit.callCount)
+    assert.equal('module', emit.getCall(0).args[0])
+    assert.equal(1, emit.getCall(0).args[1])
+    assert.equal('method', emit.getCall(0).args[2])
+    assert.equal('params', emit.getCall(0).args[3])
+    m.emit_server_circle_slave_exec('module', 'method', 'params')
+    assert.equal(2, emit.callCount)
+    assert.equal(2, emit.getCall(1).args[1])
+    m.emit_server_circle_slave_exec('module', 'method', 'params')
+    assert.equal(1, emit.getCall(2).args[1])
+
+  it 'emit_server_circle_slave_exec (only one)', ->
+    m.options.server_all = ['m1']
+    m.emit_server_exec = emit = sinon.spy()
+    m.emit_server_circle_slave_exec('module', 'method', 'params')
+    assert.equal(0, emit.getCall(0).args[1])
 
   it 'emit_server_other_exec', ->
     m.emit_server_exec = emit = sinon.spy()

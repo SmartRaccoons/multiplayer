@@ -11,15 +11,12 @@ Multiserver = proxyquire('../multiserver', {
 
 
 class ModuleUser extends Multiserver.PubsubModule
-  _module: 'user'
 
 class ModuleUserIfoffline extends ModuleUser
-  _module: 'user'
   set: ->
   set_ifoffline: ->
 
 class ServerRooms extends Multiserver.PubsubServer
-  _module: 'rooms'
 
 
 describe 'Multiserver', ->
@@ -54,7 +51,7 @@ describe 'Multiserver', ->
     it 'emit_self_exec', ->
       m.emit_self_exec('4', 'me', 'pa')
       assert.equal(1, pubsub.emit_module_exec.callCount)
-      assert.equal('user', pubsub.emit_module_exec.getCall(0).args[0])
+      assert.equal('ModuleUser', pubsub.emit_module_exec.getCall(0).args[0])
       assert.equal('4', pubsub.emit_module_exec.getCall(0).args[1])
       assert.equal('me', pubsub.emit_module_exec.getCall(0).args[2])
       assert.equal('pa', pubsub.emit_module_exec.getCall(0).args[3])
@@ -104,6 +101,7 @@ describe 'Multiserver', ->
       pubsub.emit_server_slave_exec = sinon.spy()
       pubsub.emit_server_circle_exec = sinon.spy()
       pubsub.emit_server_other_exec = sinon.spy()
+      pubsub.emit_server_circle_slave_exec = sinon.spy()
       m = new ServerRooms()
 
     it 'constructor', ->
@@ -124,7 +122,7 @@ describe 'Multiserver', ->
     it 'emit', ->
       m.emit_all_exec('arg')
       assert.equal(1, pubsub.emit_all_exec.callCount)
-      assert.equal('rooms', pubsub.emit_all_exec.getCall(0).args[0])
+      assert.equal('ServerRooms', pubsub.emit_all_exec.getCall(0).args[0])
       assert.equal('arg', pubsub.emit_all_exec.getCall(0).args[1])
       m.emit_server_exec()
       assert.equal(1, pubsub.emit_server_exec.callCount)
@@ -136,3 +134,5 @@ describe 'Multiserver', ->
       assert.equal(1, pubsub.emit_server_circle_exec.callCount)
       m.emit_server_other_exec()
       assert.equal(1, pubsub.emit_server_other_exec.callCount)
+      m.emit_server_circle_slave_exec()
+      assert.equal(1, pubsub.emit_server_circle_slave_exec.callCount)

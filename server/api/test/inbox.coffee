@@ -59,7 +59,7 @@ describe 'api', ->
     it 'ok', ->
       a.transaction_create(33, 'en', spy)
       assert.equal(1, spy.callCount)
-      assert.deepEqual({link: 'https://payment.inbox.lv/', id: '52dc100a1d'}, spy.getCall(0).args[0])
+      assert.deepEqual({link: 'https://payment.inbox.lv/', id: '52dc100a1d', language: 'en'}, spy.getCall(0).args[0])
 
     it 'request', ->
       sinon.spy(a, '_get_data')
@@ -70,13 +70,18 @@ describe 'api', ->
         action: 'transactions/create',
         dev: 'dev id',
         apiKey: 'app id',
-        prices: 'hbl-33, sebl-33, sms-33, paypal-33, ccard-33',
+        prices: 'hbl-33, sebl-33, paypal-33, ccard-33, sms-33',
         language: 'en',
         skin: 'popup',
         callbackURI: 'sr.lv/ibox-url'
         cancelURI: 'sr.lv/ibox-url-completed-en.html'
         returnURI: 'sr.lv/ibox-url-completed-en.html'
       }, a._get_data.getCall(0).args[1])
+
+    it 'max price (no sms)', ->
+      sinon.spy(a, '_get_data')
+      a.transaction_create 712, 'en', ->
+      assert.equal 'hbl-712, sebl-712, paypal-712, ccard-712', a._get_data.getCall(0).args[1].prices
 
     it 'language ru', ->
       sinon.spy(a, '_get_data')

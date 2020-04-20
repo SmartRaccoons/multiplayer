@@ -3,10 +3,7 @@ SimpleEvent = require('simple.event').SimpleEvent
 
 
 class Pubsub extends SimpleEvent
-  constructor: ->
-    super()
-    if not @_module
-      throw "_module param required"
+  _module: -> @.constructor.name
 
   _pubsub: -> config_get('pubsub')
 
@@ -22,9 +19,9 @@ module.exports.PubsubModule = class PubsubModule extends Pubsub
 
   emit_self_exec: (id, method, ...params)->
     if !@["#{method}_ifoffline"]
-      return @emit_module_exec.apply(@, [@_module].concat(Array::slice.call(arguments)))
+      return @emit_module_exec.apply(@, [@_module()].concat(Array::slice.call(arguments)))
     callback = if typeof params[params.length - 1] is 'function' then params.pop() else (->)
-    @emit_module_exec.apply @, [@_module, id, method].concat(params).concat(
+    @emit_module_exec.apply @, [@_module(), id, method].concat(params).concat(
       (err, count)=>
         if count is 0
           @["#{method}_ifoffline"].apply(@, [id].concat(params))
@@ -35,8 +32,8 @@ module.exports.PubsubModule = class PubsubModule extends Pubsub
 module.exports.PubsubServer = class PubsubServer extends Pubsub
   ['emit_all_exec', 'emit_server_exec', 'emit_server_master_exec',
     'emit_server_slave_exec', 'emit_server_circle_exec',
-    'emit_server_other_exec'].forEach (fn)->
-    PubsubServer::[fn] = -> @_pubsub()[fn].apply(@_pubsub(), [@_module].concat(Array::slice.call(arguments)))
+    'emit_server_other_exec', 'emit_server_circle_slave_exec'].forEach (fn)->
+    PubsubServer::[fn] = -> @_pubsub()[fn].apply(@_pubsub(), [@_module()].concat(Array::slice.call(arguments)))
 
   constructor: ->
     super()

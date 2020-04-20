@@ -2,7 +2,8 @@ redis = require('redis')
 SimpleEvent = require('simple.event').SimpleEvent
 
 
-circle_server = 0
+__circle_server = 0
+__circle_server_slave = 0
 
 module.exports.Pubsub = class Pubsub
   _events:
@@ -18,7 +19,7 @@ module.exports.Pubsub = class Pubsub
       @["on_#{event}"] = do (event, callback)->
         (module)->
           callback_args = [
-            module._module
+            module._module()
             if event is 'module_exec' then module.id else @options.server_id
           ]
           module.on_to @, callback.apply(@, callback_args), (data)=>
@@ -55,8 +56,16 @@ module.exports.Pubsub = class Pubsub
       @emit_server_exec.apply @, [module, i, method].concat Array::slice.call(arguments, 2)
 
   emit_server_circle_exec: (module, method)->
-    @emit_server_exec.apply @, [module, circle_server, method].concat Array::slice.call(arguments, 2)
-    circle_server = (circle_server + 1) % @options.server_all.length
+    @emit_server_exec.apply @, [module, __circle_server, method].concat Array::slice.call(arguments, 2)
+    __circle_server = (__circle_server + 1) % @options.server_all.length
+
+  emit_server_circle_slave_exec: (module, method)->
+    if @options.server_all.length <= 1
+      __circle_server_slave = 0
+    else if __circle_server_slave is 0
+      __circle_server_slave = 1
+    @emit_server_exec.apply @, [module, __circle_server_slave, method].concat Array::slice.call(arguments, 2)
+    __circle_server_slave = (__circle_server_slave + 1) % @options.server_all.length
 
   emit_server_other_exec: (module, method)->
     for i in [0...@options.server_all.length]

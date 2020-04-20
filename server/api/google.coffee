@@ -13,8 +13,10 @@ module.exports.ApiGoogle = class ApiGoogle
     api = if @_gcode_url and params and params.code_url then @_gcode_url else @_g
     api.getToken code, (err, data)=>
       if err
+        # console.info err
         return callback(null)
       api.verifyIdToken {idToken: data.id_token}, (err, data)=>
         if err
+          # console.info err
           return callback(null)
         callback({uid: data.payload.sub, language: data.payload.locale, name: data.payload.name, img: data.payload.picture})

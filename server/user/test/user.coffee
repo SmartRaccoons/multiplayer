@@ -5,13 +5,21 @@ proxyquire = require('proxyquire')
 
 
 class Login
-  _attr:
-    'id': {db: true}
-    'name': {default: '', db: true}
-    'new': {private: true}
-    'coins': {private: true}
-    'language': {private: true}
+  _opt:
+    'id': {db: true, public: true}
+    'name': {default: '', db: true, public: true}
+    'new': {}
+    'coins': {}
+    'language': {}
+    'password': {private: true}
   _user_update: ->
+
+
+class Cordova
+  buy_complete: ->
+
+class LoginInbox
+  buy: ->
 
 class Room
   game_methods:
@@ -36,6 +44,8 @@ PubsubModule_methods =
 _pubsub = {}
 config = {}
 config_callbacks = []
+cordova_payment_validate = ->
+cordova_constructor = ->
 User = proxyquire('../user', {
   '../../config':
     config_callback: (c)->
@@ -43,7 +53,7 @@ User = proxyquire('../user', {
       c
     module_get: (module)->
       if 'server.authorize' is module
-        return {Login}
+        return {Login, cordova: Cordova, inbox: LoginInbox}
       return {Room, Room2, User}
     config_get: (param)-> config[param]
   '../pubsub/multiserver':
@@ -52,6 +62,9 @@ User = proxyquire('../user', {
       remove: -> PubsubModule_methods.remove.apply(@, arguments)
     PubsubServer: class PubsubServer
       _pubsub: -> _pubsub
+  '../api/cordova': class cordova
+    constructor: -> cordova_constructor.apply(@, arguments)
+    payment_validate: -> cordova_payment_validate.apply(@, arguments)
 }).User
 
 
@@ -61,12 +74,13 @@ describe 'User', ->
   clock = null
   db = {}
   beforeEach ->
-    Login::_attr =
-      'id': {db: true}
-      'name': {default: '', db: true}
-      'new': {private: true}
-      'coins': {private: true}
-      'language': {private: true}
+    Login::_opt =
+      'id': {db: true, public: true}
+      'name': {default: '', db: true, public: true}
+      'new': {}
+      'coins': {}
+      'language': {}
+      'password': {private: true}
     clock = sinon.useFakeTimers()
     socket =
       id: 777
@@ -78,15 +92,35 @@ describe 'User', ->
       emit_all_exec: sinon.spy()
     config =
       db: db
+      cordova:
+        id: 'cid'
+      ios:
+        buy_transaction:
+          2: '200m'
+        shared_secret: 'shas'
+      android:
+        email: 'aemail'
+        key: 'appkey'
+        buy_transaction:
+          3: '300m'
+          11: 'vip5'
+      buy:
+        product:
+          '1': 50
+          '3': 100
+        subscription:
+          '11': 'vip'
+    cordova_constructor = sinon.spy()
     config_callbacks[0]()
     db.select_one = sinon.spy()
     db.insert = sinon.spy()
     db.select = sinon.spy()
+    db.replace = sinon.spy()
 
   afterEach ->
     clock.restore()
 
-  describe 'User', ->
+  describe 'methods', ->
     user = null
     beforeEach ->
       PubsubModule_methods.constructor = sinon.spy()
@@ -95,26 +129,14 @@ describe 'User', ->
       user.id = 5
       user.emit_module_exec = sinon.spy()
 
-    it 'config (coins buy params)', ->
-      User::_coins_buy_params =
-        type: 8
-        service:
-          1: 250
-      config_callbacks[0]()
-      User::emit_self_exec = spy = sinon.spy()
-      complete = sinon.spy()
-      User::_coins_buy_callback[1]({user_id: 5, service: 1, complete})
-      assert.equal 1, spy.callCount
-      assert.equal 5, spy.getCall(0).args[0]
-      assert.equal 'set_coins', spy.getCall(0).args[1]
-      assert.deepEqual {type: 8, coins: 250}, spy.getCall(0).args[2]
-      spy.getCall(0).args[3]()
-      assert.equal 1, complete.callCount
-
-    it 'default attributes', ->
+    it 'default options', ->
       user = new User({socket: socket})
-      assert.equal('user', user._module)
-      assert(user.attributes.alive.getTime() <= new Date().getTime())
+      assert(user.options.alive.getTime() <= new Date().getTime())
+
+    it 'cordova options', ->
+      assert.equal 1, cordova_constructor.callCount
+      assert.deepEqual {email: 'aemail', key: 'appkey', packageName: 'cid'}, cordova_constructor.getCall(0).args[0].android
+      assert.deepEqual {shared_secret: 'shas'}, cordova_constructor.getCall(0).args[0].ios
 
     it 'publish user data on constructor', ->
       spy = sinon.spy()
@@ -167,21 +189,28 @@ describe 'User', ->
       assert.deepEqual(['ev', 'pr'], user.emit_self_exec.getCall(0).args[2])
 
     it 'data', ->
-      user = new User({id: 5, name: 'b', new: true, socket: socket})
+      user = new User({id: 5, name: 'b', new: true, password: '124', socket: socket})
       assert.deepEqual({id: 5, name: 'b', new: true}, user.data())
 
     it 'data public', ->
       user = new User({id: 5, name: 'b', new: true, socket: socket})
       assert.deepEqual({id: 5, name: 'b'}, user.data_public())
 
+    it 'data room', ->
+      user.data_public = sinon.fake.returns {id: 2}
+      assert.deepEqual({id: 2}, user.data_room())
+      assert.equal 1, user.data_public.callCount
+
     it '_room_add', ->
       assert.notEqual(1, user.room)
+      user.lobby = 'lob'
       user.publish = sinon.spy()
       user._room_add(1)
       assert.equal(1, user.room)
       assert.equal(1, user.publish.callCount)
       assert.equal('room:add', user.publish.getCall(0).args[0])
       assert.equal(1, user.publish.getCall(0).args[1])
+      assert.equal null, user.lobby
 
     it 'room remove', ->
       user.publish = sinon.spy()
@@ -190,6 +219,7 @@ describe 'User', ->
       assert.notEqual(1, user.room)
       assert.equal(1, user.publish.callCount)
       assert.equal('room:remove', user.publish.getCall(0).args[0])
+      assert.equal(1, user.publish.getCall(0).args[1])
 
     it 'room exec', ->
       user.room = {id: 1, module: 'Room'}
@@ -226,34 +256,104 @@ describe 'User', ->
       assert.equal('room:update', user.publish.getCall(0).args[0])
       assert.deepEqual({ben: 'room'}, user.publish.getCall(0).args[1])
 
-    it 'rooms_lobby_add', ->
-      user.data_public = sinon.fake.returns({id: 5})
-      user.rooms_lobby_add()
+    it '_room_update (room not defined)', ->
+      user.publish = sinon.spy()
+      user.room = null
+      user._room_update({ben: 'room'})
+      assert.equal null, user.room
+      assert.equal(0, user.publish.callCount)
+
+    it '_rooms_master_exe', ->
+      user.data_room = sinon.fake.returns({id: 5})
+      user._rooms_master_exe( '_add', 'roo', {p: 'r'} )
       assert.equal(1, _pubsub.emit_server_master_exec.callCount)
-      assert.equal('rooms', _pubsub.emit_server_master_exec.getCall(0).args[0])
-      assert.equal('lobby_add', _pubsub.emit_server_master_exec.getCall(0).args[1])
+      assert.equal('roo', _pubsub.emit_server_master_exec.getCall(0).args[0])
+      assert.equal('_add', _pubsub.emit_server_master_exec.getCall(0).args[1])
       assert.deepEqual({id: 5}, _pubsub.emit_server_master_exec.getCall(0).args[2])
-      assert.equal(1, user.data_public.callCount)
+      assert.deepEqual({p: 'r'}, _pubsub.emit_server_master_exec.getCall(0).args[3])
+      assert.equal(1, user.data_room.callCount)
 
-    it 'rooms_lobby_add (params)', ->
-      user.data_public = sinon.fake.returns({id: 5})
-      user.rooms_lobby_add('tournaments', {id: 4, z: 5})
-      assert.equal('tournaments', _pubsub.emit_server_master_exec.getCall(0).args[0])
-      assert.deepEqual({id: 5}, _pubsub.emit_server_master_exec.getCall(0).args[2])
-      assert.deepEqual({id: 4, z: 5}, _pubsub.emit_server_master_exec.getCall(0).args[3])
-
-    it 'rooms_lobby_remove', ->
-      user.id = 5
-      user.rooms_lobby_remove()
-      assert.equal(1, _pubsub.emit_server_master_exec.callCount)
+    it '_rooms_master_exe (def)', ->
+      user.data_room = sinon.fake.returns({})
+      user._rooms_master_exe( '_add')
       assert.equal('rooms', _pubsub.emit_server_master_exec.getCall(0).args[0])
-      assert.equal('lobby_remove', _pubsub.emit_server_master_exec.getCall(0).args[1])
-      assert.equal(5, _pubsub.emit_server_master_exec.getCall(0).args[2])
+      assert.deepEqual({}, _pubsub.emit_server_master_exec.getCall(0).args[3])
 
-    it 'rooms_lobby_remove (params)', ->
-      user.rooms_lobby_remove('tournaments', 'p2')
-      assert.equal('tournaments', _pubsub.emit_server_master_exec.getCall(0).args[0])
-      assert.equal('p2', _pubsub.emit_server_master_exec.getCall(0).args[3])
+
+    describe 'config (buy params)', ->
+      complete = null
+      spy = null
+      params = null
+      beforeEach ->
+        User::_buy_params =
+          coins:
+            type: 8
+            service: ['1', '2']
+          subscription: {'vip': 'limit'}
+        config_callbacks[0]()
+        User::emit_self_exec = spy = sinon.spy()
+        complete = sinon.spy()
+        params =
+          user_id: 5
+          transaction: {id: 56, service: '1'}
+          complete: complete
+
+      it 'default', ->
+        User::_buy_callback(params)
+        assert.equal 1, spy.callCount
+        assert.equal 5, spy.getCall(0).args[0]
+        assert.equal 'set_coins', spy.getCall(0).args[1]
+        assert.deepEqual {type: 8, coins: 50}, spy.getCall(0).args[2]
+        spy.getCall(0).args[3]()
+        assert.equal 1, complete.callCount
+
+      it 'not in coins', ->
+        params.transaction.service = '3'
+        User::_buy_callback(params)
+        assert.equal 'set_product', spy.getCall(0).args[1]
+        assert.deepEqual {transaction: {id: 56, service: '3', value: 100}}, spy.getCall(0).args[2]
+
+      it 'subscription', ->
+        params.transaction.service = '11'
+        User::_buy_callback(params)
+        assert.equal 'set_subscription', spy.getCall(0).args[1]
+        assert.deepEqual {field: 'limit', expire: 32}, spy.getCall(0).args[2]
+
+      it 'subscription (expire)', ->
+        params.transaction.service = '11'
+        params.transaction.expire = 5
+        User::_buy_callback(params)
+        assert.equal 'set_subscription', spy.getCall(0).args[1]
+        assert.equal 5, spy.getCall(0).args[2].expire
+
+
+    describe 'rooms_master', ->
+      beforeEach ->
+        user._rooms_master_exe = sinon.spy()
+
+      it 'rooms_lobby_add', ->
+        user.rooms_lobby_add()
+        assert.equal 1, user._rooms_master_exe.callCount
+        assert.equal 'lobby_add', user._rooms_master_exe.getCall(0).args[0]
+        assert.equal 'rooms', user._rooms_master_exe.getCall(0).args[1]
+        assert.deepEqual {}, user._rooms_master_exe.getCall(0).args[2]
+
+      it 'rooms_lobby_add (params)', ->
+        user.rooms_lobby_add('ro', {p: 'a'})
+        assert.equal 'ro', user._rooms_master_exe.getCall(0).args[1]
+        assert.deepEqual {p: 'a'}, user._rooms_master_exe.getCall(0).args[2]
+
+      it 'rooms_lobby_remove', ->
+        user.lobby = {module: 'rooms'}
+        user.rooms_lobby_remove()
+        assert.equal 1, user._rooms_master_exe.callCount
+        assert.equal 'lobby_remove', user._rooms_master_exe.getCall(0).args[0]
+        assert.equal 'rooms', user._rooms_master_exe.getCall(0).args[1]
+
+      it 'rooms_lobby_remove (no lobby)', ->
+        user.rooms_lobby_remove('ro')
+        assert.equal 0, user._rooms_master_exe.callCount
+
 
     it 'rooms_reconnect', ->
       user.id = 5
@@ -273,35 +373,38 @@ describe 'User', ->
       assert.equal(1, user.publish.callCount)
       assert.equal('lobby:add', user.publish.getCall(0).args[0])
       assert.deepEqual({p: 'a'}, user.publish.getCall(0).args[1])
+      assert.deepEqual {p: 'a'}, user.lobby
 
     it '_lobby_remove', ->
+      user.lobby = {l: 'bo'}
       user.publish = sinon.spy()
       user._lobby_remove({p: 'a'})
       assert.equal(1, user.publish.callCount)
       assert.equal('lobby:remove', user.publish.getCall(0).args[0])
-      assert.deepEqual({p: 'a'}, user.publish.getCall(0).args[1])
+      assert.deepEqual({l: 'bo'}, user.publish.getCall(0).args[1])
+      assert.equal null, user.lobby
 
     it 'remove user', ->
       user.room_exec = sinon.spy()
       PubsubModule_methods.remove = sinon.spy()
-      user.attributes.socket.disconnect = sinon.spy()
+      user.options.socket.disconnect = sinon.spy()
       user.remove()
       assert.equal(1, PubsubModule_methods.remove.callCount)
       assert.equal(1, user.room_exec.callCount)
       assert.equal('user_remove', user.room_exec.getCall(0).args[0])
       assert.deepEqual({id: 5, disconnect: true}, user.room_exec.getCall(0).args[1])
-      assert.equal(1, user.attributes.socket.disconnect.callCount)
-      assert.equal(null, user.attributes.socket.disconnect.getCall(0).args[0])
+      assert.equal(1, user.options.socket.disconnect.callCount)
+      assert.equal(null, user.options.socket.disconnect.getCall(0).args[0])
 
     it 'remove user (duplicate)', ->
       user.room_exec = sinon.spy()
-      user.attributes.socket.disconnect = sinon.spy()
+      user.options.socket.disconnect = sinon.spy()
       user.remove('duplicate')
-      assert.equal('duplicate', user.attributes.socket.disconnect.getCall(0).args[0])
+      assert.equal('duplicate', user.options.socket.disconnect.getCall(0).args[0])
 
     it 'remove user (2 times)', ->
       user.room_exec = sinon.spy()
-      user.attributes.socket.disconnect = sinon.spy()
+      user.options.socket.disconnect = sinon.spy()
       user.remove()
       user.remove()
       assert.equal(1, user.room_exec.callCount)
@@ -327,7 +430,7 @@ describe 'User', ->
 
     it 'set', ->
       user.set({alive: 'alive'})
-      assert.equal('alive', user.attributes.alive)
+      assert.equal('alive', user.options.alive)
 
     it 'set (socket)', ->
       user._bind_socket = sinon.spy()
@@ -338,7 +441,7 @@ describe 'User', ->
       user.publish = sinon.spy()
       user.set({new: true})
       assert.equal(1, user.publish.callCount)
-      assert.equal('user:set', user.publish.getCall(0).args[0])
+      assert.equal('user:update', user.publish.getCall(0).args[0])
       assert.deepEqual({new: true}, user.publish.getCall(0).args[1])
 
     it 'set (publish no params)', ->
@@ -371,23 +474,23 @@ describe 'User', ->
       assert.deepEqual {user_id: 1, action: new Date(), type: 2, coins: 5}, db.insert.getCall(0).args[0].data
 
     it 'set_coins', ->
-      user.attributes.coins_history = [{coins: 2}]
+      user.options.coins_history = [{coins: 2}]
       user.set = sinon.spy()
       user._set_coins_db = sinon.spy()
-      user.attributes.coins = 10
+      user.options.coins = 10
       user.set_coins {type: 2, coins: 5}
       assert.equal 1, user.set.callCount
       assert.deepEqual {coins: 15}, user.set.getCall(0).args[0]
       assert.equal 1, user._set_coins_db.callCount
       assert.deepEqual {user_id: 5, type: 2, coins: 5}, user._set_coins_db.getCall(0).args[0]
-      assert.deepEqual [{action: new Date(), type: 2, coins: 5}, {coins: 2}], user.attributes.coins_history
+      assert.deepEqual [{action: new Date(), type: 2, coins: 5}, {coins: 2}], user.options.coins_history
 
     it 'set_coins (no history)', ->
       user.set = ->
       user._set_coins_db = ->
-      user.attributes.coins = 10
+      user.options.coins = 10
       user.set_coins {type: 2, coins: 5}
-      assert.ok !user.attributes.coins_history?
+      assert.ok !user.options.coins_history?
 
     it 'set_coins (ifoffline)', ->
       user._set_db = sinon.spy()
@@ -397,6 +500,18 @@ describe 'User', ->
       assert.deepEqual {user_id: 2, type: 2, coins: 5}, user._set_coins_db.getCall(0).args[0]
       assert.equal 1, user._set_db.callCount
       assert.deepEqual {id: 2, coins: {increase: 5}}, user._set_db.getCall(0).args[0]
+
+    it 'set_subscription', ->
+      user.set = sinon.spy()
+      user.set_subscription({field: 'limit', expire: 31})
+      assert.equal 1, user.set.callCount
+      assert.deepEqual {limit: 31}, user.set.getCall(0).args[0]
+
+    it 'set_subscription_ifoffline', ->
+      user._set_db = sinon.spy()
+      user.set_subscription_ifoffline 5, {field: 'limit', expire: 30}
+      assert.equal 1, user._set_db.callCount
+      assert.deepEqual {id: 5, limit: 30}, user._set_db.getCall(0).args[0]
 
     it 'alive', ->
       assert.equal(true, user.alive())
@@ -409,6 +524,92 @@ describe 'User', ->
       assert.equal(true, user.alive())
       clock.tick(61 * 60 * 1000)
       assert.equal(false, user.alive())
+
+
+    describe 'User message', ->
+      date_joined = null
+      now = null
+      beforeEach ->
+        now = new Date()
+        date_joined = new Date(new Date().getTime() - 1000)
+        user.options.date_joined = date_joined
+        user.set = sinon.spy()
+        socket.on = sinon.spy()
+        user.options.messages = [{id: 8, message: 'm8'}, {id: 9}]
+        user.publish = sinon.spy()
+
+      it 'default', ->
+        assert.deepEqual {table: 'user_message', limit: 10}, user._message
+
+      it 'messages', ->
+        user._message_check()
+        assert.equal 1, db.select.callCount
+        assert.deepEqual ['id', 'user_id', 'added', 'message'], db.select.getCall(0).args[0].select
+        assert.equal 'user_message', db.select.getCall(0).args[0].table
+        assert.equal 10, db.select.getCall(0).args[0].limit
+        assert.deepEqual ['-added'], db.select.getCall(0).args[0].order
+        assert.deepEqual {
+          user_id: [5, null]
+          added: {sign: ['>', date_joined]}
+          actual: [null, {sign: ['>', now] }]
+        }, db.select.getCall(0).args[0].where
+        db.select.getCall(0).args[1]([
+          {id: 5, added: new Date(new Date().getTime() + 1000 * 60 + 550 ), message: '<h1>1234</h1> 1234567890 1234567890' }
+          {id: 6, added: new Date(new Date().getTime() + 1000 * 40 + 450), message: 'm2'  }
+        ])
+        assert.equal 2, db.select.callCount
+        assert.deepEqual ['user_message_id'], db.select.getCall(1).args[0].select
+        assert.equal 'user_message_read', db.select.getCall(1).args[0].table
+        assert.deepEqual {user_id: 5, user_message_id: [5, 6]}, db.select.getCall(1).args[0].where
+        db.select.getCall(1).args[1]([ {user_message_id: 6} ])
+        assert.equal 1, user.set.callCount
+        assert.deepEqual {messages: [ {id: 5, intro: '1234 1234567890', added: 61}, {id: 6, added: 40, intro: 'm2', read: true} ] }, user.set.getCall(0).args[0]
+
+      it 'no messages', ->
+        user._message_check()
+        db.select.getCall(0).args[1]([])
+        assert.equal 1, db.select.callCount
+
+      it 'read', ->
+        user._message_check()
+        assert.equal 1, socket.on.callCount
+        assert.equal 'user:message', socket.on.getCall(0).args[0]
+        socket.on.getCall(0).args[1]({id: 9})
+        assert.equal 1, db.select_one.callCount
+        assert.deepEqual ['message'], db.select_one.getCall(0).args[0].select
+        assert.equal 'user_message', db.select_one.getCall(0).args[0].table
+        assert.deepEqual {id: 9}, db.select_one.getCall(0).args[0].where
+        db.select_one.getCall(0).args[1]({message: 'm9'})
+        assert.equal 1, user.publish.callCount
+        assert.equal 'user:message', user.publish.getCall(0).args[0]
+        assert.deepEqual {id: 9, message: 'm9', read: true}, user.publish.getCall(0).args[1]
+        assert.equal 1, db.insert.callCount
+        assert.equal 'user_message_read', db.insert.getCall(0).args[0].table
+        assert.deepEqual {user_message_id: 9, user_id: 5, added: new Date()}, db.insert.getCall(0).args[0].data
+
+      it 'read not found on db', ->
+        user._message_check()
+        socket.on.getCall(0).args[1]({id: 9})
+        db.select_one.getCall(0).args[1](null)
+        assert.equal 0, user.publish.callCount
+
+      it 'message preloaded', ->
+        user._message_check()
+        socket.on.getCall(0).args[1]({id: 8})
+        assert.equal 1, user.publish.callCount
+        assert.deepEqual {id: 8, message: 'm8'}, user.publish.getCall(0).args[1]
+
+      it 'id not found', ->
+        user._message_check()
+        socket.on.getCall(0).args[1]({id: 10})
+        assert.equal 0, db.select_one.callCount
+        assert.equal 0, user.publish.callCount
+
+      it 'no params', ->
+        user._message_check()
+        socket.on.getCall(0).args[1]()
+        assert.equal 0, db.select_one.callCount
+        assert.equal 0, user.publish.callCount
 
 
   describe 'User events', ->
@@ -427,9 +628,9 @@ describe 'User', ->
       assert.equal(user.get('alive').getTime(), new Date().getTime())
 
     it 'user:update', ->
-      Login::_attr.language.validate = -> 'en'
-      Login::_attr.name.validate = -> 'mi'
-      Login::_attr.coins.validate = -> 3
+      Login::_opt.language.validate = -> 'en'
+      Login::_opt.name.validate = -> 'mi'
+      Login::_opt.coins.validate = -> 3
       user.set = sinon.spy()
       socket.emit 'user:update', {language: 'somalian', name: 'm'}
       assert.equal(1, user.set.callCount)
@@ -463,11 +664,6 @@ describe 'User', ->
       socket.emit 'game:move', {hand: 0}
       assert.equal(0, user.room_exec_game.callCount)
 
-    it 'game (no params)', ->
-      user.room_exec_game = sinon.spy()
-      socket.emit 'game:move'
-      assert.equal(0, user.room_exec_game.callCount)
-
     it 'game (no validate)', ->
       user.room_exec_game = sinon.spy()
       socket.emit 'game:move2', {hand: 5}
@@ -486,58 +682,6 @@ describe 'User', ->
       socket.emit 'remove'
       assert.equal(1, user.remove.callCount)
 
-    it '_bind_socket_coins_buy (facebook)', ->
-      db.select = sinon.spy()
-      user.id = 5
-      user.publish = sinon.spy()
-      user.attributes.api._name = 'facebook'
-      user._bind_socket_coins_buy()
-      socket.emit 'coins:buy:facebook', 2
-      assert.equal 1, user.attributes.api.buy.callCount
-      assert.deepEqual {service: 2, user_id: 5, language: 'en'} , user.attributes.api.buy.getCall(0).args[0]
-      user.attributes.api.buy.getCall(0).args[1]({id: 10})
-      assert.equal 'coins:buy:facebook', user.publish.getCall(0).args[0]
-      assert.deepEqual {service: 2, id: 10}, user.publish.getCall(0).args[1]
-
-    it '_bind_socket_coins_buy (draugiem)', ->
-      db.select = sinon.spy()
-      user.id = 5
-      user.publish = sinon.spy()
-      user.attributes.api._name = 'draugiem'
-      user._bind_socket_coins_buy()
-      socket.emit 'coins:buy:draugiem', 2
-      user.attributes.api.buy.getCall(0).args[1]({id: 10})
-      assert.equal 'coins:buy:draugiem', user.publish.getCall(0).args[0]
-
-    it '_bind_socket_coins_buy (inbox)', ->
-      db.select = sinon.spy()
-      user.id = 5
-      user.publish = sinon.spy()
-      user.attributes.api._name = 'inbox'
-      user._bind_socket_coins_buy()
-      socket.emit 'coins:buy:inbox', 2
-      user.attributes.api.buy.getCall(0).args[1]({id: 10})
-      assert.equal 'coins:buy:inbox', user.publish.getCall(0).args[0]
-
-    it '_bind_socket_coins_buy (not included)', ->
-      db.select = sinon.spy()
-      user.id = 5
-      user.publish = sinon.spy()
-      user.attributes.api._name = 'inbox'
-      user._bind_socket_coins_buy(['facebook'])
-      socket.emit 'coins:buy:inbox', 2
-      assert.equal 0, user.attributes.api.buy.callCount
-
-    it '_bind_socket_coins_buy (unexisting)', ->
-      db.select = sinon.spy()
-      user.id = 5
-      user.publish = sinon.spy()
-      user.attributes.api._name = 'boom'
-      user._bind_socket_coins_buy()
-      socket.emit 'coins:buy:inbox', 2
-      socket.emit 'coins:buy:boom', 2
-      assert.equal 0, user.attributes.api.buy.callCount
-
     it '_bind_socket_coins_history', ->
       db.select = sinon.spy()
       user.id = 5
@@ -550,21 +694,170 @@ describe 'User', ->
       assert.equal 10, db.select.getCall(0).args[0].limit
       assert.deepEqual ['-action'], db.select.getCall(0).args[0].order
       assert.deepEqual ['coins', 'action', 'type'], db.select.getCall(0).args[0].select
-      db.select.getCall(0).args[1]([{coins: 5}])
-      assert.deepEqual [{coins: 5}], user.attributes.coins_history
+      action = new Date(new Date().getTime() - 1550)
+      db.select.getCall(0).args[1]([{coins: 5, action}])
+      assert.deepEqual [{coins: 5, action}], user.options.coins_history
       assert.equal 1, user.publish.callCount
       assert.equal 'coins:history', user.publish.getCall(0).args[0]
-      assert.deepEqual [{coins: 5}], user.publish.getCall(0).args[1]
+      assert.deepEqual [{coins: 5, action, action_seconds: -2}], user.publish.getCall(0).args[1]
 
     it '_bind_socket_coins_history (fetched)', ->
       db.select = sinon.spy()
       user.id = 5
       user.publish = sinon.spy()
-      user.attributes.coins_history = []
+      user.options.coins_history = []
       user._bind_socket_coins_history()
       socket.emit 'coins:history'
       assert.equal 0, db.select.callCount
       assert.deepEqual [], user.publish.getCall(0).args[1]
+
+    it '_bind_socket_cordova', ->
+      user.id = 5
+      user._bind_socket_cordova()
+      socket.emit 'user:update:cordova', {token: 'tkn'}
+      assert.equal 1, db.replace.callCount
+      assert.equal 'auth_user_cordova_params', db.replace.getCall(0).args[0].table
+      assert.deepEqual ['user_id'], db.replace.getCall(0).args[0].unique
+      assert.deepEqual {user_id: 5, token: 'tkn', last_updated: new Date()}, db.replace.getCall(0).args[0].data
+
+    it '_bind_socket_cordova (no token)', ->
+      user._bind_socket_cordova()
+      socket.emit 'user:update:cordova'
+      assert.equal 0, db.replace.callCount
+
+
+    describe '_bind_socket_coins_buy', ->
+      buy_complete = null
+      buy_inbox = null
+      beforeEach ->
+        db.select = sinon.spy()
+        user.id = 5
+        user.publish = sinon.spy()
+        buy_inbox = sinon.spy()
+        LoginInbox::buy = -> buy_inbox.apply(@, arguments)
+        buy_complete = sinon.spy()
+        Cordova::buy_complete = -> buy_complete.apply(@, arguments)
+        user._buy_callback = sinon.spy()
+        cordova_payment_validate = sinon.spy()
+
+      it 'facebook', ->
+        user.options.api._name = 'facebook'
+        user._bind_socket_coins_buy()
+        socket.emit 'buy:facebook', { service: 2, language: 'rp' }
+        assert.equal 1, user.options.api.buy.callCount
+        assert.deepEqual {service: 2, user_id: 5, language: 'rp'} , user.options.api.buy.getCall(0).args[0]
+        user.options.api.buy.getCall(0).args[1]({id: 10})
+        assert.equal 'buy:facebook', user.publish.getCall(0).args[0]
+        assert.deepEqual {service: 2, id: 10}, user.publish.getCall(0).args[1]
+
+      it 'no params', ->
+        user.options.api._name = 'facebook'
+        user._bind_socket_coins_buy()
+        socket.emit 'buy:facebook'
+        assert.equal 0, user.options.api.buy.callCount
+
+      it 'draugiem', ->
+        user.options.api._name = 'draugiem'
+        user._bind_socket_coins_buy()
+        socket.emit 'buy:draugiem', { service: 2 }
+        user.options.api.buy.getCall(0).args[1]({id: 10})
+        assert.equal 'buy:draugiem', user.publish.getCall(0).args[0]
+
+      it 'inbox', ->
+        user.options.api._name = 'inbox'
+        user._bind_socket_coins_buy()
+        socket.emit 'buy:inbox', {service: 2}
+        user.options.api.buy.getCall(0).args[1]({id: 10})
+        assert.equal 'buy:inbox', user.publish.getCall(0).args[0]
+
+      it 'not included', ->
+        user.options.api._name = 'inbox'
+        user._bind_socket_coins_buy(['facebook'])
+        socket.emit 'buy:inbox', {service: 2}
+        assert.equal 0, user.options.api.buy.callCount
+
+      it 'unexisting', ->
+        user.options.api._name = 'boom'
+        user._bind_socket_coins_buy()
+        socket.emit 'buy:inbox', {service: 2}
+        socket.emit 'buy:boom', {service: 2}
+        assert.equal 0, user.options.api.buy.callCount
+
+      it 'inbox_standalone', ->
+        user._bind_socket_coins_buy(['inbox_standalone'])
+        socket.emit 'buy:inbox_standalone', {service: 2, language: 'lg'}
+        assert.equal 1, buy_inbox.callCount
+        assert.deepEqual {service: 2, user_id: 5, language: 'lg'}, buy_inbox.getCall(0).args[0]
+        buy_inbox.getCall(0).args[1]({id: 10})
+        assert.equal 'buy:inbox_standalone', user.publish.getCall(0).args[0]
+        assert.deepEqual {id: 10, service: 2}, user.publish.getCall(0).args[1]
+
+      it 'inbox_standalone (no args)', ->
+        user._bind_socket_coins_buy(['inbox_standalone'])
+        socket.emit 'buy:inbox_standalone'
+        assert.equal 0, buy_inbox.callCount
+
+      it 'inbox_standalone (unexist)', ->
+        user._bind_socket_coins_buy(['inbox_other'])
+        socket.emit 'buy:inbox_standalone', {service: 2, language: 'lg'}
+        assert.equal 0, buy_inbox.callCount
+
+      it 'cordova ios', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
+        assert.equal 1, cordova_payment_validate.callCount
+        assert.deepEqual {transaction: 'tr', platform: 'ios'}, cordova_payment_validate.getCall(0).args[0]
+        cordova_payment_validate.getCall(0).args[1]({platform: 'ios', product_id: '200m', transaction_id: 'trid', expire: 1000 * 60 * 60 * 26})
+        assert.equal 1, buy_complete.callCount
+        assert.deepEqual {user_id: 5, service: '2', transaction_id: 'trid', platform: 'ios'}, buy_complete.getCall(0).args[0]
+        buy_complete.getCall(0).args[1]({p: 'ram', transaction: {service: '1'}})
+        assert.equal 1, user._buy_callback.callCount
+        assert.deepEqual {p: 'ram', transaction: {service: '1', expire: 2}, platform: 'ios'}, user._buy_callback.getCall(0).args[0]
+        buy_complete.getCall(0).args[2]()
+        assert.equal 1, user.publish.callCount
+        assert.equal 'buy:cordova:finish', user.publish.getCall(0).args[0]
+        assert.deepEqual {id_local: 0}, user.publish.getCall(0).args[1]
+
+      it 'cordova ios expire not exist', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
+        cordova_payment_validate.getCall(0).args[1]({platform: 'ios', product_id: '200m', transaction_id: 'trid', expire: null})
+        buy_complete.getCall(0).args[1]({transaction: {}})
+        assert.equal null, user._buy_callback.getCall(0).args[0].transaction.expire
+
+      it 'cordova ios service not found', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
+        cordova_payment_validate.getCall(0).args[1]({platform: 'ios', product_id: '300m', expire: 12})
+        assert.equal 0, buy_complete.callCount
+
+      it 'cordova android', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, product_id: '300m', platform: 'android', transaction: 'tr' }
+        assert.deepEqual {transaction: 'tr', product_id: '300m', platform: 'android', subscription: false}, cordova_payment_validate.getCall(0).args[0]
+
+      it 'cordova android subscription', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, product_id: 'vip5', platform: 'android', transaction: 'tr' }
+        assert.equal true, cordova_payment_validate.getCall(0).args[0].subscription
+
+      it 'cordova android no product', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, product_id: 'novip', platform: 'android', transaction: 'tr' }
+        assert.equal 0, cordova_payment_validate.callCount
+
+      it 'cordova no params', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova'
+        socket.emit 'buy:cordova', {id_local: 0, product_id: '200m', platform: 'windows', transaction: 'tr' }
+        socket.emit 'buy:cordova', {id_local: 2, platform: 'ios'}
+        socket.emit 'buy:cordova', {id_local: 2, platform: 'android', transaction: 'tr'}
+        assert.equal 0, cordova_payment_validate.callCount
+
+      it 'cordova unexists', ->
+        user._bind_socket_coins_buy(['cordovas'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
+        assert.equal 0, cordova_payment_validate.callCount
 
 
   describe 'bonuses', ->
@@ -585,7 +878,7 @@ describe 'User', ->
     it '__coins_bonus_check', ->
       user.__coins_bonus_check 'daily', spy
       assert.equal 1, db.select_one.callCount
-      assert.deepEqual ['action'], db.select_one.getCall(0).args[0].select
+      assert.deepEqual ['action', 'coins'], db.select_one.getCall(0).args[0].select
       assert.equal 'coins_history', db.select_one.getCall(0).args[0].table
       assert.deepEqual {user_id: 5, type: 1}, db.select_one.getCall(0).args[0].where
       assert.deepEqual ['-action'], db.select_one.getCall(0).args[0].order
@@ -593,7 +886,7 @@ describe 'User', ->
       d.setSeconds(d.getMinutes() - 60 * 60)
       config.db.select_one.getCall(0).args[1]({action: d})
       assert.equal(1, spy.callCount)
-      assert.equal(60 * 60 * 7, spy.getCall(0).args[0])
+      assert.deepEqual {left: 60 * 60 * 7, coins: 150}, spy.getCall(0).args[0]
 
     it '__coins_bonus_check (share)', ->
       user.__coins_bonus_check 'share', spy
@@ -601,70 +894,74 @@ describe 'User', ->
       d = new Date()
       d.setSeconds(d.getMinutes() - 60 * 60)
       config.db.select_one.getCall(0).args[1]({action: d})
-      assert.equal(60 * 60 * 9, spy.getCall(0).args[0])
+      assert.equal 60 * 60 * 9, spy.getCall(0).args[0].left
 
     it '__coins_bonus_check (passed)', ->
       user.__coins_bonus_check 'daily', spy
       d = new Date()
       d.setSeconds(d.getMinutes() - 60 * 60 * 10)
       config.db.select_one.getCall(0).args[1]({action: d})
-      assert.equal(1, spy.callCount)
-      assert.equal(0, spy.getCall(0).args[0])
+      assert.equal 0, spy.getCall(0).args[0].left
 
     it '__coins_bonus_check (no entries)', ->
+      clock.tick 30 * 24 * 60 * 60 * 1000
       user.__coins_bonus_check 'daily', spy
       config.db.select_one.getCall(0).args[1](null)
-      assert.equal(0, spy.getCall(0).args[0])
+      assert.equal 0, spy.getCall(0).args[0].left
 
-    it '_coins_bonus', ->
-      user.__coins_bonus_check = sinon.spy()
-      user.publish = sinon.spy()
-      user.set_coins = sinon.spy()
-      socket.on = sinon.spy()
-      user._coins_bonus('daily')
-      assert.equal 1, user.__coins_bonus_check.callCount
-      assert.equal 'daily', user.__coins_bonus_check.getCall(0).args[0]
-      user.__coins_bonus_check.getCall(0).args[1](0)
-      assert.equal 1, user.publish.callCount
-      assert.equal 'coins:bonus:daily', user.publish.getCall(0).args[0]
-      assert.deepEqual {left: 0, coins: 150}, user.publish.getCall(0).args[1]
-      assert.equal(1, socket.on.callCount)
-      assert.equal('coins:bonus:daily', socket.on.getCall(0).args[0])
-      socket.on.getCall(0).args[1]()
-      assert.equal 2, user.__coins_bonus_check.callCount
-      assert.equal 'daily', user.__coins_bonus_check.getCall(1).args[0]
-      user.__coins_bonus_check.getCall(1).args[1](0)
-      assert.equal(1, user.set_coins.callCount)
-      assert.deepEqual({type: 1, coins: 150}, user.set_coins.getCall(0).args[0])
-      assert.equal 'coins:bonus:daily', user.publish.getCall(1).args[0]
-      assert.deepEqual {left: 60*60*8, coins: 150}, user.publish.getCall(1).args[1]
+    it '__coins_bonus_check (coins fn)', ->
+      user._coins_bonus_params['daily'].coins = coins = sinon.fake -> {coins: 6, 'p': 'a'}
+      user.__coins_bonus_check 'daily', spy
+      d = new Date()
+      d.setSeconds(d.getMinutes() - 60 * 60 * 10)
+      config.db.select_one.getCall(0).args[1]({action: d, coins: 5})
+      assert.deepEqual {coins: 6, 'p': 'a', left: 0}, spy.getCall(0).args[0]
+      assert.equal 1, coins.callCount
+      assert.deepEqual {left: -60 * 60 * 2, coins: 5, action: d}, coins.getCall(0).args[0]
 
-    it '_coins_bonus (share)', ->
-      user.__coins_bonus_check = sinon.spy()
-      user.publish = sinon.spy()
-      user.set_coins = sinon.spy()
-      socket.on = sinon.spy()
-      user._coins_bonus('share')
-      assert.equal 'share', user.__coins_bonus_check.getCall(0).args[0]
-      user.__coins_bonus_check.getCall(0).args[1](0)
-      assert.equal 'coins:bonus:share', user.publish.getCall(0).args[0]
-      assert.equal 50, user.publish.getCall(0).args[1].coins
-      assert.equal('coins:bonus:share', socket.on.getCall(0).args[0])
-      socket.on.getCall(0).args[1]()
-      assert.equal 'share', user.__coins_bonus_check.getCall(1).args[0]
-      user.__coins_bonus_check.getCall(1).args[1](0)
-      assert.deepEqual({type: 3, coins: 50}, user.set_coins.getCall(0).args[0])
-      assert.equal 'coins:bonus:share', user.publish.getCall(1).args[0]
-      assert.deepEqual {left: 60*60*10, coins: 50}, user.publish.getCall(1).args[1]
+    it '__coins_bonus_check (coins fn no entries)', ->
+      user._coins_bonus_params['daily'].coins = coins = sinon.fake -> {coins: 6, 'p': 'a'}
+      user.__coins_bonus_check 'daily', spy
+      config.db.select_one.getCall(0).args[1](null)
+      assert.deepEqual {left: 60 * 60 * 8}, coins.getCall(0).args[0]
 
-    it '_coins_daily (left error)', ->
-      user.__coins_bonus_check = sinon.spy()
-      user.publish = sinon.spy()
-      user.set_coins = sinon.spy()
-      socket.on = sinon.spy()
-      user._coins_bonus('daily')
-      user.__coins_bonus_check.getCall(0).args[1](0)
-      socket.on.getCall(0).args[1]()
-      user.__coins_bonus_check.getCall(1).args[1](10)
-      assert.equal(0, user.set_coins.callCount)
-      assert.deepEqual {left: 10, coins: 150}, user.publish.getCall(1).args[1]
+
+    describe '_coins_bonus', ->
+      beforeEach ->
+        user.__coins_bonus_check = sinon.spy()
+        user.publish = sinon.spy()
+        user.set_coins = sinon.spy()
+        socket.on = sinon.spy()
+        user._coins_bonus('daily')
+
+      it 'bind', ->
+        assert.equal(1, socket.on.callCount)
+        assert.equal('coins:bonus:daily', socket.on.getCall(0).args[0])
+        user.__coins_bonus_check = sinon.spy()
+        socket.on.getCall(0).args[1]()
+        assert.equal 1, user.__coins_bonus_check.callCount
+        assert.equal 'daily', user.__coins_bonus_check.getCall(0).args[0]
+        user.__coins_bonus_check.getCall(0).args[1]({left: 0, coins: 3})
+        assert.equal 1, user.set_coins.callCount
+        assert.deepEqual {type: 1, coins: 3}, user.set_coins.getCall(0).args[0]
+        assert.equal 2, user.__coins_bonus_check.callCount
+        user.publish = sinon.spy()
+        user.__coins_bonus_check.getCall(1).args[1]({left: 10})
+        assert.deepEqual {reset: true, left: 10}, user.publish.getCall(0).args[1]
+
+      it 'bind (left not zero)', ->
+        user.__coins_bonus_check = sinon.spy()
+        socket.on.getCall(0).args[1]()
+        user.__coins_bonus_check.getCall(0).args[1]({left: 1, coins: 3})
+        assert.equal 0, user.set_coins.callCount
+        user.publish = sinon.spy()
+        user.__coins_bonus_check.getCall(1).args[1]({left: 10})
+        assert.deepEqual {left: 10}, user.publish.getCall(0).args[1]
+
+      it 'publish', ->
+        assert.equal 1, user.__coins_bonus_check.callCount
+        assert.equal 'daily', user.__coins_bonus_check.getCall(0).args[0]
+        user.__coins_bonus_check.getCall(0).args[1]({p: 'ar'})
+        assert.equal 1, user.publish.callCount
+        assert.equal 'coins:bonus:daily', user.publish.getCall(0).args[0]
+        assert.deepEqual {p: 'ar'}, user.publish.getCall(0).args[1]

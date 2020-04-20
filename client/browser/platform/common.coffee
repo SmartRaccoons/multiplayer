@@ -1,5 +1,9 @@
 window.o.PlatformCommon = class Common
 
+  constructor: (@options)->
+    @router = new window.o.Router(@options.router)
+    @router.$el.appendTo('body')
+
   language_check: (callback)->
     if !window._locales_default
       return callback()
@@ -15,10 +19,13 @@ window.o.PlatformCommon = class Common
       router: @router
       address: App.config.server
       version: App.version
-      version_callback: => @router.message(_l('Authorize.version error'))
+      version_callback: =>
+        @router.message
+          body: _l('Authorize.version error')
+          actions: [ {'reload': _l('Authorize.button.reload')} ]
     }, params)
 
-  buy: (service)-> @router.send "coins:buy:#{@_name}", service
+  buy: (params)-> @router.send "buy:#{@_name}", Object.assign {language: App.lang}, params
 
   auth_send: (p)->
     @router.message(_l('Authorize.Authorizing'))

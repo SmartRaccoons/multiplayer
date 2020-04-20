@@ -6,10 +6,10 @@ SimpleEvent = require('simple.event').SimpleEvent
 
 
 class User extends SimpleEvent
-  constructor: (attributes)->
+  constructor: (options)->
     super()
-    @attributes = attributes
-  id: -> @attributes.id
+    @options = options
+  id: -> @options.id
   data_public: -> {p: 'public'}
 
 
@@ -48,7 +48,6 @@ describe 'Users', ->
 
     it 'constructor', ->
       users = new Users()
-      assert.equal('users', users._module)
       assert.deepEqual(User, users.model())
 
     it '_create', ->

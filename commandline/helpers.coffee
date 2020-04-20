@@ -68,8 +68,8 @@ exports.directory_clear = directory_clear = (path, except = [], dir_main = true)
     fs.rmdirSync path
 
 
-exports.platform_compile_js = ({platform, babel, uglifyjs, template})->
-  fs.writeFileSync "public/d/j-#{platform}.js", template.js_get(platform).map( (f)->
+exports.platform_compile_js = ({platform, babel, uglifyjs, template, include_js})->
+  fs.writeFileSync "public/d/j-#{platform}.js", (include_js or []).concat( template.js_get(platform) ).map( (f)->
     if f.substr(-3) is '.js'
       return fs.readFileSync(f, 'utf8')
     return f
@@ -84,7 +84,7 @@ exports.platform_compile_js = ({platform, babel, uglifyjs, template})->
 
 
 exports.platform_compile_css = ({uglifycss})->
-  exec_promise "#{uglifycss} client/browser/css/screen.css > public/d/c.css"
+  exec_promise "#{if !uglifycss then 'cat' else uglifycss} client/browser/css/screen.css > public/d/c.css"
 
 
 exports.platform_compile_html = ({template, params})->

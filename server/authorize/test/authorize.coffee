@@ -16,6 +16,8 @@ Inbox_Authorize =
 
 config = {}
 config_callbacks = []
+uuid_v4 = ->
+pbkdf2Sync = ->
 Authorize = proxyquire '../authorize',
   '../api/draugiem':
     ApiDraugiem: class ApiDraugiem
@@ -34,11 +36,16 @@ Authorize = proxyquire '../authorize',
   '../../config':
     config_get: (param)-> config[param]
     config_callback: (c)-> config_callbacks.push c
+  'uuid/v4': -> uuid_v4()
+  'crypto':
+    pbkdf2Sync: -> pbkdf2Sync.apply(@, arguments)
 
 LoginDraugiem = Authorize.draugiem
 LoginFacebook = Authorize.facebook
 LoginGoogle = Authorize.google
 LoginInbox = Authorize.inbox
+LoginCordova = Authorize.cordova
+LoginEmail = Authorize.email
 Login = Authorize.Login
 
 
@@ -53,6 +60,8 @@ describe 'Athorize', ->
       draugiem:
         buy_transaction:
           1: 444
+        buy_price:
+          1: 1400
       inbox:
         buy_price:
           1: 70
@@ -63,8 +72,16 @@ describe 'Athorize', ->
         key: 'fkey'
         buy_price:
           2: 70
+      email:
+        salt: 'salt1'
+        sha: 'sh'
+      buy:
+        product:
+          '1': 50
+        subscription:
+          '11': 'sub'
       db: db
-    Login::_attr.language.validate = ->
+    Login::_opt.language.validate = ->
     config_callbacks[0]()
     db.select_one = sinon.spy()
     db.update = sinon.spy()
@@ -87,7 +104,7 @@ describe 'Athorize', ->
 
 
     it '_parse', ->
-      login._attr =
+      login._opt =
         'some':
           parse: 'p'
       assert.deepEqual [ ['some', 'p'] ], login._parse()
@@ -133,20 +150,24 @@ describe 'Athorize', ->
       assert.equal('auth_user', db.insert.getCall(0).args[0].table)
       assert.equal(5, db.insert.getCall(0).args[0].data.draugiem_uid)
       assert.equal('', db.insert.getCall(0).args[0].data.img)
+      assert.equal('', db.insert.getCall(0).args[0].data.img)
+      assert.deepEqual(new Date(), db.insert.getCall(0).args[0].data.date_joined)
+      assert.deepEqual(new Date(), db.insert.getCall(0).args[0].data.last_login)
       assert.equal('p', db.insert.getCall(0).args[0].parse)
       db.insert.getCall(0).args[1](2)
       assert.equal(1, spy.callCount)
       assert.equal(2, spy.getCall(0).args[0].id)
+      assert.deepEqual(new Date(), spy.getCall(0).args[0].date_joined)
       assert.equal(5, spy.getCall(0).args[0].draugiem_uid)
       assert.equal(true, spy.getCall(0).args[0].new)
 
-    it '_user_create (addtitional _attr)', ->
-      Login::_attr.rating = {default: 1600, db: true}
+    it '_user_create (addtitional _opt)', ->
+      Login::_opt.rating = {default: 1600, db: true}
       login._user_create({draugiem_uid: 5}, spy)
       assert.equal(1600, db.insert.getCall(0).args[0].data.rating)
 
     it '_user_create (default language)', ->
-      Login::_attr.language.validate = stub = sinon.stub()
+      Login::_opt.language.validate = stub = sinon.stub()
       stub.returns('lv')
       login._user_create({draugiem_uid: 5, language: 'lv_GB'}, spy)
       assert.equal(1, stub.callCount)
@@ -194,11 +215,9 @@ describe 'Athorize', ->
       login._user_get = sinon.spy()
       login._user_session_check('cd', spy)
       assert.equal(1, db.select_one.callCount)
-      date = new Date()
-      date.setDate(date.getDate() - 30)
       assert.deepEqual({
         table: 's_table'
-        where: {code: 'cd', last_updated: {sign: ['>', date]}}
+        where: {code: 'cd', last_updated: {date: -30} }
       }, db.select_one.getCall(0).args[0])
       db.select_one.getCall(0).args[1](null)
       assert.equal(1, spy.callCount)
@@ -252,20 +271,40 @@ describe 'Athorize', ->
       login._transaction_get({id: 'pr'}, spy, spy2)
       assert.equal(1, db.select_one.callCount)
       assert.equal('s_trans', db.select_one.getCall(0).args[0].table)
-      assert.deepEqual({id: 'pr', fulfill: '0'}, db.select_one.getCall(0).args[0].where)
-      db.select_one.getCall(0).args[1]({id: 'z', user_id: 2, service: '3'})
+      assert.deepEqual({id: 'pr'}, db.select_one.getCall(0).args[0].where)
+      db.select_one.getCall(0).args[1]({id: 'z', fulfill: 0, user_id: 2, service: '1'})
       assert.equal(1, spy.callCount)
       assert.equal(2, spy.getCall(0).args[0].user_id)
-      assert.equal('3', spy.getCall(0).args[0].service)
-      assert.equal('z', spy.getCall(0).args[0].transaction_id)
+      assert.equal('z', spy.getCall(0).args[0].transaction.id)
       spy.getCall(0).args[0].complete()
       assert.equal(1, db.update.callCount)
       assert.equal('s_trans', db.update.getCall(0).args[0].table)
       assert.deepEqual({id: 'z'}, db.update.getCall(0).args[0].where)
-      assert.deepEqual({fulfill: '1', fulfilled: new Date()}, db.update.getCall(0).args[0].data)
+      assert.deepEqual({fulfill: 1, fulfilled: new Date()}, db.update.getCall(0).args[0].data)
       db.update.getCall(0).args[1]()
       assert.equal(1, spy2.callCount)
       assert.equal(null, spy2.getCall(0).args[0])
+
+    it '_transaction_get (fulfilled subscription)', ->
+      login._transaction_get({id: 'pr'}, spy, spy2)
+      db.select_one.getCall(0).args[1]({id: 'z', fulfill: 1, user_id: 2, service: '11'})
+      spy.getCall(0).args[0].complete()
+      assert.equal(2, db.update.getCall(0).args[0].data.fulfill)
+
+    it '_transaction_get (fulfilled coins)', ->
+      login._transaction_get({id: 'pr'}, spy, spy2)
+      db.select_one.getCall(0).args[1]({id: 'z', fulfill: 1, user_id: 2, service: '1'})
+      assert.equal(0, spy.callCount)
+      assert.equal(1, spy2.callCount)
+      assert.notEqual(null, spy2.getCall(0).args[0])
+
+    it '_transaction_get (fulfilled subscriptions empty)', ->
+      config.buy.subscription = null
+      login._transaction_get({id: 'pr'}, spy, spy2)
+      db.select_one.getCall(0).args[1]({id: 'z', fulfill: 1, user_id: 2, service: '11'})
+      assert.equal(0, spy.callCount)
+      assert.equal(1, spy2.callCount)
+      assert.notEqual(null, spy2.getCall(0).args[0])
 
     it '_transaction_get (not found)', ->
       login._table_transaction = 's_trans'
@@ -377,7 +416,7 @@ describe 'Athorize', ->
       login.buy({service: 1, user_id: 333}, spy)
       assert.equal(1, spy_tr.callCount)
       assert.equal(444, spy_tr.getCall(0).args[0])
-      assert.equal(null, spy_tr.getCall(0).args[1])
+      assert.equal(984, spy_tr.getCall(0).args[1])
       spy_tr.getCall(0).args[2]({id: '5', link: 'li'})
       assert.equal(1, login._transaction_create.callCount)
       assert.deepEqual({service: 1, transaction_id: '5', user_id: 333}, login._transaction_create.getCall(0).args[0])
@@ -401,6 +440,7 @@ describe 'Athorize', ->
     login = null
     payment_success = null
     payment_failed = null
+    payment_subscription_success = null
     beforeEach ->
       payment_success = {
         "request_id": "3",
@@ -454,10 +494,22 @@ describe 'Athorize', ->
         ],
         "id": "1197009377095918"
       }
+      payment_subscription_success = {
+        "status": "active",
+        "next_period_product": "https://zole.raccoons.lv/d/og/service-11-lv.html",
+        "next_bill_time": "2020-04-26T15:23:17+0000",
+        "user": {
+          "name": "Sarah Aldicehaiebda Wisemanescu",
+          "id": "102338228088117"
+        },
+        "id": "301663523297285"
+      }
       login = new LoginFacebook()
       login._transaction_create = sinon.spy()
       login._transaction_get = sinon.spy()
       Google_Authorize.authorize = sinon.spy()
+      login._user_get = sinon.spy()
+      login._user_update = sinon.spy()
 
     it 'default', ->
       assert.equal('auth_user_session_facebook', login._table_session)
@@ -499,8 +551,7 @@ describe 'Athorize', ->
       assert.equal(0, login._transaction_create.callCount)
 
     it 'buy_complete', ->
-      TestFacebook.get = sinon.spy()
-      login.buy_complete '33', 'a', 'b'
+      login.buy_complete {id: '33'}, 'a', 'b'
       assert.equal(1, TestFacebook.get.callCount)
       assert.equal('/33?fields=request_id,user,actions,items&access_token=fid|fkey', TestFacebook.get.getCall(0).args[0])
       TestFacebook.get.getCall(0).args[1](null, payment_success)
@@ -510,20 +561,95 @@ describe 'Athorize', ->
       assert.equal('b', login._transaction_get.getCall(0).args[2])
 
     it 'buy_complete (err)', ->
-      TestFacebook.get = sinon.spy()
-      login.buy_complete '33', 'a', spy
+      login.buy_complete {id: '33'}, 'a', spy
       TestFacebook.get.getCall(0).args[1]('err')
       assert.equal(0, login._transaction_get.callCount)
       assert.equal(1, spy.callCount)
       assert.equal('err', spy.getCall(0).args[0])
 
     it 'buy_complete (failure)', ->
-      TestFacebook.get = sinon.spy()
-      login.buy_complete '33', 'a', spy
+      login.buy_complete {id: '33'}, 'a', spy
       TestFacebook.get.getCall(0).args[1](null, payment_failed)
       assert.equal(0, login._transaction_get.callCount)
       assert.equal(1, spy.callCount)
-      assert.equal('incompleted: 33', spy.getCall(0).args[0])
+      assert.equal('incompleted', spy.getCall(0).args[0])
+
+    it 'buy_complete (subscription)', ->
+      clock.tick new Date('2020-04-20').getTime()
+      login.buy_complete {id: '22', subscription: true}, spy, spy2
+      assert.equal(1, TestFacebook.get.callCount)
+      assert.equal('/22?fields=status,next_period_product,next_bill_time,user&access_token=fid|fkey', TestFacebook.get.getCall(0).args[0])
+      TestFacebook.get.getCall(0).args[1](null, payment_subscription_success)
+      assert.equal(0, login._transaction_get.callCount)
+      assert.equal 1, login._user_get.callCount
+      assert.deepEqual({facebook_uid: '102338228088117'}, login._user_get.getCall(0).args[0])
+      login._user_get.getCall(0).args[1]({facebook_subscriptions: {5: '1234'}, id: 3})
+      assert.equal 1, login._user_update.callCount
+      assert.deepEqual {id: 3, facebook_subscriptions: {5: '1234', 11: '22'}}, login._user_update.getCall(0).args[0]
+      assert.equal 1, spy.callCount
+      assert.deepEqual {service: '11', expire: 7}, spy.getCall(0).args[0].transaction
+      assert.equal 3, spy.getCall(0).args[0].user_id
+      spy.getCall(0).args[0].complete()
+      assert.equal 1, spy2.callCount
+
+    it 'buy_complete (subscription - outdated)', ->
+      clock.tick new Date('2020-05-20').getTime()
+      login.buy_complete {id: '22', subscription: true}, spy, spy2
+      TestFacebook.get.getCall(0).args[1](null, payment_subscription_success)
+      login._user_get.getCall(0).args[1]({facebook_subscriptions: {5: '1234'}, id: 3})
+      assert.equal 0, spy.callCount
+      assert.equal 1, spy2.callCount
+
+    it 'buy_complete (subscription - not exist)', ->
+      login.buy_complete {id: '22', subscription: true}, spy, spy2
+      TestFacebook.get.getCall(0).args[1](null, payment_subscription_success)
+      login._user_get.getCall(0).args[1]({facebook_subscriptions: null, id: 3})
+      assert.equal 1, login._user_update.callCount
+      assert.deepEqual {11: '22'}, login._user_update.getCall(0).args[0].facebook_subscriptions
+
+    it 'buy_complete (subscription - already exist)', ->
+      login.buy_complete {id: '22', subscription: true}, spy, spy2
+      TestFacebook.get.getCall(0).args[1](null, payment_subscription_success)
+      login._user_get.getCall(0).args[1]({facebook_subscriptions: {11: '22'}, id: 3})
+      assert.equal 0, login._user_update.callCount
+
+    it 'buy_complete (subscription - no service)', ->
+      login.buy_complete {id: '22', subscription: true}, spy, spy2
+      payment_subscription_success.next_period_product = 'super-ptoru'
+      TestFacebook.get.getCall(0).args[1](null, payment_subscription_success)
+      login._user_get.getCall(0).args[1]({facebook_subscriptions: {11: '22'}, id: 3})
+      assert.equal 0, login._user_update.callCount
+      assert.equal 0, spy.callCount
+      assert.equal 1, spy2.callCount
+      assert.equal 'service error: super-ptoru', spy2.getCall(0).args[0]
+
+    it 'buy_complete (subscription - service not found)', ->
+      login.buy_complete {id: '22', subscription: true}, spy, spy2
+      payment_subscription_success.next_period_product = '/service-45-lv.html'
+      TestFacebook.get.getCall(0).args[1](null, payment_subscription_success)
+      login._user_get.getCall(0).args[1]({facebook_subscriptions: {11: '22'}, id: 3})
+      assert.equal 1, login._user_update.callCount
+      assert.equal 0, spy.callCount
+      assert.equal 1, spy2.callCount
+      assert.equal 'service not found: 45', spy2.getCall(0).args[0]
+
+    it 'buy_complete (subscription - no user)', ->
+      login.buy_complete {id: '22', subscription: true}, spy, spy2
+      TestFacebook.get.getCall(0).args[1](null, payment_subscription_success)
+      login._user_get.getCall(0).args[1](null)
+      assert.equal 0, login._user_update.callCount
+      assert.equal 0, spy.callCount
+      assert.equal 1, spy2.callCount
+      assert.equal 'user not found: 102338228088117', spy2.getCall(0).args[0]
+
+    it 'buy_complete (subscription - status not active)', ->
+      login.buy_complete {id: '22', subscription: true}, spy, spy2
+      payment_subscription_success.status = 'failed'
+      TestFacebook.get.getCall(0).args[1](null, payment_subscription_success)
+      assert.equal 0, login._user_get.callCount
+      assert.equal 0, spy.callCount
+      assert.equal 1, spy2.callCount
+      assert.equal 'status not active', spy2.getCall(0).args[0]
 
 
   describe 'LoginGoogle', ->
@@ -600,9 +726,9 @@ describe 'Athorize', ->
       assert.equal(1, Inbox_Authorize.transaction_create.callCount)
       assert.equal(70, Inbox_Authorize.transaction_create.getCall(0).args[0])
       assert.equal('ru', Inbox_Authorize.transaction_create.getCall(0).args[1])
-      Inbox_Authorize.transaction_create.getCall(0).args[2]({id: '5', link: 'li'})
+      Inbox_Authorize.transaction_create.getCall(0).args[2]({id: '5', link: 'li', language: 'ru'})
       assert.equal(1, login._transaction_create.callCount)
-      assert.deepEqual({user_id: 333, service: 1, transaction_id: '5'}, login._transaction_create.getCall(0).args[0])
+      assert.deepEqual({user_id: 333, service: 1, language: 'ru', transaction_id: '5'}, login._transaction_create.getCall(0).args[0])
       assert.equal(0, spy.callCount)
       login._transaction_create.getCall(0).args[1](65)
       assert.equal(1, spy.callCount)
@@ -618,3 +744,111 @@ describe 'Athorize', ->
       assert.deepEqual({transaction_id: '22'}, login._transaction_get.getCall(0).args[0])
       assert.equal('a', login._transaction_get.getCall(0).args[1])
       assert.equal('b', login._transaction_get.getCall(0).args[2])
+
+
+  describe 'LoginCordova', ->
+    login = null
+    beforeEach ->
+      login = new LoginCordova()
+      login._transaction_get = sinon.spy()
+      login._transaction_create = sinon.spy()
+
+    it 'default', ->
+      assert.equal('transaction_cordova', login._table_transaction)
+
+    it 'buy_complete', ->
+      login.buy_complete 'prms', 'cbck', spy
+      assert.equal 1, login._transaction_get.callCount
+      assert.equal 'prms', login._transaction_get.getCall(0).args[0]
+      assert.equal 'cbck', login._transaction_get.getCall(0).args[1]
+      login._transaction_get.getCall(0).args[2]('mess')
+      assert.equal 1, spy.callCount
+      assert.equal 'mess', spy.getCall(0).args[0]
+
+    it 'buy_complete (transaction not found)', ->
+      login.buy_complete 'prms', 'cbck', spy
+      login._transaction_get.getCall(0).args[2]('transaction not found')
+      assert.equal 0, spy.callCount
+      assert.equal 1, login._transaction_create.callCount
+      assert.equal 'prms', login._transaction_create.getCall(0).args[0]
+      login._transaction_create.getCall(0).args[1]({id: '5'})
+      assert.equal 2, login._transaction_get.callCount
+      assert.deepEqual {id: '5'}, login._transaction_get.getCall(1).args[0]
+      assert.equal 'cbck', login._transaction_get.getCall(1).args[1]
+      assert.deepEqual spy, login._transaction_get.getCall(1).args[2]
+
+
+  describe 'LoginEmail', ->
+    login = null
+    beforeEach ->
+      login = new LoginEmail()
+      login._user_get = sinon.spy()
+      login._user_session_check = sinon.spy()
+      login._user_session_save = sinon.spy()
+      login._user_update = sinon.spy()
+      uuid_v4 = sinon.fake.returns 'uuid'
+      pbkdf2Sync = sinon.fake.returns Buffer.from('2')
+
+    it 'default', ->
+      assert.equal 'email', login._name
+      assert.equal 'auth_user_session_email', login._table_session
+
+    it '_update_password', ->
+      login._password = sinon.fake.returns 'pass'
+      login._update_password {id: 5, password: 'pa'}
+      assert.equal 1, login._password.callCount
+      assert.equal 'pa', login._password.getCall(0).args[0]
+      assert.equal 1, login._user_update.callCount
+      assert.deepEqual {id: 5, password: 'pass'}, login._user_update.getCall(0).args[0]
+
+    it '_check_email', ->
+      login._check_email({email: 'b'}, spy)
+      assert.equal 1, login._user_get.callCount
+      assert.deepEqual {email: 'b'}, login._user_get.getCall(0).args[0]
+      assert.deepEqual spy, login._user_get.getCall(0).args[1]
+
+    it '_password', ->
+      assert.equal '32', login._password('ps')
+      assert.equal 1, pbkdf2Sync.callCount
+      assert.equal 'ps', pbkdf2Sync.getCall(0).args[0]
+      assert.equal 'salt1', pbkdf2Sync.getCall(0).args[1]
+      assert.equal 4096, pbkdf2Sync.getCall(0).args[2]
+      assert.equal 16, pbkdf2Sync.getCall(0).args[3]
+      assert.equal 'sh', pbkdf2Sync.getCall(0).args[4]
+
+    it 'authorize', ->
+      login.authorize {code: '5-12'}, spy
+      assert.equal 1, login._user_session_check.callCount
+      assert.equal '5-12', login._user_session_check.getCall(0).args[0]
+      login._user_session_check.getCall(0).args[1]( {id: 2, password: 'pass'} )
+      assert.equal 1, spy.callCount
+      assert.deepEqual {id: 2, password: 'pass'}, spy.getCall(0).args[0]
+
+    it 'email/pass', ->
+      login._password = sinon.fake.returns 'p1'
+      login.authorize {code: ['e@ma.il', 'pass']}, spy
+      assert.equal 0, login._user_session_check.callCount
+      assert.equal 1, login._user_get.callCount
+      assert.deepEqual {email: 'e@ma.il'}, login._user_get.getCall(0).args[0]
+      login._user_get.getCall(0).args[1]({password: 'p1', id: 5})
+      assert.equal 1, login._password.callCount
+      assert.equal 'pass', login._password.getCall(0).args[0]
+      assert.equal 1, login._user_session_save.callCount
+      assert.deepEqual {user_id: 5, code: '5-uuid'}, login._user_session_save.getCall(0).args[0]
+      assert.equal 1, uuid_v4.callCount
+      assert.equal 1, spy.callCount
+      assert.deepEqual {id: 5, password: 'p1'}, spy.getCall(0).args[0]
+      assert.equal '5-uuid', spy.getCall(0).args[1]
+
+    it 'email not found', ->
+      login._password = sinon.fake.returns 'p1'
+      login.authorize {code: ['e@ma.il', 'pass']}, spy
+      login._user_get.getCall(0).args[1](null)
+      assert.equal 0, login._password.callCount
+      assert.equal null, spy.getCall(0).args[0]
+
+    it 'pass wrong', ->
+      login._password = sinon.fake.returns 'p2'
+      login.authorize {code: ['e@ma.il', 'pass']}, spy
+      login._user_get.getCall(0).args[1]({password: 'p1', id: 5})
+      assert.equal null, spy.getCall(0).args[0]

@@ -78,13 +78,12 @@ _template_include_js = (params)->
         return "<script src='/#{js}'></script>"
       return "<script>#{js}</script>"
     .join "\n"
+  files = []
   if params.platform is 'cordova'
-    return """
-      <script src='cordova.js'></script>
-      <script src='d/j-#{params.platform}.js?#{params.version}'></script>
-    """
+    files.push 'cordova.js'
+  files.push "#{params.path_www}d/j-#{params.platform}.js?#{params.version}-#{new Date().getTime()}"
   return """
-    #{if 'standalone' isnt params.platform then """
+    #{if params.platform in ['facebook', 'draugiem', 'inbox'] then """
 
       <script>
           if (!(function () {
@@ -99,16 +98,13 @@ _template_include_js = (params)->
       </script>
 
     """ else ''}
-
-    <script src='/d/j-#{params.platform}.js?#{params.version}'></script>
+    #{files.map( (src)-> "<script src='#{src}'></script>" ).join "\n" }
   """
 
 _template_include_css = (params)->
   if params.development
     return "<link rel='stylesheet' href='/client/browser/css/screen.css' />"
-  if params.platform is 'cordova'
-    return "<link rel='stylesheet' href='d/c.css?#{params.version}' />"
-  return "<link rel='stylesheet' href='/d/c.css?#{params.version}' />"
+  return "<link rel='stylesheet' href='#{params.path_www}d/c.css?#{params.version}-#{new Date().getTime()}' />"
 
 
 module.exports.generate = (tmp_params)->
@@ -122,16 +118,18 @@ module.exports.generate = (tmp_params)->
         dir: "#{__dirname}/../templates/"
       }, tmp_params)
   _template(template_read(tmp_params))(params)
+
 module.exports.facebook_payment = (template = 'facebook-payment')->
-  _facebook_og = _template(template_read({template}))
-  ({id, lang, file, price, coins, locale, server})->
+  _facebook_og = _template template_read( { template } )
+  ({id, lang, file, price, value, locale, server, type, facebook_id})->
+    _str =  "#{type}#{if type isnt 'coins' then " #{id}"  else ''}"
     _facebook_og {
       server
       file
-      coins
-      head: locale._("Buy.head", lang, {coins})
-      desc: locale._("Buy.desc", lang, {coins})
-      price: [Math.floor(price / 100), price % 100].join('.')
+      head: locale._("Facebook.buy head #{_str}", lang, {value})
+      desc: locale._("Facebook.buy desc #{_str}", lang, {value})
+      price: [ Math.floor(price / 100), price % 100 ].join('.')
+      facebook_id
     }
 
 module.exports.generate_local = (template)->
