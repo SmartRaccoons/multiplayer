@@ -23,7 +23,7 @@ function popup_close() {
       return;
     }
     div.id ='popup';
-    div.innerHTML = '<div data-os="' + os + '"><a href="' + links[os] + '">' + os + ' <%= _l("Popupdownload download") %></a> <button onclick="popup_close()"><%= _l("Popupdownload cancel") %></button></div>';
+    div.innerHTML = '<div data-os="' + os + '"><a href="' + links[os] + '">' + os + ' <%= _l("Popupdownload.Download") %></a> <button onclick="popup_close()"><%= _l("Popupdownload.Cancel") %></button></div>';
     document.body.appendChild(div);
   }
   var os = os_get();
