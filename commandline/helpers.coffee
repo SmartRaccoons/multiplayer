@@ -26,7 +26,7 @@ exports.compile_file = ({coffee, file, file_str, file_out, haml, callback})->
       else
         file_str = fs.readFileSync(file).toString()
         file_str_matched = false
-        [...file_str.matchAll(/template_haml: """(.*)"""/s)].forEach (m)->
+        [...file_str.matchAll(/template_haml: """(.*)"""/sg)].forEach (m)->
           file_str_matched = true
           lines = m[1].split("\n").filter (l)-> l.trim().length > 0
           spaces = lines[0].match /(\s*)/
