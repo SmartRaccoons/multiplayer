@@ -19,6 +19,10 @@
             }
           ]
         }).bind('open', () => {
+          if (window.cordova && window.cordova.InAppBrowser) {
+            window.cordova.InAppBrowser.open(App.config[this.options.platform].market, '_system');
+            return;
+          }
           return window.open(App.config[this.options.platform].market, '_system');
         });
       }
@@ -37,16 +41,21 @@
 
       PopupCodeCordova.prototype.events = Object.assign({}, PopupCode.prototype.events, {
         'click [data-authorize]': function(e) {
+          var url;
+          url = $(e.target).attr('href');
           if (window.SafariViewController) {
-            return window.SafariViewController.isAvailable((available) => {
-              var url;
+            window.SafariViewController.isAvailable((available) => {
               if (!available) {
                 return;
               }
               e.preventDefault();
-              url = $(e.target).attr('href');
               return window.SafariViewController.show({url});
             });
+            return false;
+          } else if (window.cordova && window.cordova.InAppBrowser) {
+            e.preventDefault();
+            window.cordova.InAppBrowser.open(url, '_system');
+            return false;
           }
         }
       });

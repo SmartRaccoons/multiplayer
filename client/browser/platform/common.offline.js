@@ -138,14 +138,13 @@
       }
 
       success_login(user) {
-        var fn;
+        var fn, results;
         this._success_login_user = user;
+        results = [];
         while (fn = this._queue_success_login.shift()) {
-          fn.bind(this)();
+          results.push(fn.bind(this)());
         }
-        if (window.SafariViewController) {
-          return window.SafariViewController.hide();
-        }
+        return results;
       }
 
       auth_popup_device({random, platform}) {

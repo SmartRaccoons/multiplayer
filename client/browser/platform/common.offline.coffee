@@ -94,8 +94,6 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
     @_success_login_user = user
     while fn = @_queue_success_login.shift()
       fn.bind(@)()
-    if window.SafariViewController
-      window.SafariViewController.hide()
 
   auth_popup_device: ({random, platform})->
     link = [App.config.server, App.config.login[platform], '/', random].join('')
