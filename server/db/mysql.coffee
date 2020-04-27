@@ -103,9 +103,10 @@ module.exports.Mysql = class Mysql
             if method of value
               return method
       return 'default'
-    where = Object.keys(data.where).map (field)->
-      fn[fn_get(data.where[field])](field, data.where[field])
-    .filter (wh)-> !!wh
+    if data.where
+      where = Object.keys(data.where).map (field)->
+        fn[fn_get(data.where[field])](field, data.where[field])
+      .filter (wh)-> !!wh
     @select_raw """
       SELECT
         #{if data.select_count then " COUNT(*) " else if data.select then data.select.map( (v)->
@@ -129,8 +130,10 @@ module.exports.Mysql = class Mysql
             "s.`#{k}`=j.`#{data.join.on[k]}`"
           ).join(' AND ')}
       """ else ''}
-      WHERE
-        #{where.map( (v)-> v[0] ).join(' AND ')}
+      #{if data.where then """
+        WHERE
+          #{where.map( (v)-> v[0] ).join(' AND ')}
+      """ else ''}
       #{if data.order then """
         ORDER BY
           #{data.order.map (v)->
@@ -142,7 +145,7 @@ module.exports.Mysql = class Mysql
             "s.`#{v}`" }
       """ else ''}
       LIMIT #{data.limit or '100000'}
-    """, where.filter( (v)-> v.length > 1 ).reduce( ( (acc, v)-> acc.concat(v[1]) ), [] ), (rows)=>
+    """, (if data.where then where.filter( (v)-> v.length > 1 ).reduce( ( (acc, v)-> acc.concat(v[1]) ), [] ) else [] ), (rows)=>
       if data.parse
         rows = rows.map (v)=> @_parse(data.parse, v, false)
       callback(rows)
