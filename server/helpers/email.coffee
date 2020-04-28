@@ -48,9 +48,13 @@ module.exports.log = (err, _messages = [], callback=->)->
       """
     }]
   }, (err_email)->
-    if err_email or 'ECONNREFUSED' is err.code
-      console.info 'mail error', err_email
+    fatal = (type, err)=>
+      console.info type, err
       process.exit(1)
+    if err_email
+      return fatal('mail error', err_email)
+    if err.code in ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT']
+      return fatal('predefiend fatal', err)
     if errors_log.length > 2
       if errors_log[2] - errors_log[0] < 3 * 1000
         process.exit(1)
