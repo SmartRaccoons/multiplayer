@@ -364,8 +364,9 @@ describe 'User', ->
       assert.deepEqual({user_reconnect: 5}, _pubsub.emit_all_exec.getCall(0).args[2])
 
     it 'rooms_reconnect (params)', ->
-      user.rooms_reconnect('tours')
+      user.rooms_reconnect('tours', 'fn')
       assert.equal('tours', _pubsub.emit_all_exec.getCall(0).args[0])
+      assert.equal('fn', _pubsub.emit_all_exec.getCall(0).args[3])
 
     it '_lobby_add', ->
       user.publish = sinon.spy()
