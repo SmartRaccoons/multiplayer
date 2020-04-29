@@ -5,7 +5,9 @@
   window.o.PlatformCommon = Common = class Common {
     constructor(options) {
       this.options = options;
-      this.router = new window.o.Router(this.options.router);
+      this.router = new window.o.Router(Object.assign({
+        platform: this.options.platform
+      }, this.options.router));
       this.router.$el.appendTo('body');
     }
 
@@ -46,7 +48,9 @@
 
     auth_send(p) {
       this.router.message(_l('Authorize.Authorizing'));
-      return this.router.send('authenticate:try', p);
+      return this.router.send('authenticate:try', Object.assign({
+        platform: this.options.platform
+      }, p));
     }
 
   };

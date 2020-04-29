@@ -223,13 +223,15 @@ describe 'Anonymous', ->
 
     it 'draugiem authenticate', ->
       anonymous.bind 'login', spy
-      socket.emit 'authenticate:try', {draugiem: 'cd', language: 'lv', other: 'param', params: 'pr'}
+      params = {draugiem: 'cd', language: 'lv', other: 'param', params: 'pr'}
+      socket.emit 'authenticate:try', params
       assert.equal(1, Test_authorize.callCount)
       assert.deepEqual({code: 'cd', language: 'lv', params: 'pr'}, Test_authorize.getCall(0).args[0])
       Test_authorize.getCall(0).args[1]({id: 5})
       assert.equal(1, spy.callCount)
       assert.deepEqual({id: 5}, spy.getCall(0).args[0])
       assert.equal('auth', spy.getCall(0).args[1].api)
+      assert.deepEqual(params, spy.getCall(0).args[2])
       assert.equal('authenticate:params', socket.send.getCall(0).args[0])
       assert.deepEqual({draugiem: 'cd'}, socket.send.getCall(0).args[1])
 

@@ -553,6 +553,7 @@ describe 'User', ->
           user_id: [5, null]
           added: {sign: ['>', date_joined]}
           actual: [null, {sign: ['>', now] }]
+          platform: null
         }, db.select.getCall(0).args[0].where
         db.select.getCall(0).args[1]([
           {id: 5, added: new Date(new Date().getTime() + 1000 * 60 + 550 ), message: '<h1>1234</h1> 1234567890 1234567890' }
@@ -565,6 +566,11 @@ describe 'User', ->
         db.select.getCall(1).args[1]([ {user_message_id: 6} ])
         assert.equal 1, user.set.callCount
         assert.deepEqual {messages: [ {id: 5, intro: '1234 1234567890', added: 61}, {id: 6, added: 40, intro: 'm2', read: true} ] }, user.set.getCall(0).args[0]
+
+      it 'messages with platform', ->
+        user.options.platform = 'draugiem'
+        user._message_check()
+        assert.deepEqual [null, {json: 'draugiem'}], db.select.getCall(0).args[0].where.platform
 
       it 'no messages', ->
         user._message_check()

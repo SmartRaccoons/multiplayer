@@ -82,7 +82,7 @@ module.exports.Anonymous = class Anonymous extends PubsubModule
           if !user
             return error()
           @_socket.send 'authenticate:params', { [platform]: user_params or params[platform]  }
-          @trigger 'login', user, api
+          @trigger 'login', user, api, params
     return error()
 
   remove: ->

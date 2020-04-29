@@ -101,6 +101,13 @@ module.exports.User = class User extends User
         added:
           sign: ['>', @options.date_joined]
         actual: [null, { sign: ['>', new Date()] }]
+        platform: do =>
+          if !@options.platform
+            return null
+          return [
+            null
+            { json: @options.platform }
+          ]
     , (rows)=>
       if rows.length is 0
         return

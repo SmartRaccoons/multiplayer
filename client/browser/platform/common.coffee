@@ -1,7 +1,7 @@
 window.o.PlatformCommon = class Common
 
   constructor: (@options)->
-    @router = new window.o.Router(@options.router)
+    @router = new window.o.Router Object.assign( {platform: @options.platform}, @options.router )
     @router.$el.appendTo('body')
 
   language_check: (callback)->
@@ -29,4 +29,4 @@ window.o.PlatformCommon = class Common
 
   auth_send: (p)->
     @router.message(_l('Authorize.Authorizing'))
-    @router.send 'authenticate:try', p
+    @router.send 'authenticate:try', Object.assign( {platform: @options.platform}, p )
