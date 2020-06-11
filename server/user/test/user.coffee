@@ -825,6 +825,13 @@ describe 'User', ->
         assert.equal 'buy:cordova:finish', user.publish.getCall(0).args[0]
         assert.deepEqual {id_local: 0}, user.publish.getCall(0).args[1]
 
+      it 'cordova ios (complete error)', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
+        cordova_payment_validate.getCall(0).args[1]({platform: 'ios', product_id: '200m', transaction_id: 'trid', expire: 1000 * 60 * 60 * 26})
+        buy_complete.getCall(0).args[2]('err')
+        assert.equal 0, user.publish.callCount
+
       it 'cordova ios expire not exist', ->
         user._bind_socket_coins_buy(['cordova'])
         socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }

@@ -269,7 +269,9 @@ module.exports.User = class User extends User
                 expire: if expire then Math.ceil(expire / (1000 * 60 * 60 * 24) ) else expire
               }
             } )
-          , =>
+          , (error)=>
+            if error
+              return console.info "#{params.platform} #{product_id} finished error #{@id}:", error
             @publish "#{mt}:cordova:finish", { id_local: params.id_local }
 
   _bind_socket_coins_history: ->
