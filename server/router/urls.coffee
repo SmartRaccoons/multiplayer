@@ -33,7 +33,7 @@ module.exports.authorize = (app)->
 
   links =
     facebook: (path = '/g', code = '')->
-      'https://www.facebook.com/v2.12/dialog/oauth?' +
+      'https://www.facebook.com/v7.0/dialog/oauth?' +
         'client_id=' + config_get('facebook').id +
         '&scope=&response_type=token' +
         '&redirect_uri=' + config_get('server') + path +

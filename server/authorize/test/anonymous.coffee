@@ -28,14 +28,17 @@ dbmemory = {}
 locale = {}
 params = {draugiem: 'good', facebook: 'good', server_id: 5, dbmemory, server: 'serv'}
 email = { send: -> }
-modules = {locale, 'server.helpers.email': email}
 _Email_check_email = ->
-Anonymous = proxyquire '../anonymous',
-  './authorize':
+modules = {
+  locale
+  'server.helpers.email': email
+  'server.authorize':
     draugiem: TestAuthorizeDraugiem
     facebook: TestAuthorizeFacebook
     email: class Email
       _check_email: -> _Email_check_email.apply(@, arguments)
+}
+Anonymous = proxyquire '../anonymous',
   '../../config':
     config_get: (p)-> params[p]
     config_callback: (callback)-> callback()

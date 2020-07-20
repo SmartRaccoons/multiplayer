@@ -19,7 +19,6 @@ CREATE TABLE `auth_user` (
   KEY `auth_user__google_uid` (`google_uid`),
   KEY `auth_user__inbox_uid` (`inbox_uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
-ALTER TABLE `auth_user`
 
 
 CREATE TABLE `auth_user_session_draugiem` (
@@ -37,22 +36,22 @@ CREATE TABLE `auth_user_session_draugiem` (
 CREATE TABLE `auth_user_session_facebook` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
-  `code` varchar(1024) DEFAULT NULL,
+  `code` text DEFAULT NULL,
   `last_updated` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `auth_user_session_facebook__user_id` (`user_id`),
-  KEY `auth_user_session_facebook__code` (`code`),
+  KEY `auth_user_session_facebook__code` (`code`(20)),
   CONSTRAINT `auth_user_session_facebook__id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `auth_user_session_google` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
-  `code` varchar(1024) DEFAULT NULL,
+  `code` text DEFAULT NULL,
   `last_updated` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `auth_user_session_google__user_id` (`user_id`),
-  KEY `auth_user_session_google__code` (`code`),
+  KEY `auth_user_session_google__code` (`code`(20)),
   CONSTRAINT `auth_user_session_google__id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 

@@ -1,4 +1,3 @@
-_authorize = require('./authorize')
 module_get = require('../../config').module_get
 config_get = require('../../config').config_get
 config_callback = require('../../config').config_callback
@@ -9,11 +8,13 @@ platforms = []
 dbmemory = null
 locale = null
 email = null
+_authorize = null
 config_callback ->
   platforms = ['draugiem', 'facebook', 'google', 'inbox', 'email'].filter (platform)-> !!config_get(platform)
   dbmemory = config_get('dbmemory')
   locale = module_get('locale')
   email = module_get('server.helpers.email')
+  _authorize = module_get('server.authorize')
 
 
 _ids = 0
