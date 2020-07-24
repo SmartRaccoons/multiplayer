@@ -179,6 +179,9 @@
           for (j = 0, len = ref.length; j < len; j++) {
             v = ref[j];
             op = op[v];
+            if (op === null) {
+              break;
+            }
           }
           return op;
         };
@@ -404,7 +407,7 @@
       }
 
       __selector_parse(s, point = false) {
-        return s.replace(/&-/g, `${point ? '.' : ''}${this.className}-`);
+        return s.replace(/&-/g, `${point ? '.' : ''}${this.className}-`).replace(/--/g, `${point ? '.' : ''}${this.className}-`);
       }
 
       $(selector) {

@@ -91,12 +91,15 @@ describe 'Room', ->
       assert.deepEqual({id: 3}, spy.getCall(1).args[0])
 
     it 'user_add', ->
+      room.user_exist = sinon.fake.returns false
       update = sinon.spy()
       room.on 'update', update
       room.id = 1
       room.emit_user_exec = spy = sinon.spy()
       room.users = []
-      room.user_add({id: 5})
+      assert.equal true, room.user_add({id: 5})
+      assert.equal 1, room.user_exist.callCount
+      assert.equal 5, room.user_exist.getCall(0).args[0]
       assert.deepEqual([{id: 5}], room.users)
       assert.equal(1, spy.callCount)
       assert.equal(5, spy.getCall(0).args[0])
@@ -104,6 +107,12 @@ describe 'Room', ->
       assert.deepEqual({id: 1, module: 'RoomGame', type: 'user'}, spy.getCall(0).args[2])
       assert.equal(1, update.callCount)
       assert.deepEqual({users: [{id: 5}]}, update.getCall(0).args[0])
+
+    it 'user_add (not exist)', ->
+      room.user_exist = sinon.fake.returns true
+      room.users = []
+      assert.equal false, room.user_add({id: 5})
+      assert.deepEqual([], room.users)
 
     it 'user_exist', ->
       room.user_get = sinon.fake.returns(-1)
@@ -295,7 +304,7 @@ describe 'Room', ->
       room._game_player_parse = sinon.fake.returns {p: 'parsed'}
       room.users = [{id: 5}, {id: 6}]
       room._game_start({type: 'sng'})
-      assert.deepEqual { type: 'sng', users: [{p: 'parsed'}, {p: 'parsed'}] }, RoomGame_methods.constructor.getCall(0).args[0]
+      assert.deepEqual { type: 'sng', players: [{p: 'parsed'}, {p: 'parsed'}] }, RoomGame_methods.constructor.getCall(0).args[0]
       assert.equal 2, room._game_player_parse.callCount
       assert.deepEqual {id: 5}, room._game_player_parse.getCall(0).args[0]
       assert.deepEqual {id: 6}, room._game_player_parse.getCall(1).args[0]
