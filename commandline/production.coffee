@@ -32,7 +32,7 @@ exports.compile = (op, done)->
     check = ->
       if files_all.length is 0
         return done()
-      compile_file {file: files_all.shift(), callback: check, coffee: op.coffee}
+      compile_file {file: files_all.shift(), callback: check, coffee: op.coffee, sass: op.sass}
     check()
   i = 0
   files_all = []

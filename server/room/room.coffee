@@ -43,7 +43,7 @@ exports.Room = class Room extends PubsubModule
 
   _game_start: (options)->
     @_game = new (@game) Object.assign {}, options, {
-      users: @users.map (u)=> @_game_player_parse(u)
+      players: @users.map (u)=> @_game_player_parse(u)
     }
 
   emit_user_exec: -> User::emit_self_exec.apply User::, arguments
@@ -70,9 +70,12 @@ exports.Room = class Room extends PubsubModule
     @_game[method](Object.assign({user_id}, params))
 
   user_add: (user)->
+    if @user_exist user.id
+      return false
     @users.push user
     @emit_user_exec(user.id, '_room_add', {id: @id, module: @_module(), type: 'user'})
     @emit 'update', {users: @users}
+    return true
 
   user_exist: (user_id)-> @user_get(user_id, true) >= 0
 

@@ -3,6 +3,7 @@ exec = require('child_process').exec
 execSync = require('child_process').execSync
 util = require('util')
 exec_promise = util.promisify(exec)
+sass_module = require('sass')
 
 
 exec_callback = (callback = ->)->
@@ -12,7 +13,7 @@ exec_callback = (callback = ->)->
     callback(error)
 
 
-exports.compile_file = ({coffee, file, file_str, file_out, haml, callback})->
+exports.compile_file = ({coffee, sass, file, file_str, file_out, haml, callback})->
   file_parts = file.split('.')
   ext = file_parts.pop()
   if ext is 'coffee'
@@ -26,16 +27,18 @@ exports.compile_file = ({coffee, file, file_str, file_out, haml, callback})->
       else
         file_str = fs.readFileSync(file).toString()
         file_str_matched = false
-        [...file_str.matchAll(/template_haml: """(.*)"""/sg)].forEach (m)->
+        [...file_str.matchAll(/template_haml: """(.*?)"""/sg)].forEach (m)->
           file_str_matched = true
           lines = m[1].split("\n").filter (l)-> l.trim().length > 0
           spaces = lines[0].match /(\s*)/
           if spaces[0]
             spaces_length = spaces[0].length
             lines = lines.map (line)-> line.substr(spaces_length)
+          input = lines.join("\n")
           try
-            html = execSync( "#{haml or 'haml'} --no-escape-attrs --remove-whitespace -s", { input: lines.join("\n") } )
-          catch
+            html = execSync( "#{haml or 'haml'} --no-escape-attrs --remove-whitespace -s", { input } )
+          catch e
+            console.info input
             return
           file_str = file_str.replace m[0], 'template: """' + (html + '').trim() + '"""'
       if file_str_matched
@@ -49,9 +52,47 @@ exports.compile_file = ({coffee, file, file_str, file_out, haml, callback})->
           return callback(e, file_out)
       return callback(null, file_out)
   if ext is 'sass'
-    exec("cd client/browser && compass compile --sourcemap sass/screen.sass -c ../../node_modules/multiplayer/client/browser/config.rb", exec_callback( (error)=>
-      callback(error, 'client/browser/css/screen.css')
-    ))
+    if sass
+      ((opt)=>
+        sass_module.render Object.assign(
+          {}
+          opt
+          {
+            functions: opt.functions.reduce (acc, fn)->
+              if fn is 'image-inline'
+                fn =
+                  ["#{fn}($str, $style: '')"]: (img_path, style)->
+                    extension = img_path.getValue().split('.').pop()
+                    img_content = fs.readFileSync "#{opt.pathImage}/#{img_path.getValue()}"
+                    if extension is 'svg'
+                      extension = 'svg+xml'
+                      if style.getValue()
+                        img_content = Buffer.from( (img_content + '').replace( /\<style\>.*\<\/style\>/, "<style>#{style.getValue()}</style>" ) )
+                    new sass_module.types.String("""url("data:image/#{extension};base64,#{img_content.toString('base64')}")""")
+              Object.assign acc, fn
+            , {}
+          }
+        ), (err, result)=>
+          if result
+            fs.writeFileSync opt.outFile, result.css
+            if !opt.embedSourceMap
+              fs.writeFileSync "#{opt.outFile}.map", result.map
+          if err
+            console.info err, opt
+          callback(err, 'client/browser/css/screen.css')
+      )(Object.assign({
+        file: 'client/browser/sass/screen.sass'
+        sourceMap: true
+        outFile: 'client/browser/css/screen.css'
+        path: 'client/browser/sass'
+        pathImage: 'client/browser/images'
+        functions: ['image-inline']
+      }, sass))
+
+    else
+      exec("cd client/browser && compass compile --sourcemap sass/screen.sass -c ../../node_modules/multiplayer/client/browser/config.rb", exec_callback( (error)=>
+        callback(error, 'client/browser/css/screen.css')
+      ))
 
 
 exports.directory_clear = directory_clear = (path, except = [], dir_main = true)->

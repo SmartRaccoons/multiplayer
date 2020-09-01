@@ -127,6 +127,8 @@ if touch
       op = @options
       for v in option.split('.')
         op = op[v]
+        if op is null
+          break
       return op
     val_get = if @options_html[option] then =>
       (if arrayed then @options_html[option][arrayed[2]] else @options_html[option])
@@ -264,6 +266,8 @@ if touch
     delete @__subview_options_binded
     @$el.remove()
 
-  __selector_parse: (s, point = false)-> s.replace /&-/g, "#{if point then '.' else ''}#{@className}-"
+  __selector_parse: (s, point = false)->
+    s.replace /&-/g, "#{if point then '.' else ''}#{@className}-"
+    .replace /--/g, "#{if point then '.' else ''}#{@className}-"
 
   $: (selector)-> @$el.find(@__selector_parse(selector, true))
