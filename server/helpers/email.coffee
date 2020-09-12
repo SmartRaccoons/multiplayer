@@ -1,16 +1,16 @@
-emailjs = require('emailjs')
+SMTPClient = require('emailjs').SMTPClient
 
 email = null
 
 config = {}
 module.exports.config = (c)->
   config = c
-  email = emailjs.server.connect({
+  email = new SMTPClient {
     user: config.email,
     password: config.pass,
     host: 'smtp.gmail.com',
     ssl: true
-  })
+  }
 
 
 module.exports.send = email_send = (params, callback=->)->

@@ -1,5 +1,5 @@
 crypto = require('crypto')
-uuidv4 = require('uuid/v4')
+uuidv4 = require('uuid').v4
 fbgraph = require('fbgraph')
 ApiGoogle = require('../api/google').ApiGoogle
 ApiInbox = require('../api/inbox').ApiInbox
