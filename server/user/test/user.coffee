@@ -540,7 +540,7 @@ describe 'User', ->
         user.publish = sinon.spy()
 
       it 'default', ->
-        assert.deepEqual {table: 'user_message', limit: 10}, user._message
+        assert.deepEqual {table: 'user_message', limit: 10, language: null}, user._message
 
       it 'messages', ->
         user._message_check()
@@ -571,6 +571,12 @@ describe 'User', ->
         user.options.platform = 'draugiem'
         user._message_check()
         assert.deepEqual [null, {json: 'draugiem'}], db.select.getCall(0).args[0].where.platform
+
+      it 'messages with language', ->
+        user.options.language = 'lv'
+        user._message.language = true
+        user._message_check()
+        assert.deepEqual [null, {json: 'lv'}], db.select.getCall(0).args[0].where.language
 
       it 'no messages', ->
         user._message_check()

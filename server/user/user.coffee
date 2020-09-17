@@ -81,6 +81,7 @@ module.exports.User = class User extends User
   _message:
     table: 'user_message'
     limit: 10
+    language: null
 
   constructor: (options)->
     super({id: options.id})
@@ -96,7 +97,7 @@ module.exports.User = class User extends User
       table: @_message.table
       limit: @_message.limit
       order: ['-added']
-      where:
+      where: Object.assign({
         user_id: [@options.id, null]
         added:
           sign: ['>', @options.date_joined]
@@ -108,6 +109,11 @@ module.exports.User = class User extends User
             null
             { json: @options.platform }
           ]
+        }
+        if @_message.language then {
+          language: [null, { json: @options.language } ]
+        }
+      )
     , (rows)=>
       if rows.length is 0
         return

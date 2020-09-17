@@ -36,7 +36,8 @@ Authorize = proxyquire '../authorize',
   '../../config':
     config_get: (param)-> config[param]
     config_callback: (c)-> config_callbacks.push c
-  'uuid/v4': -> uuid_v4()
+  'uuid':
+    v4: -> uuid_v4()
   'crypto':
     pbkdf2Sync: -> pbkdf2Sync.apply(@, arguments)
 
