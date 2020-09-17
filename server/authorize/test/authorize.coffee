@@ -528,6 +528,12 @@ describe 'Athorize', ->
       assert.deepEqual({facebook_uid: '56'}, spy.getCall(0).args[0])
       assert.deepEqual({facebook_token_for_business: 'tf', name: 'n', img: 'im', language: 'en_GB'}, spy.getCall(0).args[1])
 
+    it 'success (no user id)', ->
+      login._api_call({code: 'code'}, spy)
+      TestFacebook.get.getCall(0).args[1](null, {id: undefined})
+      assert.equal(1, spy.callCount)
+      assert.equal(null, spy.getCall(0).args[0])
+
     it 'success no img', ->
       login._api_call('code', spy)
       TestFacebook.get.getCall(0).args[1](null, {id: '56', name: 'n', picture: null})
@@ -670,6 +676,12 @@ describe 'Athorize', ->
       assert.equal(1, spy.callCount)
       assert.deepEqual({google_uid: 'as'}, spy.getCall(0).args[0])
       assert.deepEqual({name: 'n', img: 'p', language: 'en-GB'}, spy.getCall(0).args[1])
+
+    it 'no uid', ->
+      login._api_call('code', spy)
+      Google_Authorize.authorize.getCall(0).args[1]({name: 'n'})
+      assert.equal(1, spy.callCount)
+      assert.equal(null, spy.getCall(0).args[0])
 
     it 'error', ->
       login._api_call('code', spy)

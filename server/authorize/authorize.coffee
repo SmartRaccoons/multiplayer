@@ -198,6 +198,9 @@ module.exports.facebook = class LoginFacebook extends Login
     fbgraph.get '/me?fields=token_for_business,locale,name,picture.width(100)', (err, res)=>
       if err
         return callback(null)
+      if !res.id
+        console.info 'facebook returned no id', code, err, res
+        return callback(null)
       callback({facebook_uid: res.id}, {facebook_token_for_business: res.token_for_business, name: res.name, language: res.locale, img: if res.picture and res.picture.data then res.picture.data.url else null})
 
   buy: (params, callback)->
@@ -244,7 +247,7 @@ module.exports.google = class LoginGoogle extends Login
   _table_session: 'auth_user_session_google'
   _api_call: (params, callback)->
     google.authorize params, (user)=>
-      if not user
+      if not user or not user.uid
         return callback(null)
       callback({google_uid: user.uid}, {language: user.language, name: user.name, img: user.img})
 
