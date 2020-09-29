@@ -2,6 +2,7 @@ crypto = require('crypto')
 uuidv4 = require('uuid').v4
 fbgraph = require('fbgraph')
 ApiGoogle = require('../api/google').ApiGoogle
+ApiApple = require('../api/apple').ApiApple
 ApiInbox = require('../api/inbox').ApiInbox
 ApiDraugiem = require('../api/draugiem').ApiDraugiem
 
@@ -12,6 +13,7 @@ config_callback = require('../../config').config_callback
 config = {}
 inbox = null
 google = null
+apple = null
 config_callback ->
   config.db = config_get('db')
   config.buy = config_get('buy')
@@ -31,6 +33,8 @@ config_callback ->
     inbox = new ApiInbox(config_get(['inbox', 'server']))
   if config_get('google')
     google = new ApiGoogle(config_get(['google', 'server', 'code_url']))
+  if config_get('apple')
+    apple = new ApiApple(config_get(['apple', 'server']))
   if config_get('email')
     config.email = config_get('email')
 
@@ -38,12 +42,19 @@ config_callback ->
 module.exports.Login = class Login
   _opt:
     'id': {db: true, public: true}
-    'name': {default: '', db: true, public: true}
+    'name':
+      default: (opt)->
+        if opt and opt.id
+          return "Raccoon #{opt.id}"
+        return ''
+      db: true
+      public: true
     'language': {db: true}
     'draugiem_uid': {db: true}
     'facebook_uid': {db: true}
     'google_uid': {db: true}
     'inbox_uid': {db: true}
+    'apple_uid': {db: true}
     'img': {default: '', db: true, public: true}
     # 'params':
     #   parse:
@@ -102,7 +113,15 @@ module.exports.Login = class Login
       table: @_table
       data: Object.assign {last_login: new Date()}, data
       parse: @_parse()
-    , (id)-> callback(Object.assign({id: id, new: true}, data))
+    , (id)=>
+      user = Object.assign {id, new: true}, data
+      if !user.name
+        user.name = @_opt.name.default({id})
+        config.db.update
+          table: @_table
+          data: {name: user.name}
+          where: {id: user.id}
+      callback(Object.assign({id: id, new: true}, user))
 
   _user_create_or_update: (where, data, callback)->
     #omit language update
@@ -250,6 +269,15 @@ module.exports.google = class LoginGoogle extends Login
       if not user or not user.uid
         return callback(null)
       callback({google_uid: user.uid}, {language: user.language, name: user.name, img: user.img})
+
+
+module.exports.apple = class LoginApple extends Login
+  _table_session: 'auth_user_session_apple'
+  _api_call: (params, callback)->
+    apple.authorize params, (user)=>
+      if not user or not user.uid
+        return callback(null)
+      callback({apple_uid: user.uid}, Object.assign( {language: params.language}, if user.name then {name: user.name} ) )
 
 
 module.exports.draugiem = class LoginDraugiem extends Login

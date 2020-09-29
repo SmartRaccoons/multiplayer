@@ -39,7 +39,7 @@ window.o.PlatformStandalone = class Standalone extends window.o.PlatformCommon
     authorize.bind 'authorize', (platform)=>
       if platform is 'email'
         return @auth_email()
-      window.location.href = App.config.login[platform]
+      window.location.href = App.config.login[platform] + '?language=' + App.lang
     authorize.render()
 
   _auth_clear: -> Object.keys(App.config.login).forEach (c)-> Cookies.set(c, '')

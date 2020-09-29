@@ -1,6 +1,6 @@
 {
   "name": "multiplayer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": {
     "name": "raccoons.lv"
   },
@@ -9,6 +9,7 @@
     "url": "https://github.com/SmartRaccoons/multiplayer.git"
   },
   "dependencies": {
+    "apple-signin-auth": "^1.4.0",
     "body-parser": "^1.19.0",
     "emailjs": "^3.3.0",
     "fbgraph": "^1.4.4",

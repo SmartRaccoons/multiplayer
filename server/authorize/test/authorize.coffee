@@ -9,6 +9,9 @@ TestDraugiem_authrorize = null
 
 Google_Authorize =
   authorize: null
+Apple_Authorize =
+  constructor: ->
+  authorize: null
 Inbox_Authorize =
   constructor: ->
   authorize: null
@@ -28,6 +31,10 @@ Authorize = proxyquire '../authorize',
   '../api/google':
     ApiGoogle: class ApiGoogle
       authorize: -> Google_Authorize.authorize.apply(@, arguments)
+  '../api/apple':
+    ApiApple: class ApiApple
+      constructor: -> Apple_Authorize.constructor.apply(@, arguments)
+      authorize: -> Apple_Authorize.authorize.apply(@, arguments)
   '../api/inbox':
     ApiInbox: class ApiInbox
       constructor: -> Inbox_Authorize.constructor.apply(@, arguments)
@@ -44,6 +51,7 @@ Authorize = proxyquire '../authorize',
 LoginDraugiem = Authorize.draugiem
 LoginFacebook = Authorize.facebook
 LoginGoogle = Authorize.google
+LoginApple = Authorize.apple
 LoginInbox = Authorize.inbox
 LoginCordova = Authorize.cordova
 LoginEmail = Authorize.email
@@ -68,6 +76,8 @@ describe 'Athorize', ->
           1: 70
       google:
         id: 'gid'
+      apple:
+        id: 'apid'
       facebook:
         id: 'fid'
         key: 'fkey'
@@ -110,6 +120,11 @@ describe 'Athorize', ->
           parse: 'p'
       assert.deepEqual [ ['some', 'p'] ], login._parse()
 
+    it '_opt name', ->
+      assert.equal '', login._opt.name.default()
+      assert.equal '', login._opt.name.default({})
+      assert.equal 'Raccoon 5', login._opt.name.default({id: 5})
+
     it '_user_get', ->
       login._parse = sinon.fake.returns 'p'
       login._user_get({id: 5}, spy)
@@ -145,22 +160,47 @@ describe 'Athorize', ->
       assert.equal(0, db.update.callCount)
 
     it '_user_create', ->
+      login._opt.name.default = name_default = sinon.fake (arg)->
+        if !arg
+          return ''
+        'arg'
       login._parse = sinon.fake.returns 'p'
       login._user_create({draugiem_uid: 5}, spy)
       assert.equal(1, db.insert.callCount)
       assert.equal('auth_user', db.insert.getCall(0).args[0].table)
       assert.equal(5, db.insert.getCall(0).args[0].data.draugiem_uid)
-      assert.equal('', db.insert.getCall(0).args[0].data.img)
+      assert.equal('', db.insert.getCall(0).args[0].data.name)
       assert.equal('', db.insert.getCall(0).args[0].data.img)
       assert.deepEqual(new Date(), db.insert.getCall(0).args[0].data.date_joined)
       assert.deepEqual(new Date(), db.insert.getCall(0).args[0].data.last_login)
       assert.equal('p', db.insert.getCall(0).args[0].parse)
       db.insert.getCall(0).args[1](2)
+      assert.equal 1, db.update.callCount
+      assert.deepEqual {
+        table: 'auth_user'
+        data: {name: 'arg'}
+        where: {id: 2}
+      }, db.update.getCall(0).args[0]
+      assert.equal 2, name_default.callCount
+      assert.equal undefined, name_default.getCall(0).args[0]
+      assert.deepEqual {id: 2}, name_default.getCall(1).args[0]
       assert.equal(1, spy.callCount)
       assert.equal(2, spy.getCall(0).args[0].id)
+      assert.equal('arg', spy.getCall(0).args[0].name)
       assert.deepEqual(new Date(), spy.getCall(0).args[0].date_joined)
       assert.equal(5, spy.getCall(0).args[0].draugiem_uid)
       assert.equal(true, spy.getCall(0).args[0].new)
+
+    it '_user_create (name exist)', ->
+      login._opt.name.default = name_default = sinon.fake.returns ''
+      login._parse = sinon.fake.returns 'p'
+      login._user_create({draugiem_uid: 5, name: 'se'}, spy)
+      assert.equal('se', db.insert.getCall(0).args[0].data.name)
+      db.insert.getCall(0).args[1](2)
+      assert.equal 0, db.update.callCount
+      assert.equal 1, name_default.callCount
+      assert.equal undefined, name_default.getCall(0).args[0]
+      assert.equal('se', spy.getCall(0).args[0].name)
 
     it '_user_create (addtitional _opt)', ->
       Login::_opt.rating = {default: 1600, db: true}
@@ -686,6 +726,44 @@ describe 'Athorize', ->
     it 'error', ->
       login._api_call('code', spy)
       Google_Authorize.authorize.getCall(0).args[1](null)
+      assert.equal(1, spy.callCount)
+      assert.equal(null, spy.getCall(0).args[0])
+
+
+  describe 'LoginApple', ->
+    login = null
+    beforeEach ->
+      login = new LoginApple()
+      Apple_Authorize.authorize = sinon.spy()
+
+    it 'default', ->
+      assert.equal('auth_user_session_apple', login._table_session)
+
+    it 'success', ->
+      login._api_call({language: 'lg'}, spy)
+      assert.equal(1, Apple_Authorize.authorize.callCount)
+      assert.deepEqual({language: 'lg'}, Apple_Authorize.authorize.getCall(0).args[0])
+      Apple_Authorize.authorize.getCall(0).args[1]({uid: 'as', name: 'n'})
+      assert.equal(1, spy.callCount)
+      assert.deepEqual({apple_uid: 'as'}, spy.getCall(0).args[0])
+      assert.deepEqual({name: 'n', language: 'lg'}, spy.getCall(0).args[1])
+
+    it 'success (no name)', ->
+      login._api_call({language: 'lg'}, spy)
+      Apple_Authorize.authorize.getCall(0).args[1]({uid: 'as'})
+      assert.equal(1, spy.callCount)
+      assert.deepEqual({apple_uid: 'as'}, spy.getCall(0).args[0])
+      assert.deepEqual({language: 'lg'}, spy.getCall(0).args[1])
+
+    it 'no uid', ->
+      login._api_call('code', spy)
+      Apple_Authorize.authorize.getCall(0).args[1]({name: 'n'})
+      assert.equal(1, spy.callCount)
+      assert.equal(null, spy.getCall(0).args[0])
+
+    it 'error', ->
+      login._api_call('code', spy)
+      Apple_Authorize.authorize.getCall(0).args[1](null)
       assert.equal(1, spy.callCount)
       assert.equal(null, spy.getCall(0).args[0])
 

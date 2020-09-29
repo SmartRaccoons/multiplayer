@@ -62,7 +62,7 @@
           if (platform === 'email') {
             return this.auth_email();
           }
-          return window.location.href = App.config.login[platform];
+          return window.location.href = App.config.login[platform] + '?language=' + App.lang;
         });
         return authorize.render();
       }

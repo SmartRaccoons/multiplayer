@@ -7,6 +7,7 @@ CREATE TABLE `auth_user` (
   `facebook_token_for_business` varchar(100) DEFAULT NULL,
   `facebook_subscriptions` JSON DEFAULT NULL,
   `google_uid` varchar(100) DEFAULT NULL,
+  `apple_uid` varchar(100) DEFAULT NULL,
   `inbox_uid` varchar(100) DEFAULT NULL,
   `name` varchar(100) NOT NULL,
   `img` varchar(1000) DEFAULT NULL,
@@ -53,6 +54,17 @@ CREATE TABLE `auth_user_session_google` (
   KEY `auth_user_session_google__user_id` (`user_id`),
   KEY `auth_user_session_google__code` (`code`(20)),
   CONSTRAINT `auth_user_session_google__id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `auth_user_session_apple` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `code` text DEFAULT NULL,
+  `last_updated` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `auth_user_session_apple__user_id` (`user_id`),
+  KEY `auth_user_session_apple__code` (`code`(20)),
+  CONSTRAINT `auth_user_session_apple__id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `auth_user_session_email` (

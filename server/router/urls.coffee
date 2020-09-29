@@ -25,6 +25,8 @@ config_callback( ->
 
 
 module.exports.authorize = (app)->
+  language_validate = (language)->
+    if ['lv', 'en', 'de', 'lg'].indexOf(language) >= 0 then language else 'en'
   code_url = config_get('code_url')
   code_template = do =>
     a_code_id = template_local('a-code-id')
@@ -48,18 +50,36 @@ module.exports.authorize = (app)->
       'https://accounts.google.com/o/oauth2/v2/auth?scope=profile&response_type=code&redirect_uri=' +
         config_get('server') + path + '&client_id=' + config_get('google').id +
         '&state=' + code
+    apple: (path = '/g', code = '', language = '')->
+      "https://appleid.apple.com/auth/authorize?" +
+      "response_type=code%20id_token" +
+      "&client_id=" + config_get('apple').client_id +
+      "&redirect_uri=" + encodeURIComponent(config_get('server') + config_get('apple').login_post) +
+      "&scope=" + 'name' +
+      "&response_mode=form_post" +
+      "&state=" + code + ';' + path + ';' + language
   Object.keys(links).forEach (platform)->
-    if config_get(platform)
-      app.get config_get(platform).login_full, (req, res)-> res.redirect links[platform]()
-      app.get config_get(platform).login + '/:id', (req, res)->
-        [language, code] = code_parse(req.params.id)
-        config_get('dbmemory').random_get Anonymous::_module(), code, (params)=>
-          if !params
-            return res.send code_template({
-              error: locale._('UserNotify.Link error', language)
-              message: locale._('UserNotify.Link error desc', language)
-            })
-          res.redirect links[platform](code_url, req.params.id)
+    if !config_get(platform)
+      return
+    if platform is 'apple'
+      app.post config_get(platform).login_post, (req, res)->
+        params = (req.body.state or '').split(';')
+        params_code = params[0]
+        params_url = if params[1] is code_url then code_url else '/g'
+        params_language = language_validate(if params[2] then params[2] else '')
+        new (Authorize.apple)().authorize {code: req.body.code, language: params_language, params: {user: req.body.user, post: true} }, (user)=>
+          res.redirect "#{params_url}?apple=#{req.body.code}&state=#{params_code}"
+    app.get config_get(platform).login_full, (req, res)->
+      res.redirect links[platform]('/g', '', language_validate(req.query.language))
+    app.get config_get(platform).login + '/:id', (req, res)->
+      [language, code] = code_parse(req.params.id)
+      config_get('dbmemory').random_get Anonymous::_module(), code, (params)=>
+        if !params
+          return res.send code_template({
+            error: locale._('UserNotify.Link error', language)
+            message: locale._('UserNotify.Link error desc', language)
+          })
+        res.redirect links[platform](code_url, req.params.id, language)
   do =>
     a_code = template_local('a-code')({code_url})
     app.get code_url, (req, res)-> res.send a_code
@@ -67,6 +87,7 @@ module.exports.authorize = (app)->
       draugiem: 'dr_auth_code'
       facebook: 'access_token'
       google: 'code'
+      apple: 'apple'
     app.get "#{code_url}/:id", (req, res)->
       [language, code] = code_parse(req.params.id)
       config_get('dbmemory').random_get Anonymous::_module(), code, (params)=>

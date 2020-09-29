@@ -48,18 +48,20 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var firebase = _interopDefault(require('@firebase/app'));
-require('@firebase/installations');
 var tslib = require('tslib');
+var firebase = require('@firebase/app');
+require('@firebase/installations');
 var logger$1 = require('@firebase/logger');
 var util = require('@firebase/util');
 var component = require('@firebase/component');
 
+function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+var firebase__default = /*#__PURE__*/_interopDefaultLegacy(firebase);
+
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,10 +75,11 @@ var component = require('@firebase/component');
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-var ANALYTICS_ID_FIELD = 'measurementId';
 // Key to attach FID to in gtag params.
 var GA_FID_KEY = 'firebase_id';
 var ORIGIN_KEY = 'origin';
+var FETCH_TIMEOUT_MILLIS = 60 * 1000;
+var DYNAMIC_CONFIG_URL = 'https://firebase.googleapis.com/v1alpha/projects/-/apps/{app-id}/webConfig';
 var GTAG_URL = 'https://www.googletagmanager.com/gtag/js';
 var GtagCommand;
 (function (GtagCommand) {
@@ -123,7 +126,7 @@ var EventName;
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,31 +147,53 @@ var EventName;
  * @param eventName Google Analytics event name, choose from standard list or use a custom string.
  * @param eventParams Analytics event parameters.
  */
-function logEvent(gtagFunction, analyticsId, eventName, eventParams, options) {
-    var params = eventParams || {};
-    if (!options || !options.global) {
-        params = tslib.__assign(tslib.__assign({}, eventParams), { 'send_to': analyticsId });
-    }
-    // Workaround for http://b/141370449 - third argument cannot be undefined.
-    gtagFunction(GtagCommand.EVENT, eventName, params || {});
+function logEvent(gtagFunction, initializationPromise, eventName, eventParams, options) {
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var measurementId, params;
+        return tslib.__generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!(options && options.global)) return [3 /*break*/, 1];
+                    gtagFunction(GtagCommand.EVENT, eventName, eventParams);
+                    return [2 /*return*/];
+                case 1: return [4 /*yield*/, initializationPromise];
+                case 2:
+                    measurementId = _a.sent();
+                    params = tslib.__assign(tslib.__assign({}, eventParams), { 'send_to': measurementId });
+                    gtagFunction(GtagCommand.EVENT, eventName, params);
+                    _a.label = 3;
+                case 3: return [2 /*return*/];
+            }
+        });
+    });
 }
-// TODO: Brad is going to add `screen_name` to GA Gold config parameter schema
 /**
  * Set screen_name parameter for this Google Analytics ID.
  *
  * @param gtagFunction Wrapped gtag function that waits for fid to be set before sending an event
  * @param screenName Screen name string to set.
  */
-function setCurrentScreen(gtagFunction, analyticsId, screenName, options) {
-    if (options && options.global) {
-        gtagFunction(GtagCommand.SET, { 'screen_name': screenName });
-    }
-    else {
-        gtagFunction(GtagCommand.CONFIG, analyticsId, {
-            update: true,
-            'screen_name': screenName
+function setCurrentScreen(gtagFunction, initializationPromise, screenName, options) {
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var measurementId;
+        return tslib.__generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!(options && options.global)) return [3 /*break*/, 1];
+                    gtagFunction(GtagCommand.SET, { 'screen_name': screenName });
+                    return [2 /*return*/, Promise.resolve()];
+                case 1: return [4 /*yield*/, initializationPromise];
+                case 2:
+                    measurementId = _a.sent();
+                    gtagFunction(GtagCommand.CONFIG, measurementId, {
+                        update: true,
+                        'screen_name': screenName
+                    });
+                    _a.label = 3;
+                case 3: return [2 /*return*/];
+            }
         });
-    }
+    });
 }
 /**
  * Set user_id parameter for this Google Analytics ID.
@@ -176,16 +201,27 @@ function setCurrentScreen(gtagFunction, analyticsId, screenName, options) {
  * @param gtagFunction Wrapped gtag function that waits for fid to be set before sending an event
  * @param id User ID string to set
  */
-function setUserId(gtagFunction, analyticsId, id, options) {
-    if (options && options.global) {
-        gtagFunction(GtagCommand.SET, { 'user_id': id });
-    }
-    else {
-        gtagFunction(GtagCommand.CONFIG, analyticsId, {
-            update: true,
-            'user_id': id
+function setUserId(gtagFunction, initializationPromise, id, options) {
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var measurementId;
+        return tslib.__generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!(options && options.global)) return [3 /*break*/, 1];
+                    gtagFunction(GtagCommand.SET, { 'user_id': id });
+                    return [2 /*return*/, Promise.resolve()];
+                case 1: return [4 /*yield*/, initializationPromise];
+                case 2:
+                    measurementId = _a.sent();
+                    gtagFunction(GtagCommand.CONFIG, measurementId, {
+                        update: true,
+                        'user_id': id
+                    });
+                    _a.label = 3;
+                case 3: return [2 /*return*/];
+            }
         });
-    }
+    });
 }
 /**
  * Set all other user properties other than user_id and screen_name.
@@ -193,35 +229,57 @@ function setUserId(gtagFunction, analyticsId, id, options) {
  * @param gtagFunction Wrapped gtag function that waits for fid to be set before sending an event
  * @param properties Map of user properties to set
  */
-function setUserProperties(gtagFunction, analyticsId, properties, options) {
-    if (options && options.global) {
-        var flatProperties = {};
-        for (var _i = 0, _a = Object.keys(properties); _i < _a.length; _i++) {
-            var key = _a[_i];
-            // use dot notation for merge behavior in gtag.js
-            flatProperties["user_properties." + key] = properties[key];
-        }
-        gtagFunction(GtagCommand.SET, flatProperties);
-    }
-    else {
-        gtagFunction(GtagCommand.CONFIG, analyticsId, {
-            update: true,
-            'user_properties': properties
+function setUserProperties(gtagFunction, initializationPromise, properties, options) {
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var flatProperties, _i, _a, key, measurementId;
+        return tslib.__generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    if (!(options && options.global)) return [3 /*break*/, 1];
+                    flatProperties = {};
+                    for (_i = 0, _a = Object.keys(properties); _i < _a.length; _i++) {
+                        key = _a[_i];
+                        // use dot notation for merge behavior in gtag.js
+                        flatProperties["user_properties." + key] = properties[key];
+                    }
+                    gtagFunction(GtagCommand.SET, flatProperties);
+                    return [2 /*return*/, Promise.resolve()];
+                case 1: return [4 /*yield*/, initializationPromise];
+                case 2:
+                    measurementId = _b.sent();
+                    gtagFunction(GtagCommand.CONFIG, measurementId, {
+                        update: true,
+                        'user_properties': properties
+                    });
+                    _b.label = 3;
+                case 3: return [2 /*return*/];
+            }
         });
-    }
+    });
 }
 /**
  * Set whether collection is enabled for this ID.
  *
  * @param enabled If true, collection is enabled for this ID.
  */
-function setAnalyticsCollectionEnabled(analyticsId, enabled) {
-    window["ga-disable-" + analyticsId] = !enabled;
+function setAnalyticsCollectionEnabled(initializationPromise, enabled) {
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var measurementId;
+        return tslib.__generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, initializationPromise];
+                case 1:
+                    measurementId = _a.sent();
+                    window["ga-disable-" + measurementId] = !enabled;
+                    return [2 /*return*/];
+            }
+        });
+    });
 }
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -239,7 +297,7 @@ var logger = new logger$1.Logger('@firebase/analytics');
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -254,40 +312,9 @@ var logger = new logger$1.Logger('@firebase/analytics');
  * limitations under the License.
  */
 /**
- * Initialize the analytics instance in gtag.js by calling config command with fid.
- *
- * NOTE: We combine analytics initialization and setting fid together because we want fid to be
- * part of the `page_view` event that's sent during the initialization
- * @param app Firebase app
- * @param gtagCore The gtag function that's not wrapped.
+ * Inserts gtag script tag into the page to asynchronously download gtag.
+ * @param dataLayerName Name of datalayer (most often the default, "_dataLayer").
  */
-function initializeGAId(app, installations, gtagCore) {
-    return tslib.__awaiter(this, void 0, void 0, function () {
-        var fid;
-        var _a;
-        return tslib.__generator(this, function (_b) {
-            switch (_b.label) {
-                case 0: return [4 /*yield*/, installations.getId()];
-                case 1:
-                    fid = _b.sent();
-                    // This command initializes gtag.js and only needs to be called once for the entire web app,
-                    // but since it is idempotent, we can call it multiple times.
-                    // We keep it together with other initialization logic for better code structure.
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    gtagCore('js', new Date());
-                    // It should be the first config command called on this GA-ID
-                    // Initialize this GA-ID and set FID on it using the gtag config API.
-                    gtagCore(GtagCommand.CONFIG, app.options[ANALYTICS_ID_FIELD], (_a = {},
-                        _a[GA_FID_KEY] = fid,
-                        // guard against developers accidentally setting properties with prefix `firebase_`
-                        _a[ORIGIN_KEY] = 'firebase',
-                        _a.update = true,
-                        _a));
-                    return [2 /*return*/];
-            }
-        });
-    });
-}
 function insertScriptTag(dataLayerName) {
     var script = document.createElement('script');
     // We are not providing an analyticsId in the URL because it would trigger a `page_view`
@@ -296,8 +323,9 @@ function insertScriptTag(dataLayerName) {
     script.async = true;
     document.head.appendChild(script);
 }
-/** Get reference to, or create, global datalayer.
- * @param dataLayerName Name of datalayer (most often the default, "_dataLayer")
+/**
+ * Get reference to, or create, global datalayer.
+ * @param dataLayerName Name of datalayer (most often the default, "_dataLayer").
  */
 function getOrCreateDataLayer(dataLayerName) {
     // Check for existing dataLayer and create if needed.
@@ -311,86 +339,207 @@ function getOrCreateDataLayer(dataLayerName) {
     return dataLayer;
 }
 /**
+ * Wrapped gtag logic when gtag is called with 'config' command.
+ *
+ * @param gtagCore Basic gtag function that just appends to dataLayer.
+ * @param initializationPromisesMap Map of appIds to their initialization promises.
+ * @param dynamicConfigPromisesList Array of dynamic config fetch promises.
+ * @param measurementIdToAppId Map of GA measurementIDs to corresponding Firebase appId.
+ * @param measurementId GA Measurement ID to set config for.
+ * @param gtagParams Gtag config params to set.
+ */
+function gtagOnConfig(gtagCore, initializationPromisesMap, dynamicConfigPromisesList, measurementIdToAppId, measurementId, gtagParams) {
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var correspondingAppId, dynamicConfigResults, foundConfig, e_1;
+        return tslib.__generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    correspondingAppId = measurementIdToAppId[measurementId];
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 7, , 8]);
+                    if (!correspondingAppId) return [3 /*break*/, 3];
+                    return [4 /*yield*/, initializationPromisesMap[correspondingAppId]];
+                case 2:
+                    _a.sent();
+                    return [3 /*break*/, 6];
+                case 3: return [4 /*yield*/, Promise.all(dynamicConfigPromisesList)];
+                case 4:
+                    dynamicConfigResults = _a.sent();
+                    foundConfig = dynamicConfigResults.find(function (config) { return config.measurementId === measurementId; });
+                    if (!foundConfig) return [3 /*break*/, 6];
+                    return [4 /*yield*/, initializationPromisesMap[foundConfig.appId]];
+                case 5:
+                    _a.sent();
+                    _a.label = 6;
+                case 6: return [3 /*break*/, 8];
+                case 7:
+                    e_1 = _a.sent();
+                    logger.error(e_1);
+                    return [3 /*break*/, 8];
+                case 8:
+                    gtagCore(GtagCommand.CONFIG, measurementId, gtagParams);
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+/**
+ * Wrapped gtag logic when gtag is called with 'event' command.
+ *
+ * @param gtagCore Basic gtag function that just appends to dataLayer.
+ * @param initializationPromisesMap Map of appIds to their initialization promises.
+ * @param dynamicConfigPromisesList Array of dynamic config fetch promises.
+ * @param measurementId GA Measurement ID to log event to.
+ * @param gtagParams Params to log with this event.
+ */
+function gtagOnEvent(gtagCore, initializationPromisesMap, dynamicConfigPromisesList, measurementId, gtagParams) {
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var initializationPromisesToWaitFor, gaSendToList, dynamicConfigResults, _loop_1, _i, gaSendToList_1, sendToId, state_1, e_2;
+        return tslib.__generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 4, , 5]);
+                    initializationPromisesToWaitFor = [];
+                    if (!(gtagParams && gtagParams['send_to'])) return [3 /*break*/, 2];
+                    gaSendToList = gtagParams['send_to'];
+                    // Make it an array if is isn't, so it can be dealt with the same way.
+                    if (!Array.isArray(gaSendToList)) {
+                        gaSendToList = [gaSendToList];
+                    }
+                    return [4 /*yield*/, Promise.all(dynamicConfigPromisesList)];
+                case 1:
+                    dynamicConfigResults = _a.sent();
+                    _loop_1 = function (sendToId) {
+                        // Any fetched dynamic measurement ID that matches this 'send_to' ID
+                        var foundConfig = dynamicConfigResults.find(function (config) { return config.measurementId === sendToId; });
+                        var initializationPromise = foundConfig && initializationPromisesMap[foundConfig.appId];
+                        if (initializationPromise) {
+                            initializationPromisesToWaitFor.push(initializationPromise);
+                        }
+                        else {
+                            // Found an item in 'send_to' that is not associated
+                            // directly with an FID, possibly a group.  Empty this array,
+                            // exit the loop early, and let it get populated below.
+                            initializationPromisesToWaitFor = [];
+                            return "break";
+                        }
+                    };
+                    for (_i = 0, gaSendToList_1 = gaSendToList; _i < gaSendToList_1.length; _i++) {
+                        sendToId = gaSendToList_1[_i];
+                        state_1 = _loop_1(sendToId);
+                        if (state_1 === "break")
+                            break;
+                    }
+                    _a.label = 2;
+                case 2:
+                    // This will be unpopulated if there was no 'send_to' field , or
+                    // if not all entries in the 'send_to' field could be mapped to
+                    // a FID. In these cases, wait on all pending initialization promises.
+                    if (initializationPromisesToWaitFor.length === 0) {
+                        initializationPromisesToWaitFor = Object.values(initializationPromisesMap);
+                    }
+                    // Run core gtag function with args after all relevant initialization
+                    // promises have been resolved.
+                    return [4 /*yield*/, Promise.all(initializationPromisesToWaitFor)];
+                case 3:
+                    // Run core gtag function with args after all relevant initialization
+                    // promises have been resolved.
+                    _a.sent();
+                    // Workaround for http://b/141370449 - third argument cannot be undefined.
+                    gtagCore(GtagCommand.EVENT, measurementId, gtagParams || {});
+                    return [3 /*break*/, 5];
+                case 4:
+                    e_2 = _a.sent();
+                    logger.error(e_2);
+                    return [3 /*break*/, 5];
+                case 5: return [2 /*return*/];
+            }
+        });
+    });
+}
+/**
  * Wraps a standard gtag function with extra code to wait for completion of
  * relevant initialization promises before sending requests.
  *
- * @param gtagCore Basic gtag function that just appends to dataLayer
- * @param initializedIdPromisesMap Map of gaIds to their initialization promises
+ * @param gtagCore Basic gtag function that just appends to dataLayer.
+ * @param initializationPromisesMap Map of appIds to their initialization promises.
+ * @param dynamicConfigPromisesList Array of dynamic config fetch promises.
+ * @param measurementIdToAppId Map of GA measurementIDs to corresponding Firebase appId.
  */
-function wrapGtag(gtagCore, initializedIdPromisesMap) {
-    return function (command, idOrNameOrParams, gtagParams) {
-        // If event, check that relevant initialization promises have completed.
-        if (command === GtagCommand.EVENT) {
-            var initializationPromisesToWaitFor = [];
-            // If there's a 'send_to' param, check if any ID specified matches
-            // a FID we have begun a fetch on.
-            if (gtagParams && gtagParams['send_to']) {
-                var gaSendToList = gtagParams['send_to'];
-                // Make it an array if is isn't, so it can be dealt with the same way.
-                if (!Array.isArray(gaSendToList)) {
-                    gaSendToList = [gaSendToList];
+function wrapGtag(gtagCore, 
+/**
+ * Allows wrapped gtag calls to wait on whichever intialization promises are required,
+ * depending on the contents of the gtag params' `send_to` field, if any.
+ */
+initializationPromisesMap, 
+/**
+ * Wrapped gtag calls sometimes require all dynamic config fetches to have returned
+ * before determining what initialization promises (which include FIDs) to wait for.
+ */
+dynamicConfigPromisesList, 
+/**
+ * Wrapped gtag config calls can narrow down which initialization promise (with FID)
+ * to wait for if the measurementId is already fetched, by getting the corresponding appId,
+ * which is the key for the initialization promises map.
+ */
+measurementIdToAppId) {
+    /**
+     * Wrapper around gtag that ensures FID is sent with gtag calls.
+     * @param command Gtag command type.
+     * @param idOrNameOrParams Measurement ID if command is EVENT/CONFIG, params if command is SET.
+     * @param gtagParams Params if event is EVENT/CONFIG.
+     */
+    function gtagWrapper(command, idOrNameOrParams, gtagParams) {
+        return tslib.__awaiter(this, void 0, void 0, function () {
+            var e_3;
+            return tslib.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 6, , 7]);
+                        if (!(command === GtagCommand.EVENT)) return [3 /*break*/, 2];
+                        // If EVENT, second arg must be measurementId.
+                        return [4 /*yield*/, gtagOnEvent(gtagCore, initializationPromisesMap, dynamicConfigPromisesList, idOrNameOrParams, gtagParams)];
+                    case 1:
+                        // If EVENT, second arg must be measurementId.
+                        _a.sent();
+                        return [3 /*break*/, 5];
+                    case 2:
+                        if (!(command === GtagCommand.CONFIG)) return [3 /*break*/, 4];
+                        // If CONFIG, second arg must be measurementId.
+                        return [4 /*yield*/, gtagOnConfig(gtagCore, initializationPromisesMap, dynamicConfigPromisesList, measurementIdToAppId, idOrNameOrParams, gtagParams)];
+                    case 3:
+                        // If CONFIG, second arg must be measurementId.
+                        _a.sent();
+                        return [3 /*break*/, 5];
+                    case 4:
+                        // If SET, second arg must be params.
+                        gtagCore(GtagCommand.SET, idOrNameOrParams);
+                        _a.label = 5;
+                    case 5: return [3 /*break*/, 7];
+                    case 6:
+                        e_3 = _a.sent();
+                        logger.error(e_3);
+                        return [3 /*break*/, 7];
+                    case 7: return [2 /*return*/];
                 }
-                for (var _i = 0, gaSendToList_1 = gaSendToList; _i < gaSendToList_1.length; _i++) {
-                    var sendToId = gaSendToList_1[_i];
-                    var initializationPromise = initializedIdPromisesMap[sendToId];
-                    // Groups will not be in the map.
-                    if (initializationPromise) {
-                        initializationPromisesToWaitFor.push(initializationPromise);
-                    }
-                    else {
-                        // There is an item in 'send_to' that is not associated
-                        // directly with an FID, possibly a group.  Empty this array
-                        // and let it get populated below.
-                        initializationPromisesToWaitFor = [];
-                        break;
-                    }
-                }
-            }
-            // This will be unpopulated if there was no 'send_to' field , or
-            // if not all entries in the 'send_to' field could be mapped to
-            // a FID. In these cases, wait on all pending initialization promises.
-            if (initializationPromisesToWaitFor.length === 0) {
-                for (var _a = 0, _b = Object.values(initializedIdPromisesMap); _a < _b.length; _a++) {
-                    var idPromise = _b[_a];
-                    initializationPromisesToWaitFor.push(idPromise);
-                }
-            }
-            // Run core gtag function with args after all relevant initialization
-            // promises have been resolved.
-            Promise.all(initializationPromisesToWaitFor)
-                // Workaround for http://b/141370449 - third argument cannot be undefined.
-                .then(function () {
-                return gtagCore(GtagCommand.EVENT, idOrNameOrParams, gtagParams || {});
-            })
-                .catch(function (e) { return logger.error(e); });
-        }
-        else if (command === GtagCommand.CONFIG) {
-            var initializationPromiseToWait = initializedIdPromisesMap[idOrNameOrParams] ||
-                Promise.resolve();
-            initializationPromiseToWait
-                .then(function () {
-                gtagCore(GtagCommand.CONFIG, idOrNameOrParams, gtagParams);
-            })
-                .catch(function (e) { return logger.error(e); });
-        }
-        else {
-            // SET command.
-            // Splitting calls for CONFIG and SET to make it clear which signature
-            // Typescript is checking.
-            gtagCore(GtagCommand.SET, idOrNameOrParams);
-        }
-    };
+            });
+        });
+    }
+    return gtagWrapper;
 }
 /**
  * Creates global gtag function or wraps existing one if found.
  * This wrapped function attaches Firebase instance ID (FID) to gtag 'config' and
  * 'event' calls that belong to the GAID associated with this Firebase instance.
  *
- * @param initializedIdPromisesMap Map of gaId to initialization promises.
+ * @param initializationPromisesMap Map of appIds to their initialization promises.
+ * @param dynamicConfigPromisesList Array of dynamic config fetch promises.
+ * @param measurementIdToAppId Map of GA measurementIDs to corresponding Firebase appId.
  * @param dataLayerName Name of global GA datalayer array.
- * @param gtagFunctionName Name of global gtag function ("gtag" if not user-specified)
+ * @param gtagFunctionName Name of global gtag function ("gtag" if not user-specified).
  */
-function wrapOrCreateGtag(initializedIdPromisesMap, dataLayerName, gtagFunctionName) {
+function wrapOrCreateGtag(initializationPromisesMap, dynamicConfigPromisesList, measurementIdToAppId, dataLayerName, gtagFunctionName) {
     // Create a basic core gtag function
     var gtagCore = function () {
         var _args = [];
@@ -406,7 +555,7 @@ function wrapOrCreateGtag(initializedIdPromisesMap, dataLayerName, gtagFunctionN
         // @ts-ignore
         gtagCore = window[gtagFunctionName];
     }
-    window[gtagFunctionName] = wrapGtag(gtagCore, initializedIdPromisesMap);
+    window[gtagFunctionName] = wrapGtag(gtagCore, initializationPromisesMap, dynamicConfigPromisesList, measurementIdToAppId);
     return {
         gtagCore: gtagCore,
         wrappedGtag: window[gtagFunctionName]
@@ -428,7 +577,7 @@ function findGtagScriptOnPage() {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -444,22 +593,37 @@ function findGtagScriptOnPage() {
  */
 var _a;
 var ERRORS = (_a = {},
-    _a["no-ga-id" /* NO_GA_ID */] = "\"" + ANALYTICS_ID_FIELD + "\" field is empty in " +
-        'Firebase config. Firebase Analytics ' +
-        'requires this field to contain a valid measurement ID.',
-    _a["already-exists" /* ALREADY_EXISTS */] = 'A Firebase Analytics instance with the measurement ID ${id} ' +
+    _a["already-exists" /* ALREADY_EXISTS */] = 'A Firebase Analytics instance with the appId {$id} ' +
         ' already exists. ' +
-        'Only one Firebase Analytics instance can be created for each measurement ID.',
+        'Only one Firebase Analytics instance can be created for each appId.',
     _a["already-initialized" /* ALREADY_INITIALIZED */] = 'Firebase Analytics has already been initialized.' +
         'settings() must be called before initializing any Analytics instance' +
         'or it will have no effect.',
-    _a["interop-component-reg-failed" /* INTEROP_COMPONENT_REG_FAILED */] = 'Firebase Analytics Interop Component failed to instantiate',
+    _a["interop-component-reg-failed" /* INTEROP_COMPONENT_REG_FAILED */] = 'Firebase Analytics Interop Component failed to instantiate: {$reason}',
+    _a["indexedDB-unsupported" /* INDEXED_DB_UNSUPPORTED */] = 'IndexedDB is not supported by current browswer',
+    _a["invalid-indexedDB-context" /* INVALID_INDEXED_DB_CONTEXT */] = "Environment doesn't support IndexedDB: {$errorInfo}. " +
+        'Wrap initialization of analytics in analytics.isSupported() ' +
+        'to prevent initialization in unsupported environments',
+    _a["cookies-not-enabled" /* COOKIES_NOT_ENABLED */] = 'Cookies are not enabled in this browser environment. Analytics requires cookies to be enabled.',
+    _a["invalid-analytics-context" /* INVALID_ANALYTICS_CONTEXT */] = 'Firebase Analytics is not supported in browser extensions.',
+    _a["fetch-throttle" /* FETCH_THROTTLE */] = 'The config fetch request timed out while in an exponential backoff state.' +
+        ' Unix timestamp in milliseconds when fetch request throttling ends: {$throttleEndTimeMillis}.',
+    _a["config-fetch-failed" /* CONFIG_FETCH_FAILED */] = 'Dynamic config fetch failed: [{$httpStatus}] {$responseMessage}',
+    _a["no-api-key" /* NO_API_KEY */] = 'The "apiKey" field is empty in the local Firebase config. Firebase Analytics requires this field to' +
+        'contain a valid API key.',
+    _a["no-app-id" /* NO_APP_ID */] = 'The "appId" field is empty in the local Firebase config. Firebase Analytics requires this field to' +
+        'contain a valid app ID.',
+    _a["indexedDB-unsupported" /* INDEXED_DB_UNSUPPORTED */] = 'IndexedDB is not supported by current browswer',
+    _a["invalid-indexedDB-context" /* INVALID_INDEXED_DB_CONTEXT */] = "Environment doesn't support IndexedDB: {$errorInfo}. " +
+        'Wrap initialization of analytics in analytics.isSupported() ' +
+        'to prevent initialization in unsupported environments',
+    _a["cookies-not-enabled" /* COOKIES_NOT_ENABLED */] = 'Cookies are not enabled in this browser environment. Analytics requires cookies to be enabled.',
     _a);
 var ERROR_FACTORY = new util.ErrorFactory('analytics', 'Analytics', ERRORS);
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2020 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -474,9 +638,378 @@ var ERROR_FACTORY = new util.ErrorFactory('analytics', 'Analytics', ERRORS);
  * limitations under the License.
  */
 /**
- * Maps gaId to FID fetch promises.
+ * Backoff factor for 503 errors, which we want to be conservative about
+ * to avoid overloading servers. Each retry interval will be
+ * BASE_INTERVAL_MILLIS * LONG_RETRY_FACTOR ^ retryCount, so the second one
+ * will be ~30 seconds (with fuzzing).
  */
-var initializedIdPromisesMap = {};
+var LONG_RETRY_FACTOR = 30;
+/**
+ * Base wait interval to multiplied by backoffFactor^backoffCount.
+ */
+var BASE_INTERVAL_MILLIS = 1000;
+/**
+ * Stubbable retry data storage class.
+ */
+var RetryData = /** @class */ (function () {
+    function RetryData(throttleMetadata, intervalMillis) {
+        if (throttleMetadata === void 0) { throttleMetadata = {}; }
+        if (intervalMillis === void 0) { intervalMillis = BASE_INTERVAL_MILLIS; }
+        this.throttleMetadata = throttleMetadata;
+        this.intervalMillis = intervalMillis;
+    }
+    RetryData.prototype.getThrottleMetadata = function (appId) {
+        return this.throttleMetadata[appId];
+    };
+    RetryData.prototype.setThrottleMetadata = function (appId, metadata) {
+        this.throttleMetadata[appId] = metadata;
+    };
+    RetryData.prototype.deleteThrottleMetadata = function (appId) {
+        delete this.throttleMetadata[appId];
+    };
+    return RetryData;
+}());
+var defaultRetryData = new RetryData();
+/**
+ * Set GET request headers.
+ * @param apiKey App API key.
+ */
+function getHeaders(apiKey) {
+    return new Headers({
+        Accept: 'application/json',
+        'x-goog-api-key': apiKey
+    });
+}
+/**
+ * Fetches dynamic config from backend.
+ * @param app Firebase app to fetch config for.
+ */
+function fetchDynamicConfig(appFields) {
+    var _a;
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var appId, apiKey, request, appUrl, response, errorMessage, jsonResponse, _ignored_1;
+        return tslib.__generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    appId = appFields.appId, apiKey = appFields.apiKey;
+                    request = {
+                        method: 'GET',
+                        headers: getHeaders(apiKey)
+                    };
+                    appUrl = DYNAMIC_CONFIG_URL.replace('{app-id}', appId);
+                    return [4 /*yield*/, fetch(appUrl, request)];
+                case 1:
+                    response = _b.sent();
+                    if (!(response.status !== 200 && response.status !== 304)) return [3 /*break*/, 6];
+                    errorMessage = '';
+                    _b.label = 2;
+                case 2:
+                    _b.trys.push([2, 4, , 5]);
+                    return [4 /*yield*/, response.json()];
+                case 3:
+                    jsonResponse = (_b.sent());
+                    if ((_a = jsonResponse.error) === null || _a === void 0 ? void 0 : _a.message) {
+                        errorMessage = jsonResponse.error.message;
+                    }
+                    return [3 /*break*/, 5];
+                case 4:
+                    _ignored_1 = _b.sent();
+                    return [3 /*break*/, 5];
+                case 5: throw ERROR_FACTORY.create("config-fetch-failed" /* CONFIG_FETCH_FAILED */, {
+                    httpStatus: response.status,
+                    responseMessage: errorMessage
+                });
+                case 6: return [2 /*return*/, response.json()];
+            }
+        });
+    });
+}
+/**
+ * Fetches dynamic config from backend, retrying if failed.
+ * @param app Firebase app to fetch config for.
+ */
+function fetchDynamicConfigWithRetry(app, 
+// retryData and timeoutMillis are parameterized to allow passing a different value for testing.
+retryData, timeoutMillis) {
+    if (retryData === void 0) { retryData = defaultRetryData; }
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var _a, appId, apiKey, measurementId, throttleMetadata, signal;
+        var _this = this;
+        return tslib.__generator(this, function (_b) {
+            _a = app.options, appId = _a.appId, apiKey = _a.apiKey, measurementId = _a.measurementId;
+            if (!appId) {
+                throw ERROR_FACTORY.create("no-app-id" /* NO_APP_ID */);
+            }
+            if (!apiKey) {
+                if (measurementId) {
+                    return [2 /*return*/, {
+                            measurementId: measurementId,
+                            appId: appId
+                        }];
+                }
+                throw ERROR_FACTORY.create("no-api-key" /* NO_API_KEY */);
+            }
+            throttleMetadata = retryData.getThrottleMetadata(appId) || {
+                backoffCount: 0,
+                throttleEndTimeMillis: Date.now()
+            };
+            signal = new AnalyticsAbortSignal();
+            setTimeout(function () { return tslib.__awaiter(_this, void 0, void 0, function () {
+                return tslib.__generator(this, function (_a) {
+                    // Note a very low delay, eg < 10ms, can elapse before listeners are initialized.
+                    signal.abort();
+                    return [2 /*return*/];
+                });
+            }); }, timeoutMillis !== undefined ? timeoutMillis : FETCH_TIMEOUT_MILLIS);
+            return [2 /*return*/, attemptFetchDynamicConfigWithRetry({ appId: appId, apiKey: apiKey, measurementId: measurementId }, throttleMetadata, signal, retryData)];
+        });
+    });
+}
+/**
+ * Runs one retry attempt.
+ * @param appFields Necessary app config fields.
+ * @param throttleMetadata Ongoing metadata to determine throttling times.
+ * @param signal Abort signal.
+ */
+function attemptFetchDynamicConfigWithRetry(appFields, _a, signal, retryData // for testing
+) {
+    var throttleEndTimeMillis = _a.throttleEndTimeMillis, backoffCount = _a.backoffCount;
+    if (retryData === void 0) { retryData = defaultRetryData; }
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var appId, measurementId, e_1, response, e_2, backoffMillis, throttleMetadata;
+        return tslib.__generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    appId = appFields.appId, measurementId = appFields.measurementId;
+                    _b.label = 1;
+                case 1:
+                    _b.trys.push([1, 3, , 4]);
+                    return [4 /*yield*/, setAbortableTimeout(signal, throttleEndTimeMillis)];
+                case 2:
+                    _b.sent();
+                    return [3 /*break*/, 4];
+                case 3:
+                    e_1 = _b.sent();
+                    if (measurementId) {
+                        logger.warn("Timed out fetching this Firebase app's measurement ID from the server." +
+                            (" Falling back to the measurement ID " + measurementId) +
+                            (" provided in the \"measurementId\" field in the local Firebase config. [" + e_1.message + "]"));
+                        return [2 /*return*/, { appId: appId, measurementId: measurementId }];
+                    }
+                    throw e_1;
+                case 4:
+                    _b.trys.push([4, 6, , 7]);
+                    return [4 /*yield*/, fetchDynamicConfig(appFields)];
+                case 5:
+                    response = _b.sent();
+                    // Note the SDK only clears throttle state if response is success or non-retriable.
+                    retryData.deleteThrottleMetadata(appId);
+                    return [2 /*return*/, response];
+                case 6:
+                    e_2 = _b.sent();
+                    if (!isRetriableError(e_2)) {
+                        retryData.deleteThrottleMetadata(appId);
+                        if (measurementId) {
+                            logger.warn("Failed to fetch this Firebase app's measurement ID from the server." +
+                                (" Falling back to the measurement ID " + measurementId) +
+                                (" provided in the \"measurementId\" field in the local Firebase config. [" + e_2.message + "]"));
+                            return [2 /*return*/, { appId: appId, measurementId: measurementId }];
+                        }
+                        else {
+                            throw e_2;
+                        }
+                    }
+                    backoffMillis = Number(e_2.httpStatus) === 503
+                        ? util.calculateBackoffMillis(backoffCount, retryData.intervalMillis, LONG_RETRY_FACTOR)
+                        : util.calculateBackoffMillis(backoffCount, retryData.intervalMillis);
+                    throttleMetadata = {
+                        throttleEndTimeMillis: Date.now() + backoffMillis,
+                        backoffCount: backoffCount + 1
+                    };
+                    // Persists state.
+                    retryData.setThrottleMetadata(appId, throttleMetadata);
+                    logger.debug("Calling attemptFetch again in " + backoffMillis + " millis");
+                    return [2 /*return*/, attemptFetchDynamicConfigWithRetry(appFields, throttleMetadata, signal, retryData)];
+                case 7: return [2 /*return*/];
+            }
+        });
+    });
+}
+/**
+ * Supports waiting on a backoff by:
+ *
+ * <ul>
+ *   <li>Promisifying setTimeout, so we can set a timeout in our Promise chain</li>
+ *   <li>Listening on a signal bus for abort events, just like the Fetch API</li>
+ *   <li>Failing in the same way the Fetch API fails, so timing out a live request and a throttled
+ *       request appear the same.</li>
+ * </ul>
+ *
+ * <p>Visible for testing.
+ */
+function setAbortableTimeout(signal, throttleEndTimeMillis) {
+    return new Promise(function (resolve, reject) {
+        // Derives backoff from given end time, normalizing negative numbers to zero.
+        var backoffMillis = Math.max(throttleEndTimeMillis - Date.now(), 0);
+        var timeout = setTimeout(resolve, backoffMillis);
+        // Adds listener, rather than sets onabort, because signal is a shared object.
+        signal.addEventListener(function () {
+            clearTimeout(timeout);
+            // If the request completes before this timeout, the rejection has no effect.
+            reject(ERROR_FACTORY.create("fetch-throttle" /* FETCH_THROTTLE */, {
+                throttleEndTimeMillis: throttleEndTimeMillis
+            }));
+        });
+    });
+}
+/**
+ * Returns true if the {@link Error} indicates a fetch request may succeed later.
+ */
+function isRetriableError(e) {
+    if (!(e instanceof util.FirebaseError)) {
+        return false;
+    }
+    // Uses string index defined by ErrorData, which FirebaseError implements.
+    var httpStatus = Number(e['httpStatus']);
+    return (httpStatus === 429 ||
+        httpStatus === 500 ||
+        httpStatus === 503 ||
+        httpStatus === 504);
+}
+/**
+ * Shims a minimal AbortSignal (copied from Remote Config).
+ *
+ * <p>AbortController's AbortSignal conveniently decouples fetch timeout logic from other aspects
+ * of networking, such as retries. Firebase doesn't use AbortController enough to justify a
+ * polyfill recommendation, like we do with the Fetch API, but this minimal shim can easily be
+ * swapped out if/when we do.
+ */
+var AnalyticsAbortSignal = /** @class */ (function () {
+    function AnalyticsAbortSignal() {
+        this.listeners = [];
+    }
+    AnalyticsAbortSignal.prototype.addEventListener = function (listener) {
+        this.listeners.push(listener);
+    };
+    AnalyticsAbortSignal.prototype.abort = function () {
+        this.listeners.forEach(function (listener) { return listener(); });
+    };
+    return AnalyticsAbortSignal;
+}());
+
+/**
+ * @license
+ * Copyright 2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Initialize the analytics instance in gtag.js by calling config command with fid.
+ *
+ * NOTE: We combine analytics initialization and setting fid together because we want fid to be
+ * part of the `page_view` event that's sent during the initialization
+ * @param app Firebase app
+ * @param gtagCore The gtag function that's not wrapped.
+ * @param dynamicConfigPromisesList Array of all dynamic config promises.
+ * @param measurementIdToAppId Maps measurementID to appID.
+ * @param installations FirebaseInstallations instance.
+ *
+ * @returns Measurement ID.
+ */
+function initializeIds(app, dynamicConfigPromisesList, measurementIdToAppId, installations, gtagCore) {
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var dynamicConfigPromise, _a, dynamicConfig, fid;
+        var _b;
+        return tslib.__generator(this, function (_c) {
+            switch (_c.label) {
+                case 0:
+                    dynamicConfigPromise = fetchDynamicConfigWithRetry(app);
+                    // Once fetched, map measurementIds to appId, for ease of lookup in wrapped gtag function.
+                    dynamicConfigPromise
+                        .then(function (config) {
+                        measurementIdToAppId[config.measurementId] = config.appId;
+                        if (app.options.measurementId &&
+                            config.measurementId !== app.options.measurementId) {
+                            logger.warn("The measurement ID in the local Firebase config (" + app.options.measurementId + ")" +
+                                (" does not match the measurement ID fetched from the server (" + config.measurementId + ").") +
+                                " To ensure analytics events are always sent to the correct Analytics property," +
+                                " update the" +
+                                " measurement ID field in the local config or remove it from the local config.");
+                        }
+                    })
+                        .catch(function (e) { return logger.error(e); });
+                    // Add to list to track state of all dynamic config promises.
+                    dynamicConfigPromisesList.push(dynamicConfigPromise);
+                    return [4 /*yield*/, Promise.all([
+                            dynamicConfigPromise,
+                            installations.getId()
+                        ])];
+                case 1:
+                    _a = _c.sent(), dynamicConfig = _a[0], fid = _a[1];
+                    // This command initializes gtag.js and only needs to be called once for the entire web app,
+                    // but since it is idempotent, we can call it multiple times.
+                    // We keep it together with other initialization logic for better code structure.
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    gtagCore('js', new Date());
+                    // It should be the first config command called on this GA-ID
+                    // Initialize this GA-ID and set FID on it using the gtag config API.
+                    gtagCore(GtagCommand.CONFIG, dynamicConfig.measurementId, (_b = {},
+                        _b[GA_FID_KEY] = fid,
+                        // guard against developers accidentally setting properties with prefix `firebase_`
+                        _b[ORIGIN_KEY] = 'firebase',
+                        _b.update = true,
+                        _b));
+                    return [2 /*return*/, dynamicConfig.measurementId];
+            }
+        });
+    });
+}
+
+/**
+ * @license
+ * Copyright 2019 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Maps appId to full initialization promise. Wrapped gtag calls must wait on
+ * all or some of these, depending on the call's `send_to` param and the status
+ * of the dynamic config fetches (see below).
+ */
+var initializationPromisesMap = {};
+/**
+ * List of dynamic config fetch promises. In certain cases, wrapped gtag calls
+ * wait on all these to be complete in order to determine if it can selectively
+ * wait for only certain initialization (FID) promises or if it must wait for all.
+ */
+var dynamicConfigPromisesList = [];
+/**
+ * Maps fetched measurementIds to appId. Populated when the app's dynamic config
+ * fetch completes. If already populated, gtag config calls can use this to
+ * selectively wait for only this app's initialization promise (FID) instead of all
+ * initialization promises.
+ */
+var measurementIdToAppId = {};
 /**
  * Name for window global data layer array used by GA: defaults to 'dataLayer'.
  */
@@ -503,11 +1036,13 @@ var globalInitDone = false;
 /**
  * For testing
  */
-function resetGlobalVars(newGlobalInitDone, newGaInitializedPromise) {
+function resetGlobalVars(newGlobalInitDone, newInitializationPromisesMap, newDynamicPromises) {
     if (newGlobalInitDone === void 0) { newGlobalInitDone = false; }
-    if (newGaInitializedPromise === void 0) { newGaInitializedPromise = {}; }
+    if (newInitializationPromisesMap === void 0) { newInitializationPromisesMap = {}; }
+    if (newDynamicPromises === void 0) { newDynamicPromises = []; }
     globalInitDone = newGlobalInitDone;
-    initializedIdPromisesMap = newGaInitializedPromise;
+    initializationPromisesMap = newInitializationPromisesMap;
+    dynamicConfigPromisesList = newDynamicPromises;
     dataLayerName = 'dataLayer';
     gtagName = 'gtag';
 }
@@ -516,7 +1051,8 @@ function resetGlobalVars(newGlobalInitDone, newGaInitializedPromise) {
  */
 function getGlobalVars() {
     return {
-        initializedIdPromisesMap: initializedIdPromisesMap
+        initializationPromisesMap: initializationPromisesMap,
+        dynamicConfigPromisesList: dynamicConfigPromisesList
     };
 }
 /**
@@ -536,13 +1072,39 @@ function settings(options) {
     }
 }
 function factory(app, installations) {
-    var analyticsId = app.options[ANALYTICS_ID_FIELD];
-    if (!analyticsId) {
-        throw ERROR_FACTORY.create("no-ga-id" /* NO_GA_ID */);
+    if (util.isBrowserExtension()) {
+        throw ERROR_FACTORY.create("invalid-analytics-context" /* INVALID_ANALYTICS_CONTEXT */);
     }
-    if (initializedIdPromisesMap[analyticsId] != null) {
+    if (!util.areCookiesEnabled()) {
+        throw ERROR_FACTORY.create("cookies-not-enabled" /* COOKIES_NOT_ENABLED */);
+    }
+    if (!util.isIndexedDBAvailable()) {
+        throw ERROR_FACTORY.create("indexedDB-unsupported" /* INDEXED_DB_UNSUPPORTED */);
+    }
+    // Async but non-blocking.
+    util.validateIndexedDBOpenable().catch(function (error) {
+        var analyticsError = ERROR_FACTORY.create("invalid-indexedDB-context" /* INVALID_INDEXED_DB_CONTEXT */, {
+            errorInfo: error
+        });
+        logger.warn(analyticsError.message);
+    });
+    var appId = app.options.appId;
+    if (!appId) {
+        throw ERROR_FACTORY.create("no-app-id" /* NO_APP_ID */);
+    }
+    if (!app.options.apiKey) {
+        if (app.options.measurementId) {
+            logger.warn("The \"apiKey\" field is empty in the local Firebase config. This is needed to fetch the latest" +
+                (" measurement ID for this Firebase app. Falling back to the measurement ID " + app.options.measurementId) +
+                " provided in the \"measurementId\" field in the local Firebase config.");
+        }
+        else {
+            throw ERROR_FACTORY.create("no-api-key" /* NO_API_KEY */);
+        }
+    }
+    if (initializationPromisesMap[appId] != null) {
         throw ERROR_FACTORY.create("already-exists" /* ALREADY_EXISTS */, {
-            id: analyticsId
+            id: appId
         });
     }
     if (!globalInitDone) {
@@ -553,53 +1115,46 @@ function factory(app, installations) {
             insertScriptTag(dataLayerName);
         }
         getOrCreateDataLayer(dataLayerName);
-        var _a = wrapOrCreateGtag(initializedIdPromisesMap, dataLayerName, gtagName), wrappedGtag = _a.wrappedGtag, gtagCore = _a.gtagCore;
+        var _a = wrapOrCreateGtag(initializationPromisesMap, dynamicConfigPromisesList, measurementIdToAppId, dataLayerName, gtagName), wrappedGtag = _a.wrappedGtag, gtagCore = _a.gtagCore;
         wrappedGtagFunction = wrappedGtag;
         gtagCoreFunction = gtagCore;
         globalInitDone = true;
     }
     // Async but non-blocking.
-    initializedIdPromisesMap[analyticsId] = initializeGAId(app, installations, gtagCoreFunction);
+    // This map reflects the completion state of all promises for each appId.
+    initializationPromisesMap[appId] = initializeIds(app, dynamicConfigPromisesList, measurementIdToAppId, installations, gtagCoreFunction);
     var analyticsInstance = {
         app: app,
+        // Public methods return void for API simplicity and to better match gtag,
+        // while internal implementations return promises.
         logEvent: function (eventName, eventParams, options) {
-            return logEvent(wrappedGtagFunction, analyticsId, eventName, eventParams, options);
+            logEvent(wrappedGtagFunction, initializationPromisesMap[appId], eventName, eventParams, options).catch(function (e) { return logger.error(e); });
         },
         setCurrentScreen: function (screenName, options) {
-            return setCurrentScreen(wrappedGtagFunction, analyticsId, screenName, options);
+            setCurrentScreen(wrappedGtagFunction, initializationPromisesMap[appId], screenName, options).catch(function (e) { return logger.error(e); });
         },
         setUserId: function (id, options) {
-            return setUserId(wrappedGtagFunction, analyticsId, id, options);
+            setUserId(wrappedGtagFunction, initializationPromisesMap[appId], id, options).catch(function (e) { return logger.error(e); });
         },
         setUserProperties: function (properties, options) {
-            return setUserProperties(wrappedGtagFunction, analyticsId, properties, options);
+            setUserProperties(wrappedGtagFunction, initializationPromisesMap[appId], properties, options).catch(function (e) { return logger.error(e); });
         },
         setAnalyticsCollectionEnabled: function (enabled) {
-            return setAnalyticsCollectionEnabled(analyticsId, enabled);
+            setAnalyticsCollectionEnabled(initializationPromisesMap[appId], enabled).catch(function (e) { return logger.error(e); });
+        },
+        INTERNAL: {
+            delete: function () {
+                delete initializationPromisesMap[appId];
+                return Promise.resolve();
+            }
         }
     };
     return analyticsInstance;
 }
 
 var name = "@firebase/analytics";
-var version = "0.3.3";
+var version = "0.5.0";
 
-/**
- * @license
- * Copyright 2019 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 /**
  * Type constant for Firebase Analytics.
  */
@@ -614,7 +1169,8 @@ function registerAnalytics(instance) {
         return factory(app, installations);
     }, "PUBLIC" /* PUBLIC */).setServiceProps({
         settings: settings,
-        EventName: EventName
+        EventName: EventName,
+        isSupported: isSupported
     }));
     instance.INTERNAL.registerComponent(new component.Component('analytics-internal', internalFactory, "PRIVATE" /* PRIVATE */));
     instance.registerVersion(name, version);
@@ -632,7 +1188,46 @@ function registerAnalytics(instance) {
         }
     }
 }
-registerAnalytics(firebase);
+registerAnalytics(firebase__default['default']);
+/**
+ * this is a public static method provided to users that wraps four different checks:
+ *
+ * 1. check if it's not a browser extension environment.
+ * 1. check if cookie is enabled in current browser.
+ * 3. check if IndexedDB is supported by the browser environment.
+ * 4. check if the current browser context is valid for using IndexedDB.
+ *
+ */
+function isSupported() {
+    return tslib.__awaiter(this, void 0, void 0, function () {
+        var isDBOpenable, error_1;
+        return tslib.__generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (util.isBrowserExtension()) {
+                        return [2 /*return*/, false];
+                    }
+                    if (!util.areCookiesEnabled()) {
+                        return [2 /*return*/, false];
+                    }
+                    if (!util.isIndexedDBAvailable()) {
+                        return [2 /*return*/, false];
+                    }
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 3, , 4]);
+                    return [4 /*yield*/, util.validateIndexedDBOpenable()];
+                case 2:
+                    isDBOpenable = _a.sent();
+                    return [2 /*return*/, isDBOpenable];
+                case 3:
+                    error_1 = _a.sent();
+                    return [2 /*return*/, false];
+                case 4: return [2 /*return*/];
+            }
+        });
+    });
+}
 
 exports.factory = factory;
 exports.getGlobalVars = getGlobalVars;
@@ -653,7 +1248,7 @@ var logger$1 = require('@firebase/logger');
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -681,7 +1276,7 @@ var ERRORS = (_a = {},
 var ERROR_FACTORY = new util.ErrorFactory('app', 'Firebase', ERRORS);
 
 var name$1 = "@firebase/app";
-var version = "0.6.2";
+var version = "0.6.11";
 
 var name$2 = "@firebase/analytics";
 
@@ -707,7 +1302,7 @@ var name$c = "firebase-wrapper";
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -741,7 +1336,7 @@ var PLATFORM_LOG_STRING = (_a$1 = {},
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -759,7 +1354,7 @@ var logger = new logger$1.Logger('@firebase/app');
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -814,7 +1409,7 @@ var FirebaseAppImpl = /** @class */ (function () {
             this.checkDestroyed_();
             this.automaticDataCollectionEnabled_ = val;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(FirebaseAppImpl.prototype, "name", {
@@ -822,7 +1417,7 @@ var FirebaseAppImpl = /** @class */ (function () {
             this.checkDestroyed_();
             return this.name_;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(FirebaseAppImpl.prototype, "options", {
@@ -830,7 +1425,7 @@ var FirebaseAppImpl = /** @class */ (function () {
             this.checkDestroyed_();
             return this.options_;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     FirebaseAppImpl.prototype.delete = function () {
@@ -915,11 +1510,11 @@ var FirebaseAppImpl = /** @class */ (function () {
     FirebaseAppImpl.prototype.delete ||
     console.log('dc');
 
-var version$1 = "7.14.1";
+var version$1 = "7.20.0";
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1149,7 +1744,7 @@ function createFirebaseNamespaceCore(firebaseAppImpl) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1191,7 +1786,7 @@ var firebase = createFirebaseNamespace();
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1245,7 +1840,7 @@ function isVersionServiceProvider(provider) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1363,7 +1958,7 @@ var Component = /** @class */ (function () {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1381,7 +1976,7 @@ var DEFAULT_ENTRY_NAME = '[DEFAULT]';
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1519,10 +2114,13 @@ var Provider = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         services = Array.from(this.instances.values());
-                        return [4 /*yield*/, Promise.all(services
-                                .filter(function (service) { return 'INTERNAL' in service; })
+                        return [4 /*yield*/, Promise.all(tslib.__spread(services
+                                .filter(function (service) { return 'INTERNAL' in service; }) // legacy services
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                .map(function (service) { return service.INTERNAL.delete(); }))];
+                                .map(function (service) { return service.INTERNAL.delete(); }), services
+                                .filter(function (service) { return '_delete' in service; }) // modularized services
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                .map(function (service) { return service._delete(); })))];
                     case 1:
                         _a.sent();
                         return [2 /*return*/];
@@ -1561,7 +2159,7 @@ function isComponentEager(component) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1639,20 +2237,22 @@ exports.Provider = Provider;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var firebase = _interopDefault(require('@firebase/app'));
+var firebase = require('@firebase/app');
 var component = require('@firebase/component');
 var tslib = require('tslib');
 var util = require('@firebase/util');
 var idb = require('idb');
 
+function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+var firebase__default = /*#__PURE__*/_interopDefaultLegacy(firebase);
+
 var name = "@firebase/installations";
-var version = "0.4.8";
+var version = "0.4.17";
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1676,7 +2276,7 @@ var SERVICE_NAME = 'Installations';
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1708,7 +2308,7 @@ function isServerError(error) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1799,7 +2399,7 @@ function getAuthorizationHeader(refreshToken) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1856,7 +2456,7 @@ function createInstallationRequest(appConfig, _a) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1879,7 +2479,7 @@ function sleep(ms) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1900,7 +2500,7 @@ function bufferToBase64UrlSafe(array) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1947,7 +2547,7 @@ function encode(fidByteArray) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1968,7 +2568,7 @@ function getKey(appConfig) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2064,7 +2664,7 @@ function closeBroadcastChannel() {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2196,7 +2796,7 @@ function update(appConfig, updateFn) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2216,7 +2816,8 @@ function update(appConfig, updateFn) {
  */
 function getInstallationEntry(appConfig) {
     return tslib.__awaiter(this, void 0, void 0, function () {
-        var registrationPromise, installationEntry, _a;
+        var registrationPromise, installationEntry;
+        var _a;
         return tslib.__generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, update(appConfig, function (oldEntry) {
@@ -2397,7 +2998,7 @@ function hasInstallationRequestTimedOut(installationEntry) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2458,7 +3059,7 @@ function getGenerateAuthTokenEndpoint(appConfig, _a) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2650,7 +3251,7 @@ function hasAuthTokenRequestTimedOut(authToken) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2688,7 +3289,7 @@ function getId(dependencies) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2742,7 +3343,7 @@ function completeInstallationRegistration(appConfig) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2786,7 +3387,7 @@ function getDeleteEndpoint(appConfig, _a) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2839,7 +3440,7 @@ function deleteInstallation(dependencies) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2867,7 +3468,7 @@ function onIdChange(_a, callback) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2925,7 +3526,7 @@ function getMissingValueError(valueName) {
 
 /**
  * @license
- * Copyright 2019 Google Inc.
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2965,7 +3566,7 @@ function registerInstallations(instance) {
     }, "PUBLIC" /* PUBLIC */));
     instance.registerVersion(name, version);
 }
-registerInstallations(firebase);
+registerInstallations(firebase__default['default']);
 
 exports.registerInstallations = registerInstallations;
 
@@ -3000,7 +3601,7 @@ function __spreadArrays() {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3107,13 +3708,17 @@ var Logger = /** @class */ (function () {
         },
         set: function (val) {
             if (!(val in exports.LogLevel)) {
-                throw new TypeError('Invalid value assigned to `logLevel`');
+                throw new TypeError("Invalid value \"" + val + "\" assigned to `logLevel`");
             }
             this._logLevel = val;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
+    // Workaround for setter/getter having to be the same type.
+    Logger.prototype.setLogLevel = function (val) {
+        this._logLevel = typeof val === 'string' ? levelStringToEnum[val] : val;
+    };
     Object.defineProperty(Logger.prototype, "logHandler", {
         get: function () {
             return this._logHandler;
@@ -3124,7 +3729,7 @@ var Logger = /** @class */ (function () {
             }
             this._logHandler = val;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Logger.prototype, "userLogHandler", {
@@ -3134,7 +3739,7 @@ var Logger = /** @class */ (function () {
         set: function (val) {
             this._userLogHandler = val;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     /**
@@ -3183,9 +3788,8 @@ var Logger = /** @class */ (function () {
     return Logger;
 }());
 function setLogLevel(level) {
-    var newLevel = typeof level === 'string' ? levelStringToEnum[level] : level;
     instances.forEach(function (inst) {
-        inst.logLevel = newLevel;
+        inst.setLogLevel(level);
     });
 }
 function setUserLogHandler(logCallback, options) {
@@ -3260,7 +3864,7 @@ var tslib = require('tslib');
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3294,7 +3898,7 @@ var CONSTANTS = {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3328,7 +3932,7 @@ var assertionError = function (message) {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3629,7 +4233,7 @@ var base64Decode = function (str) {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3695,7 +4299,7 @@ function deepExtend(target, source) {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3753,7 +4357,7 @@ var Deferred = /** @class */ (function () {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3851,10 +4455,65 @@ function isUWP() {
 function isNodeSdk() {
     return CONSTANTS.NODE_CLIENT === true || CONSTANTS.NODE_ADMIN === true;
 }
+/** Returns true if we are running in Safari. */
+function isSafari() {
+    return (!isNode() &&
+        navigator.userAgent.includes('Safari') &&
+        !navigator.userAgent.includes('Chrome'));
+}
+/**
+ * This method checks if indexedDB is supported by current browser/service worker context
+ * @return true if indexedDB is supported by current browser/service worker context
+ */
+function isIndexedDBAvailable() {
+    return 'indexedDB' in self && indexedDB != null;
+}
+/**
+ * This method validates browser context for indexedDB by opening a dummy indexedDB database and reject
+ * if errors occur during the database open operation.
+ */
+function validateIndexedDBOpenable() {
+    return new Promise(function (resolve, reject) {
+        try {
+            var preExist_1 = true;
+            var DB_CHECK_NAME_1 = 'validate-browser-context-for-indexeddb-analytics-module';
+            var request_1 = window.indexedDB.open(DB_CHECK_NAME_1);
+            request_1.onsuccess = function () {
+                request_1.result.close();
+                // delete database only when it doesn't pre-exist
+                if (!preExist_1) {
+                    window.indexedDB.deleteDatabase(DB_CHECK_NAME_1);
+                }
+                resolve(true);
+            };
+            request_1.onupgradeneeded = function () {
+                preExist_1 = false;
+            };
+            request_1.onerror = function () {
+                var _a;
+                reject(((_a = request_1.error) === null || _a === void 0 ? void 0 : _a.message) || '');
+            };
+        }
+        catch (error) {
+            reject(error);
+        }
+    });
+}
+/**
+ *
+ * This method checks whether cookie is enabled within current browser
+ * @return true if cookie is enabled within current browser
+ */
+function areCookiesEnabled() {
+    if (!navigator || !navigator.cookieEnabled) {
+        return false;
+    }
+    return true;
+}
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3926,14 +4585,14 @@ var ErrorFactory = /** @class */ (function () {
 function replaceTemplate(template, data) {
     return template.replace(PATTERN, function (_, key) {
         var value = data[key];
-        return value != null ? value.toString() : "<" + key + "?>";
+        return value != null ? String(value) : "<" + key + "?>";
     });
 }
 var PATTERN = /\{\$([^}]+)}/g;
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3967,7 +4626,7 @@ function stringify(data) {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4078,7 +4737,7 @@ var isAdmin = function (token) {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4123,7 +4782,7 @@ function map(obj, fn, contextObj) {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4178,7 +4837,7 @@ function querystringDecode(querystring) {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4619,6 +5278,7 @@ var ObserverProxy = /** @class */ (function () {
     return ObserverProxy;
 }());
 /** Turn synchronous function into one called asynchronously. */
+// eslint-disable-next-line @typescript-eslint/ban-types
 function async(fn, onError) {
     return function () {
         var args = [];
@@ -4657,7 +5317,7 @@ function noop() {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4745,7 +5405,9 @@ function validateNamespace(fnName, argumentNumber, namespace, optional) {
             'must be a valid firebase namespace.');
     }
 }
-function validateCallback(fnName, argumentNumber, callback, optional) {
+function validateCallback(fnName, argumentNumber, 
+// eslint-disable-next-line @typescript-eslint/ban-types
+callback, optional) {
     if (optional && !callback) {
         return;
     }
@@ -4766,7 +5428,7 @@ function validateContextObject(fnName, argumentNumber, context, optional) {
 
 /**
  * @license
- * Copyright 2017 Google Inc.
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4854,17 +5516,88 @@ var stringLength = function (str) {
     return p;
 };
 
+/**
+ * @license
+ * Copyright 2019 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * The amount of milliseconds to exponentially increase.
+ */
+var DEFAULT_INTERVAL_MILLIS = 1000;
+/**
+ * The factor to backoff by.
+ * Should be a number greater than 1.
+ */
+var DEFAULT_BACKOFF_FACTOR = 2;
+/**
+ * The maximum milliseconds to increase to.
+ *
+ * <p>Visible for testing
+ */
+var MAX_VALUE_MILLIS = 4 * 60 * 60 * 1000; // Four hours, like iOS and Android.
+/**
+ * The percentage of backoff time to randomize by.
+ * See
+ * http://go/safe-client-behavior#step-1-determine-the-appropriate-retry-interval-to-handle-spike-traffic
+ * for context.
+ *
+ * <p>Visible for testing
+ */
+var RANDOM_FACTOR = 0.5;
+/**
+ * Based on the backoff method from
+ * https://github.com/google/closure-library/blob/master/closure/goog/math/exponentialbackoff.js.
+ * Extracted here so we don't need to pass metadata and a stateful ExponentialBackoff object around.
+ */
+function calculateBackoffMillis(backoffCount, intervalMillis, backoffFactor) {
+    if (intervalMillis === void 0) { intervalMillis = DEFAULT_INTERVAL_MILLIS; }
+    if (backoffFactor === void 0) { backoffFactor = DEFAULT_BACKOFF_FACTOR; }
+    // Calculates an exponentially increasing value.
+    // Deviation: calculates value from count and a constant interval, so we only need to save value
+    // and count to restore state.
+    var currBaseValue = intervalMillis * Math.pow(backoffFactor, backoffCount);
+    // A random "fuzz" to avoid waves of retries.
+    // Deviation: randomFactor is required.
+    var randomWait = Math.round(
+    // A fraction of the backoff value to add/subtract.
+    // Deviation: changes multiplication order to improve readability.
+    RANDOM_FACTOR *
+        currBaseValue *
+        // A random float (rounded to int by Math.round above) in the range [-1, 1]. Determines
+        // if we add or subtract.
+        (Math.random() - 0.5) *
+        2);
+    // Limits backoff to max to avoid effectively permanent backoff.
+    return Math.min(MAX_VALUE_MILLIS, currBaseValue + randomWait);
+}
+
 exports.CONSTANTS = CONSTANTS;
 exports.Deferred = Deferred;
 exports.ErrorFactory = ErrorFactory;
 exports.FirebaseError = FirebaseError;
+exports.MAX_VALUE_MILLIS = MAX_VALUE_MILLIS;
+exports.RANDOM_FACTOR = RANDOM_FACTOR;
 exports.Sha1 = Sha1;
+exports.areCookiesEnabled = areCookiesEnabled;
 exports.assert = assert;
 exports.assertionError = assertionError;
 exports.async = async;
 exports.base64 = base64;
 exports.base64Decode = base64Decode;
 exports.base64Encode = base64Encode;
+exports.calculateBackoffMillis = calculateBackoffMillis;
 exports.contains = contains;
 exports.createSubscribe = createSubscribe;
 exports.decode = decode;
@@ -4878,10 +5611,12 @@ exports.isBrowserExtension = isBrowserExtension;
 exports.isElectron = isElectron;
 exports.isEmpty = isEmpty;
 exports.isIE = isIE;
+exports.isIndexedDBAvailable = isIndexedDBAvailable;
 exports.isMobileCordova = isMobileCordova;
 exports.isNode = isNode;
 exports.isNodeSdk = isNodeSdk;
 exports.isReactNative = isReactNative;
+exports.isSafari = isSafari;
 exports.isUWP = isUWP;
 exports.isValidFormat = isValidFormat;
 exports.isValidTimestamp = isValidTimestamp;
@@ -4897,6 +5632,7 @@ exports.stringify = stringify;
 exports.validateArgCount = validateArgCount;
 exports.validateCallback = validateCallback;
 exports.validateContextObject = validateContextObject;
+exports.validateIndexedDBOpenable = validateIndexedDBOpenable;
 exports.validateNamespace = validateNamespace;
 
 
@@ -4911,16 +5647,18 @@ require('@firebase/analytics');
 },{"@firebase/analytics":2}],9:[function(require,module,exports){
 'use strict';
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+var firebase = require('@firebase/app');
 
-var firebase = _interopDefault(require('@firebase/app'));
+function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+var firebase__default = /*#__PURE__*/_interopDefaultLegacy(firebase);
 
 var name = "firebase";
-var version = "7.14.1";
+var version = "7.20.0";
 
 /**
  * @license
- * Copyright 2018 Google Inc.
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4934,9 +5672,9 @@ var version = "7.14.1";
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-firebase.registerVersion(name, version, 'app');
+firebase__default['default'].registerVersion(name, version, 'app');
 
-module.exports = firebase;
+module.exports = firebase__default['default'];
 
 
 },{"@firebase/app":3}],10:[function(require,module,exports){
@@ -5260,19 +5998,20 @@ module.exports = firebase;
 },{}],11:[function(require,module,exports){
 (function (global){
 /*! *****************************************************************************
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at http://www.apache.org/licenses/LICENSE-2.0
+Copyright (c) Microsoft Corporation.
 
-THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
-WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
-MERCHANTABLITY OR NON-INFRINGEMENT.
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
 
-See the Apache Version 2.0 License for specific language governing permissions
-and limitations under the License.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
+
 /* global global, define, System, Reflect, Promise */
 var __extends;
 var __assign;
@@ -5296,6 +6035,7 @@ var __importStar;
 var __importDefault;
 var __classPrivateFieldGet;
 var __classPrivateFieldSet;
+var __createBinding;
 (function (factory) {
     var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
     if (typeof define === "function" && define.amd) {
@@ -5403,8 +6143,13 @@ var __classPrivateFieldSet;
         }
     };
 
+    __createBinding = function(o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+    };
+
     __exportStar = function (m, exports) {
-        for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+        for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) exports[p] = m[p];
     };
 
     __values = function (o) {
@@ -5510,7 +6255,7 @@ var __classPrivateFieldSet;
         }
         privateMap.set(receiver, value);
         return value;
-    }
+    };
 
     exporter("__extends", __extends);
     exporter("__assign", __assign);
@@ -5521,6 +6266,7 @@ var __classPrivateFieldSet;
     exporter("__awaiter", __awaiter);
     exporter("__generator", __generator);
     exporter("__exportStar", __exportStar);
+    exporter("__createBinding", __createBinding);
     exporter("__values", __values);
     exporter("__read", __read);
     exporter("__spread", __spread);
