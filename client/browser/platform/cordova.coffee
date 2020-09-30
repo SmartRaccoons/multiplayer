@@ -26,22 +26,19 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformOffline
       window.open App.config[@options.platform].market, '_system'
 
   _popup_open: (url, callback)->
-    open_safari = (url, callback)=>
-      if !window.SafariViewController
-        return callback(false)
+    open_safari = (url, callback_safari)=>
+      if !(window.SafariViewController and @options.platform is 'ios')
+        return callback_safari(false)
       window.SafariViewController.isAvailable (available)=>
         if !available
-          return callback(false)
+          return callback_safari(false)
         window.SafariViewController.show {url}
-        callback(true)
-    open_default = (url, callback)=>
+        callback_safari(true)
+    open_default = (url, callback_default)=>
       if !(window.cordova and window.cordova.InAppBrowser)
-        return callback(false)
-      @_popup_instance = window.cordova.InAppBrowser.open url, '_system'
-      # @_popup_instance.addEventListener 'loadstart', (event)=>
-      #   if event.url.substr(-5) is 'close'
-      #     @_popup_close()
-      callback(true)
+        return callback_default(false)
+      window.cordova.InAppBrowser.open url, '_system'
+      callback_default(true)
     open_safari url, (success)=>
       if !success
         return open_default url, callback
@@ -50,9 +47,6 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformOffline
   _popup_close: ->
     if window.SafariViewController
       window.SafariViewController.hide()
-    if @_popup_instance
-      @_popup_instance.close()
-      @_popup_instance = null
 
   auth_popup_device: ->
     link = super ...arguments

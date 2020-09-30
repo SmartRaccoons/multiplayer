@@ -29,27 +29,24 @@
 
       _popup_open(url, callback) {
         var open_default, open_safari;
-        open_safari = (url, callback) => {
-          if (!window.SafariViewController) {
-            return callback(false);
+        open_safari = (url, callback_safari) => {
+          if (!(window.SafariViewController && this.options.platform === 'ios')) {
+            return callback_safari(false);
           }
           return window.SafariViewController.isAvailable((available) => {
             if (!available) {
-              return callback(false);
+              return callback_safari(false);
             }
             window.SafariViewController.show({url});
-            return callback(true);
+            return callback_safari(true);
           });
         };
-        open_default = (url, callback) => {
+        open_default = (url, callback_default) => {
           if (!(window.cordova && window.cordova.InAppBrowser)) {
-            return callback(false);
+            return callback_default(false);
           }
-          this._popup_instance = window.cordova.InAppBrowser.open(url, '_system');
-          // @_popup_instance.addEventListener 'loadstart', (event)=>
-          //   if event.url.substr(-5) is 'close'
-          //     @_popup_close()
-          return callback(true);
+          window.cordova.InAppBrowser.open(url, '_system');
+          return callback_default(true);
         };
         return open_safari(url, (success) => {
           if (!success) {
@@ -61,11 +58,7 @@
 
       _popup_close() {
         if (window.SafariViewController) {
-          window.SafariViewController.hide();
-        }
-        if (this._popup_instance) {
-          this._popup_instance.close();
-          return this._popup_instance = null;
+          return window.SafariViewController.hide();
         }
       }
 
