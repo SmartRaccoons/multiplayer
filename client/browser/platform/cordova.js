@@ -27,11 +27,58 @@
         });
       }
 
+      _popup_open(url, callback) {
+        var open_default, open_safari;
+        open_safari = (url, callback) => {
+          if (!window.SafariViewController) {
+            return callback(false);
+          }
+          return window.SafariViewController.isAvailable((available) => {
+            if (!available) {
+              return callback(false);
+            }
+            window.SafariViewController.show({url});
+            return callback(true);
+          });
+        };
+        open_default = (url, callback) => {
+          if (!(window.cordova && window.cordova.InAppBrowser)) {
+            return callback(false);
+          }
+          this._popup_instance = window.cordova.InAppBrowser.open(url, '_system');
+          // @_popup_instance.addEventListener 'loadstart', (event)=>
+          //   if event.url.substr(-5) is 'close'
+          //     @_popup_close()
+          return callback(true);
+        };
+        return open_safari(url, (success) => {
+          if (!success) {
+            return open_default(url, callback);
+          }
+          return callback(success);
+        });
+      }
+
+      _popup_close() {
+        if (window.SafariViewController) {
+          window.SafariViewController.hide();
+        }
+        if (this._popup_instance) {
+          this._popup_instance.close();
+          return this._popup_instance = null;
+        }
+      }
+
+      auth_popup_device() {
+        var link;
+        link = super.auth_popup_device(...arguments);
+        this._popup_open(link);
+        return link;
+      }
+
       success_login() {
         super.success_login(...arguments);
-        if (window.SafariViewController) {
-          return window.SafariViewController.hide();
-        }
+        return this._popup_close();
       }
 
     };
@@ -41,22 +88,11 @@
 
       PopupCodeCordova.prototype.events = Object.assign({}, PopupCode.prototype.events, {
         'click [data-authorize]': function(e) {
-          var url;
-          url = $(e.target).attr('href');
-          if (window.SafariViewController) {
-            window.SafariViewController.isAvailable((available) => {
-              if (!available) {
-                return;
-              }
-              e.preventDefault();
-              return window.SafariViewController.show({url});
-            });
-            return false;
-          } else if (window.cordova && window.cordova.InAppBrowser) {
-            e.preventDefault();
-            window.cordova.InAppBrowser.open(url, '_system');
-            return false;
-          }
+          return this._popup_open($(e.target).attr('href'), function(success) {
+            if (success) {
+              return e.preventDefault();
+            }
+          });
         }
       });
 

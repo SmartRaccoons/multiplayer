@@ -5,18 +5,9 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformOffline
   PopupCode: class PopupCodeCordova extends PopupCode
     events: Object.assign {}, PopupCode::events, {
       'click [data-authorize]': (e)->
-        url = $(e.target).attr('href')
-        if window.SafariViewController
-          window.SafariViewController.isAvailable (available)=>
-            if !available
-              return
+        @_popup_open $(e.target).attr('href'), (success)->
+          if success
             e.preventDefault()
-            window.SafariViewController.show({url})
-          return false
-        else if window.cordova and window.cordova.InAppBrowser
-          e.preventDefault()
-          window.cordova.InAppBrowser.open url, '_system'
-          return false
     }
 
   _name: 'cordova'
@@ -34,7 +25,40 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformOffline
         return
       window.open App.config[@options.platform].market, '_system'
 
-  success_login: ->
-    super ...arguments
+  _popup_open: (url, callback)->
+    open_safari = (url, callback)=>
+      if !window.SafariViewController
+        return callback(false)
+      window.SafariViewController.isAvailable (available)=>
+        if !available
+          return callback(false)
+        window.SafariViewController.show {url}
+        callback(true)
+    open_default = (url, callback)=>
+      if !(window.cordova and window.cordova.InAppBrowser)
+        return callback(false)
+      @_popup_instance = window.cordova.InAppBrowser.open url, '_system'
+      # @_popup_instance.addEventListener 'loadstart', (event)=>
+      #   if event.url.substr(-5) is 'close'
+      #     @_popup_close()
+      callback(true)
+    open_safari url, (success)=>
+      if !success
+        return open_default url, callback
+      return callback(success)
+
+  _popup_close: ->
     if window.SafariViewController
       window.SafariViewController.hide()
+    if @_popup_instance
+      @_popup_instance.close()
+      @_popup_instance = null
+
+  auth_popup_device: ->
+    link = super ...arguments
+    @_popup_open(link)
+    link
+
+  success_login: ->
+    super ...arguments
+    @_popup_close()

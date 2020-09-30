@@ -151,7 +151,7 @@
         var link, link_text;
         link = [App.config.server, App.config.login[platform], '/', random].join('');
         link_text = link.replace('https://', '').replace('http://', '');
-        return this.router.subview_append(new this.PopupCode({
+        this.router.subview_append(new this.PopupCode({
           head: _l('Authorize.head') + ' ' + platform,
           body: _l('Authorize.Authorize link', {
             link: `<a data-authorize target='_blank' href='${link}'>${link_text}</a>`
@@ -159,6 +159,7 @@
         })).bind('remove', () => {
           return this.auth_popup();
         }).render().$el.appendTo(this.router.$el);
+        return link;
       }
 
       auth_popup() {

@@ -104,6 +104,7 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
     }))
     .bind 'remove', => @auth_popup()
     .render().$el.appendTo @router.$el
+    return link
 
   auth_popup: ->
     authorize = @router.subview_append new @Authorize({platforms: Object.keys(App.config.login), parent: @router.$el})
