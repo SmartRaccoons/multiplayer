@@ -18,10 +18,10 @@
     privacy: '<a target="_blank" href="'+ App.config.legal.privacy +'">' + _l('Authorize.legal.privacy') + '</a>'
   }) %>
 </div>
-<div class='&-buttons'>
+<div class='&-buttons' data-lang='<%= App.lang %>'>
   <% self.options.platforms.forEach(function (platform) { %>
 
-    <button data-click='authorize' data-click-attr='<%= platform %>'><%= platform %></button>
+    <button data-click='authorize' data-click-attr='<%= platform %>'></button>
   <% }) %>
 </div>
 <p>
