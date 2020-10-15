@@ -162,8 +162,11 @@ if touch
       while ev = @__events_binded_el.shift()
         @unbind(ev)
     @__options_bind.forEach (v)=> v.fn(@options)
-    if @template
-      @$el.html _.template(@template)({self: @})
+    if !@template_compiled
+      if @template
+        @template_compiled = _.template(@template)
+    if @template_compiled
+      @$el.html @template_compiled({self: @})
     @$el.find('[class]').forEach (el)=>
       $(el).attr 'class', @__selector_parse($(el).attr('class'))
     do =>

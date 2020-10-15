@@ -236,8 +236,13 @@
         this.__options_bind.forEach((v) => {
           return v.fn(this.options);
         });
-        if (this.template) {
-          this.$el.html(_.template(this.template)({
+        if (!this.template_compiled) {
+          if (this.template) {
+            this.template_compiled = _.template(this.template);
+          }
+        }
+        if (this.template_compiled) {
+          this.$el.html(this.template_compiled({
             self: this
           }));
         }

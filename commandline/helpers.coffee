@@ -4,6 +4,7 @@ execSync = require('child_process').execSync
 util = require('util')
 exec_promise = util.promisify(exec)
 sass_module = require('sass')
+pug = require('pug')
 
 
 exec_callback = (callback = ->)->
@@ -27,7 +28,7 @@ exports.compile_file = ({coffee, sass, file, file_str, file_out, haml, callback}
       else
         file_str = fs.readFileSync(file).toString()
         file_str_matched = false
-        [...file_str.matchAll(/template_haml: """(.*?)"""/sg)].forEach (m)->
+        [...file_str.matchAll(/template_pug: """(.*?)"""/sg)].forEach (m)->
           file_str_matched = true
           lines = m[1].split("\n").filter (l)-> l.trim().length > 0
           spaces = lines[0].match /(\s*)/
@@ -36,7 +37,7 @@ exports.compile_file = ({coffee, sass, file, file_str, file_out, haml, callback}
             lines = lines.map (line)-> line.substr(spaces_length)
           input = lines.join("\n")
           try
-            html = execSync( "#{haml or 'haml'} --no-escape-attrs --remove-whitespace -s", { input } )
+            html = pug.render input, {}
           catch e
             console.info input
             return
