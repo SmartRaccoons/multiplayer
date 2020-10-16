@@ -27,7 +27,7 @@
         });
       }
 
-      _popup_open(url, callback) {
+      _popup_open(url, callback = function() {}) {
         var open_default, open_safari;
         open_safari = (url, callback_safari) => {
           if (!(window.SafariViewController && this.options.platform === 'ios')) {
@@ -81,7 +81,7 @@
 
       PopupCodeCordova.prototype.events = Object.assign({}, PopupCode.prototype.events, {
         'click [data-authorize]': function(e) {
-          return this._popup_open($(e.target).attr('href'), function(success) {
+          return this.parent._popup_open($(e.target).attr('href'), function(success) {
             if (success) {
               return e.preventDefault();
             }

@@ -5,7 +5,7 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformOffline
   PopupCode: class PopupCodeCordova extends PopupCode
     events: Object.assign {}, PopupCode::events, {
       'click [data-authorize]': (e)->
-        @_popup_open $(e.target).attr('href'), (success)->
+        @parent._popup_open $(e.target).attr('href'), (success)->
           if success
             e.preventDefault()
     }
@@ -25,7 +25,7 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformOffline
         return
       window.open App.config[@options.platform].market, '_system'
 
-  _popup_open: (url, callback)->
+  _popup_open: (url, callback = ->)->
     open_safari = (url, callback_safari)=>
       if !(window.SafariViewController and @options.platform is 'ios')
         return callback_safari(false)

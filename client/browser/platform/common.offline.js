@@ -148,15 +148,17 @@
       }
 
       auth_popup_device({random, platform}) {
-        var link, link_text;
+        var link, link_text, popup_code;
         link = [App.config.server, App.config.login[platform], '/', random].join('');
         link_text = link.replace('https://', '').replace('http://', '');
-        this.router.subview_append(new this.PopupCode({
+        popup_code = new this.PopupCode({
           head: _l('Authorize.head') + ' ' + platform,
           body: _l('Authorize.Authorize link', {
             link: `<a data-authorize target='_blank' href='${link}'>${link_text}</a>`
           })
-        })).bind('remove', () => {
+        });
+        popup_code.parent = this;
+        this.router.subview_append(popup_code).bind('remove', () => {
           return this.auth_popup();
         }).render().$el.appendTo(this.router.$el);
         return link;

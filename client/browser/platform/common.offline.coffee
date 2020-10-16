@@ -98,10 +98,12 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
   auth_popup_device: ({random, platform})->
     link = [App.config.server, App.config.login[platform], '/', random].join('')
     link_text = link.replace('https://', '').replace('http://', '')
-    @router.subview_append(new @PopupCode({
+    popup_code = new @PopupCode({
       head: _l('Authorize.head') + ' ' + platform
       body: _l('Authorize.Authorize link', {link: "<a data-authorize target='_blank' href='#{link}'>#{link_text}</a>"})
-    }))
+    })
+    popup_code.parent = @
+    @router.subview_append(popup_code)
     .bind 'remove', => @auth_popup()
     .render().$el.appendTo @router.$el
     return link
