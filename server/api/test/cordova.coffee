@@ -144,18 +144,20 @@ describe 'cordova', ->
       assert.deepEqual {receipt: 'rece', secret: 'shs'}, verifyPayment.getCall(0).args[1]
       verifyPayment.getCall(0).args[2](null, success_ios)
       assert.equal 1, spy.callCount
-      assert.deepEqual {expire: null, product_id: '50monetas2', transaction_id: '1000000633801337', transaction_date: new Date(1583184628000)}, spy.getCall(0).args[0]
+      assert.equal null, spy.getCall(0).args[0]
+      assert.deepEqual {expire: null, product_id: '50monetas2', transaction_id: '1000000633801337', transaction_date: new Date(1583184628000)}, spy.getCall(0).args[1]
 
     it 'ios (subscription)', ->
       clock.tick 1583418041000
       o.payment_validate {platform: 'ios', transaction: {type: 'ios-appstore', subscription: true, appStoreReceipt: 'rece'}}, spy
       verifyPayment.getCall(0).args[2](null, subscription_ios)
-      assert.deepEqual {expire: 4000,  product_id: 'vip5', transaction_id: '1000000635313423', transaction_date: new Date(1583417745000)}, spy.getCall(0).args[0]
+      assert.deepEqual {expire: 4000,  product_id: 'vip5', transaction_id: '1000000635313423', transaction_date: new Date(1583417745000)}, spy.getCall(0).args[1]
 
     it 'ios (error)', ->
       o.payment_validate {platform: 'ios', transaction: {type: 'ios-appstore', appStoreReceipt: 'rece'}}, spy
       verifyPayment.getCall(0).args[2]('err', {})
-      assert.equal 0, spy.callCount
+      assert.equal 1, spy.callCount
+      assert.equal 'err', spy.getCall(0).args[0]
 
     it 'ios (error platform)', ->
       o.payment_validate {platform: 'android', transaction: {type: 'ios-appstore', appStoreReceipt: 'rece'}}, spy
@@ -167,18 +169,20 @@ describe 'cordova', ->
       assert.deepEqual {productId: 'prd', purchaseToken: 'pto', subscription: false}, ValidatorGoogle_verify.getCall(0).args[0]
       ValidatorGoogle_verify.getCall(0).args[1](null, success_android)
       assert.equal 1, spy.callCount
-      assert.deepEqual {expire: null, product_id: 'prd', transaction_id: 'GPA.3396-4053-7567-83173', transaction_date: new Date(1583373013055)}, spy.getCall(0).args[0]
+      assert.equal null, spy.getCall(0).args[0]
+      assert.deepEqual {expire: null, product_id: 'prd', transaction_id: 'GPA.3396-4053-7567-83173', transaction_date: new Date(1583373013055)}, spy.getCall(0).args[1]
 
     it 'google (subscription)', ->
       clock.tick 1583374211715
       o.payment_validate {platform: 'android', product_id: 'sub', subscription: true, transaction: {type: 'android-playstore', purchaseToken: 'pto'}}, spy
       ValidatorGoogle_verify.getCall(0).args[1](null, subscription_android)
-      assert.deepEqual {expire: 4000,  product_id: 'sub', transaction_id: 'GPA.3398-1855-5167-65974..0'}, spy.getCall(0).args[0]
+      assert.deepEqual {expire: 4000,  product_id: 'sub', transaction_id: 'GPA.3398-1855-5167-65974..0'}, spy.getCall(0).args[1]
 
     it 'google (err)', ->
       o.payment_validate {platform: 'android', product_id: 'prd', transaction: {type: 'android-playstore', purchaseToken: 'pto'}}, spy
       ValidatorGoogle_verify.getCall(0).args[1]('err', success_android)
-      assert.equal 0, spy.callCount
+      assert.equal 1, spy.callCount
+      assert.equal 'err', spy.getCall(0).args[0]
 
     it 'google (err platform)', ->
       o.payment_validate {platform: 'ios', product_id: 'prd', transaction: {type: 'android-playstore', purchaseToken: 'pto'}}, spy

@@ -20,8 +20,8 @@ module.exports = class Verifier
         return cb(err)
       obj = JSON.parse(body)
       if 'error' of obj
-        cb new Error( obj.error.message + ' ' + JSON.stringify(receipt) )
+        cb obj.error.message + ' ' + JSON.stringify(receipt)
       else if ( 'purchaseTimeMillis' of obj ) or ( 'expiryTimeMillis' of obj )
         cb null, obj
       else
-        cb new Error( 'body did not contain expected json object' + ' ' + JSON.stringify(receipt) )
+        cb 'body did not contain expected json object' + ' ' + JSON.stringify(receipt)

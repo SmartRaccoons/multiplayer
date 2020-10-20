@@ -820,7 +820,7 @@ describe 'User', ->
         socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
         assert.equal 1, cordova_payment_validate.callCount
         assert.deepEqual {transaction: 'tr', platform: 'ios'}, cordova_payment_validate.getCall(0).args[0]
-        cordova_payment_validate.getCall(0).args[1]({platform: 'ios', product_id: '200m', transaction_id: 'trid', expire: 1000 * 60 * 60 * 26})
+        cordova_payment_validate.getCall(0).args[1](null, {platform: 'ios', product_id: '200m', transaction_id: 'trid', expire: 1000 * 60 * 60 * 26})
         assert.equal 1, buy_complete.callCount
         assert.deepEqual {user_id: 5, service: '2', transaction_id: 'trid', platform: 'ios'}, buy_complete.getCall(0).args[0]
         buy_complete.getCall(0).args[1]({p: 'ram', transaction: {service: '1'}})
@@ -834,21 +834,27 @@ describe 'User', ->
       it 'cordova ios (complete error)', ->
         user._bind_socket_coins_buy(['cordova'])
         socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
-        cordova_payment_validate.getCall(0).args[1]({platform: 'ios', product_id: '200m', transaction_id: 'trid', expire: 1000 * 60 * 60 * 26})
+        cordova_payment_validate.getCall(0).args[1](null, {platform: 'ios', product_id: '200m', transaction_id: 'trid', expire: 1000 * 60 * 60 * 26})
         buy_complete.getCall(0).args[2]('err')
         assert.equal 0, user.publish.callCount
 
       it 'cordova ios expire not exist', ->
         user._bind_socket_coins_buy(['cordova'])
         socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
-        cordova_payment_validate.getCall(0).args[1]({platform: 'ios', product_id: '200m', transaction_id: 'trid', expire: null})
+        cordova_payment_validate.getCall(0).args[1](null, {platform: 'ios', product_id: '200m', transaction_id: 'trid', expire: null})
         buy_complete.getCall(0).args[1]({transaction: {}})
         assert.equal null, user._buy_callback.getCall(0).args[0].transaction.expire
 
       it 'cordova ios service not found', ->
         user._bind_socket_coins_buy(['cordova'])
         socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
-        cordova_payment_validate.getCall(0).args[1]({platform: 'ios', product_id: '300m', expire: 12})
+        cordova_payment_validate.getCall(0).args[1](null, {platform: 'ios', product_id: '300m', expire: 12})
+        assert.equal 0, buy_complete.callCount
+
+      it 'cordova ios (buy error)', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
+        cordova_payment_validate.getCall(0).args[1]('err')
         assert.equal 0, buy_complete.callCount
 
       it 'cordova android', ->

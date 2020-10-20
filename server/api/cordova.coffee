@@ -11,8 +11,8 @@ module.exports = class Cordova
     if params.platform is 'ios' and params.transaction.type is 'ios-appstore'
       return iap.verifyPayment 'apple', {secret: @options.ios.shared_secret, receipt: params.transaction.appStoreReceipt}, (err, success)=>
         if err
-          return console.info 'apple error', err
-        callback
+          return callback err
+        callback null,
           product_id: success.productId
           transaction_id: success.transactionId
           transaction_date: new Date(parseInt(success.purchaseDate))
@@ -25,8 +25,8 @@ module.exports = class Cordova
         purchaseToken: params.transaction.purchaseToken
       }, (err, success)=>
         if err
-          return console.info err
-        callback Object.assign {
+          return callback err
+        callback null, Object.assign {
           product_id: params.product_id
           transaction_id: success.orderId
           expire: if params.subscription then parseInt(success.expiryTimeMillis) - new Date().getTime() else null
