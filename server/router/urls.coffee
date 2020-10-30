@@ -143,6 +143,7 @@ module.exports.index = (app, locales)->
     Object.assign acc, {
       [language]: template.generate
         template: 'index'
+        language: language
         _l: (v)-> locale._(v, language)
       }
   , {}
