@@ -7,6 +7,7 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
     draugiem: 'dr_auth_code'
     facebook: 'access_token'
     google: 'code'
+    apple: 'apple'
 
   constructor: ->
     super ...arguments

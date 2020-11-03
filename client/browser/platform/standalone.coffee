@@ -4,6 +4,7 @@ window.o.PlatformStandalone = class Standalone extends window.o.PlatformCommon
     draugiem: 'dr_auth_code'
     facebook: 'access_token'
     google: 'code'
+    apple: 'apple'
 
   constructor: ->
     super ...arguments

@@ -109,7 +109,8 @@
     Standalone.prototype._authorize = {
       draugiem: 'dr_auth_code',
       facebook: 'access_token',
-      google: 'code'
+      google: 'code',
+      apple: 'apple'
     };
 
     return Standalone;
