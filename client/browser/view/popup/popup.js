@@ -33,7 +33,7 @@
 
     Popup.prototype.template = `<div>
    <% if (!('close' in self.options) || self.options.close){ %>
-    <button data-delay=" &=close_delay " data-action='close' class='popup-close'><%= self.options.close_content %></button>
+    <button data-delay=" &=close_delay " data-action='close' class='popup-close'><%= self.options.close_content || '' %></button>
    <% } %>
 
    <% if (self.options.head) { %>
