@@ -1,7 +1,3 @@
-firebase = require('firebase/app')
-require('firebase/analytics')
-
-
 window.o.Analytic = class AnalyticFirebase
   init: ({firebase_config})->
     firebase.initializeApp(firebase_config)
