@@ -17,6 +17,8 @@ exec_callback = (callback = ->)->
 exports.compile_file = ({coffee, sass, file, file_str, file_out, haml, callback})->
   file_parts = file.split('.')
   ext = file_parts.pop()
+  _file_name = file.split('/')
+  file_name = _file_name[_file_name.length-1].split('.')[0]
   if ext is 'coffee'
     do =>
       if !coffee
@@ -54,6 +56,7 @@ exports.compile_file = ({coffee, sass, file, file_str, file_out, haml, callback}
       return callback(null, file_out)
   if ext is 'sass'
     if sass
+      _main_file = if file_name.substr(0, 1) isnt '_' then file_name else 'screen'
       ((opt)=>
         sass_module.render Object.assign(
           {}
@@ -80,11 +83,11 @@ exports.compile_file = ({coffee, sass, file, file_str, file_out, haml, callback}
               fs.writeFileSync "#{opt.outFile}.map", result.map
           if err
             console.info err, opt
-          callback(err, 'client/browser/css/screen.css')
+          callback(err, opt.outFile)
       )(Object.assign({
-        file: 'client/browser/sass/screen.sass'
+        file: "client/browser/sass/#{_main_file}.sass"
         sourceMap: true
-        outFile: 'client/browser/css/screen.css'
+        outFile: "client/browser/css/#{_main_file}.css"
         path: 'client/browser/sass'
         pathImage: 'client/browser/images'
         functions: ['image-inline']
