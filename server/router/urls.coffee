@@ -144,6 +144,7 @@ module.exports.index = (app, locales)->
       [language]: template.generate
         template: 'index'
         language: language
+        locales: locales
         _l: (v)-> locale._(v, language)
       }
   , {}
