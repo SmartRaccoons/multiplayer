@@ -128,8 +128,8 @@ exports.platform_compile_js = ({platform, babel, uglifyjs, template, include_js}
   )
 
 
-exports.platform_compile_css = ({uglifycss})->
-  exec_promise "#{if !uglifycss then 'cat' else uglifycss} client/browser/css/screen.css > public/d/c.css"
+exports.platform_compile_css = ({uglifycss, input, output})->
+  exec_promise "#{if !uglifycss then 'cat' else uglifycss} client/browser/css/#{input or 'screen'}.css > public/d/#{output or 'c'}.css"
 
 
 exports.platform_compile_html = ({template, params})->
