@@ -148,9 +148,9 @@ module.exports.index = (app, locales)->
         _l: (v)-> locale._(v, language)
       }
   , {}
-  app.get '/', (req, res)->
-    language = if req.query and locales.indexOf(req.query.lang) >= 0 then req.query.lang else locales[0]
-    res.send index[language]
+  locales.forEach (language, i)->
+    app.get '/' + (if i > 0 then language else ''), (req, res)->
+      res.send index[language]
 
 
 module.exports.payments = (app)->
