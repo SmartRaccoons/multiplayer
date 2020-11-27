@@ -250,15 +250,17 @@ if touch
   __background_click_callback_add: (callback)->
     @__background_click_callback_remove()
     setTimeout =>
+      # it is timeout beacause bubbled to body click event
       if @__removed
         return
-      @__background_click_callback = => callback()
+      @__background_click_callback = -> callback()
       __body.bind 'click', @__background_click_callback
     , 0
 
   __background_click_callback_remove: ->
     if @__background_click_callback
       __body.unbind 'click', @__background_click_callback
+      @__background_click_callback = null
 
   remove: ->
     @__removed = true

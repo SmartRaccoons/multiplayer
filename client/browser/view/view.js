@@ -385,10 +385,11 @@
       __background_click_callback_add(callback) {
         this.__background_click_callback_remove();
         return setTimeout(() => {
+          // it is timeout beacause bubbled to body click event
           if (this.__removed) {
             return;
           }
-          this.__background_click_callback = () => {
+          this.__background_click_callback = function() {
             return callback();
           };
           return __body.bind('click', this.__background_click_callback);
@@ -397,7 +398,8 @@
 
       __background_click_callback_remove() {
         if (this.__background_click_callback) {
-          return __body.unbind('click', this.__background_click_callback);
+          __body.unbind('click', this.__background_click_callback);
+          return this.__background_click_callback = null;
         }
       }
 
