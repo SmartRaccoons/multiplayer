@@ -6,7 +6,7 @@ update_ev = 'options_update'
 touch = ('ontouchstart' of window) or (navigator.MaxTouchPoints > 0) or (navigator.msMaxTouchPoints > 0)
 
 __body = new SimpleEvent()
-$('body').on (if touch then 'touchstart' else 'click'), -> __body.trigger 'click'
+$('body').on 'click', -> __body.trigger 'click'
 if touch
   $('body').addClass('touch')
 

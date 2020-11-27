@@ -11,7 +11,7 @@
 
   __body = new SimpleEvent();
 
-  $('body').on((touch ? 'touchstart' : 'click'), function() {
+  $('body').on('click', function() {
     return __body.trigger('click');
   });
 
