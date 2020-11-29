@@ -168,3 +168,14 @@ CREATE TABLE `user_message_read` (
   CONSTRAINT `user_message_read_user_id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `user_message_read_user_message_id_ref` FOREIGN KEY (`user_message_id`) REFERENCES `user_message` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `auth_user_cordova_params` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `token` varchar(1024) DEFAULT NULL,
+  `last_updated` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_id_UNIQUE` (`user_id`),
+  KEY `auth_user_cordova_params_id` (`user_id`),
+  CONSTRAINT `auth_user_cordova_params_id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
