@@ -93,12 +93,13 @@ medias =
       ['xxhdpi', 1600, 960, 80]
       ['xxxhdpi', 1920, 1280, 100]
     ].reduce (acc, params)->
-      acc.concat ['land', 'port'].map (orientation)->
+      acc.concat ['', 'land', 'port'].map (orientation)->
+        orientation_dec = orientation or 'land'
         return {
-          src: "splash-#{orientation}-#{params[0]}.png"
-          density: "#{orientation}-#{params[0]}"
-          width: if orientation is 'land' then params[1] else params[2]
-          height: if orientation is 'land' then params[2] else params[1]
+          src: "splash-#{orientation_dec}-#{params[0]}.png"
+          density: "#{if orientation then "#{orientation}-" else ''}#{params[0]}"
+          width: if orientation_dec is 'land' then params[1] else params[2]
+          height: if orientation_dec is 'land' then params[2] else params[1]
           padding: if params[3] then params[3] else 0
           tag: 'splash'
         }
