@@ -11,6 +11,7 @@
   "dependencies": {
     "apple-signin-auth": "^1.4.1",
     "body-parser": "^1.19.0",
+    "crypto-js": "^4.0.0",
     "emailjs": "^3.3.0",
     "fbgraph": "^1.4.4",
     "firebase": "^8.0.1",

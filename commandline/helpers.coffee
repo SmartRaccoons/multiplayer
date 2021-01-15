@@ -124,7 +124,11 @@ exports.platform_compile_js = ({platform, babel, uglifyjs, template, include_js}
       if babel then babel else null,
       if uglifyjs then uglifyjs else null
     ].filter (ex)-> !!ex
-    .map (ex)-> exec_promise "#{ex} public/d/j-#{platform}.js -o public/d/j-#{platform}.js"
+    .map (ex)->
+      exec_promise (if typeof ex isnt 'string' then ex else ({input, output})-> "#{ex} #{input} -o #{output}")({
+        input: "public/d/j-#{platform}.js"
+        output: "public/d/j-#{platform}.js"
+      })
   )
 
 

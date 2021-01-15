@@ -5,15 +5,18 @@ ApiGoogle = require('../api/google').ApiGoogle
 ApiApple = require('../api/apple').ApiApple
 ApiInbox = require('../api/inbox').ApiInbox
 ApiDraugiem = require('../api/draugiem').ApiDraugiem
+ApiFacebook = require('../api/facebook').ApiFacebook
 
 config_get = require('../../config').config_get
 config_callback = require('../../config').config_callback
+_pick = require('lodash').pick
 
 
 config = {}
 inbox = null
 google = null
 apple = null
+facebook = null
 config_callback ->
   config.db = config_get('db')
   config.buy = config_get('buy')
@@ -22,6 +25,7 @@ config_callback ->
       id: config_get('facebook').id
       key: config_get('facebook').key
       buy_price: config_get('facebook').buy_price
+    facebook = new ApiFacebook {key: config_get('facebook').key}
   if config_get('draugiem')
     ApiDraugiem::app_id = config_get('draugiem').key
     config.draugiem =
@@ -213,14 +217,19 @@ module.exports.facebook = class LoginFacebook extends Login
   _table_session: 'auth_user_session_facebook'
   _table_transaction: 'transaction_facebook'
   _api_call: ({code}, callback)->
-    fbgraph.setAccessToken(code)
-    fbgraph.get '/me?fields=token_for_business,locale,name,picture.width(100)', (err, res)=>
-      if err
-        return callback(null)
-      if !res.id
-        console.info 'facebook returned no id', code, err, res
-        return callback(null)
-      callback({facebook_uid: res.id}, {facebook_token_for_business: res.token_for_business, name: res.name, language: res.locale, img: if res.picture and res.picture.data then res.picture.data.url else null})
+    facebook._authorize_facebook code, (user)->
+      if !user
+        return callback null
+      callback {facebook_uid: user.facebook_uid}, _pick(user, ['facebook_token_for_business', 'name', 'img', 'language'])
+
+  authorize: ({code, language}, callback)->
+    if facebook._instant_validate(code)
+      return do =>
+        user = facebook._instant_get_encoded_data(code)
+        if !user
+          return callback null
+        @_user_create_or_update {facebook_uid: user.facebook_uid}, _pick(user, ['name', 'img', 'language']), (user)=> callback(user)
+    return super ...arguments
 
   buy: (params, callback)->
     if !(params.service of config.facebook.buy_price)
@@ -228,6 +237,7 @@ module.exports.facebook = class LoginFacebook extends Login
     @_transaction_create params, callback
 
   buy_complete: ({ id, subscription }, callback_save, callback_end)->
+    # move this crap to ApiFacebook
     fbgraph.get "/#{id}?fields=#{if subscription then 'status,next_period_product,next_bill_time,user' else 'request_id,user,actions,items'}&access_token=#{config.facebook.id}|#{config.facebook.key}", (err, res)=>
       if err
         return callback_end(err)

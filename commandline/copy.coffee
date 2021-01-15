@@ -13,7 +13,7 @@ exports.copy = (op, done)->
     path_www: ''
     template: {}
     uglifycss: './node_modules/uglifycss/uglifycss'
-    uglifyjs: './node_modules/terser/bin/uglifyjs'
+    uglifyjs: ({input, output})-> "./node_modules/terser/bin/terser #{input} -c -m -o #{output}"
     babel: './node_modules/@babel/cli/bin/babel.js --source-type=script'
     files: []
   }, op

@@ -5,8 +5,15 @@ proxyquire = require('proxyquire')
 
 
 TestFacebook = {}
+
 TestDraugiem_authrorize = null
 
+
+Facebook_Authorize =
+  constructor: ->
+  _authorize_facebook: null
+  _instant_validate: null
+  _instant_get_encoded_data: null
 Google_Authorize =
   authorize: null
 Apple_Authorize =
@@ -28,6 +35,12 @@ Authorize = proxyquire '../authorize',
         TestDraugiem_authrorize.apply(@, arguments)
         @app_key = 'auth'
   'fbgraph': TestFacebook
+  '../api/facebook':
+    ApiFacebook: class ApiFacebook
+      constructor: -> Facebook_Authorize.constructor.apply(@, arguments)
+      _authorize_facebook: -> Facebook_Authorize._authorize_facebook.apply(@, arguments)
+      _instant_validate: -> Facebook_Authorize._instant_validate.apply(@, arguments)
+      _instant_get_encoded_data: -> Facebook_Authorize._instant_get_encoded_data.apply(@, arguments)
   '../api/google':
     ApiGoogle: class ApiGoogle
       authorize: -> Google_Authorize.authorize.apply(@, arguments)
@@ -482,6 +495,7 @@ describe 'Athorize', ->
     payment_success = null
     payment_failed = null
     payment_subscription_success = null
+    spy2 = null
     beforeEach ->
       payment_success = {
         "request_id": "3",
@@ -551,37 +565,59 @@ describe 'Athorize', ->
       Google_Authorize.authorize = sinon.spy()
       login._user_get = sinon.spy()
       login._user_update = sinon.spy()
+      Facebook_Authorize._authorize_facebook = sinon.spy()
+      Facebook_Authorize._instant_validate = sinon.fake.returns true
+      Facebook_Authorize._instant_get_encoded_data = sinon.fake.returns {facebook_uid: '5', name: 'n', img: 'i', language: 'ru'}
+      spy2 = sinon.spy()
+      Login::authorize = -> spy2.apply(@, arguments)
+      login._user_create_or_update = sinon.spy()
 
     it 'default', ->
       assert.equal('auth_user_session_facebook', login._table_session)
       assert.equal('transaction_facebook', login._table_transaction)
       assert.equal('facebook', login._name)
 
+    it 'authorize (facebook instant)', ->
+      login.authorize({code: 'code'}, spy)
+      assert.equal 0, spy2.callCount
+      assert.equal 1, Facebook_Authorize._instant_validate.callCount
+      assert.equal 'code', Facebook_Authorize._instant_validate.getCall(0).args[0]
+      assert.equal 1, Facebook_Authorize._instant_get_encoded_data.callCount
+      assert.equal 'code', Facebook_Authorize._instant_get_encoded_data.getCall(0).args[0]
+      assert.equal 1, login._user_create_or_update.callCount
+      assert.deepEqual {facebook_uid: '5'}, login._user_create_or_update.getCall(0).args[0]
+      assert.deepEqual {name: 'n', img: 'i', language: 'ru'}, login._user_create_or_update.getCall(0).args[1]
+      login._user_create_or_update.getCall(0).args[2]({u: 'ser'})
+      assert.equal 1, spy.callCount
+      assert.deepEqual {u: 'ser'}, spy.getCall(0).args[0]
+
+    it 'authorize (facebook instant invalid)', ->
+      Facebook_Authorize._instant_get_encoded_data = sinon.fake.returns null
+      login.authorize({code: 'code'}, spy)
+      assert.equal 0, login._user_create_or_update.callCount
+      assert.equal 1, spy.callCount
+      assert.equal null, spy.getCall(0).args[0]
+
+    it 'authorize (facebook not instant)', ->
+      Facebook_Authorize._instant_validate = sinon.fake.returns false
+      login.authorize({code: 'code'}, spy)
+      assert.equal 0, Facebook_Authorize._instant_get_encoded_data.callCount
+      assert.equal 1, spy2.callCount
+      assert.deepEqual {code: 'code'}, spy2.getCall(0).args[0]
+      assert.deepEqual spy, spy2.getCall(0).args[1]
+
     it 'success', ->
       login._api_call({code: 'code'}, spy)
-      assert.equal(1, TestFacebook.setAccessToken.callCount)
-      assert.equal('code', TestFacebook.setAccessToken.getCall(0).args[0])
-      assert.equal(1, TestFacebook.get.callCount)
-      assert.equal('/me?fields=token_for_business,locale,name,picture.width(100)', TestFacebook.get.getCall(0).args[0])
-      TestFacebook.get.getCall(0).args[1](null, {id: '56', token_for_business: 'tf', name: 'n', locale: 'en_GB', picture: {data: {url: 'im'}}})
+      assert.equal(1, Facebook_Authorize._authorize_facebook.callCount)
+      assert.equal('code', Facebook_Authorize._authorize_facebook.getCall(0).args[0])
+      Facebook_Authorize._authorize_facebook.getCall(0).args[1]({facebook_uid: '5', name: 'n', facebook_token_for_business: 'tk', img: 'im', language: 'lg'})
       assert.equal(1, spy.callCount)
-      assert.deepEqual({facebook_uid: '56'}, spy.getCall(0).args[0])
-      assert.deepEqual({facebook_token_for_business: 'tf', name: 'n', img: 'im', language: 'en_GB'}, spy.getCall(0).args[1])
-
-    it 'success (no user id)', ->
-      login._api_call({code: 'code'}, spy)
-      TestFacebook.get.getCall(0).args[1](null, {id: undefined})
-      assert.equal(1, spy.callCount)
-      assert.equal(null, spy.getCall(0).args[0])
-
-    it 'success no img', ->
-      login._api_call('code', spy)
-      TestFacebook.get.getCall(0).args[1](null, {id: '56', name: 'n', picture: null})
-      assert.equal(null, spy.getCall(0).args[1].img)
+      assert.deepEqual({facebook_uid: '5'}, spy.getCall(0).args[0])
+      assert.deepEqual({name: 'n', language: 'lg', facebook_token_for_business: 'tk', img: 'im'}, spy.getCall(0).args[1])
 
     it 'error', ->
       login._api_call('code', spy)
-      TestFacebook.get.getCall(0).args[1]('err', null)
+      Facebook_Authorize._authorize_facebook.getCall(0).args[1](null)
       assert.equal(1, spy.callCount)
       assert.equal(null, spy.getCall(0).args[0])
 
