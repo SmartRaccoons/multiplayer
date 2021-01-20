@@ -1,6 +1,5 @@
 fbgraph = require('fbgraph')
 crypto = require('crypto-js')
-_escape = require('lodash').escape
 
 module.exports.ApiFacebook = class ApiFacebook
   constructor: (options)->
@@ -36,13 +35,13 @@ module.exports.ApiFacebook = class ApiFacebook
   _instant_get_encoded_data: (code)->
     try
       encoded_data = JSON.parse( crypto.enc.Base64.parse( code.split('fbinstant:')[1].split('.')[1] ).toString(crypto.enc.Utf8) )
-      player_data = _escape(encoded_data.request_payload).split(';')
+      player_data = encoded_data.request_payload.split(';')
       if !player_data[1] or !encoded_data.player_id
         return null
       return {
         facebook_uid: encoded_data.player_id
         language: player_data[0]
-        name: player_data[1].substr(0, 50)
+        name: player_data[1].substr(0, 30)
         img: if !player_data[2] then null else player_data[2].substr(0, 300)
       }
     catch e
