@@ -10,6 +10,7 @@ ApiFacebook = require('../api/facebook').ApiFacebook
 config_get = require('../../config').config_get
 config_callback = require('../../config').config_callback
 _pick = require('lodash').pick
+_omit = require('lodash').omit
 
 
 config = {}
@@ -66,6 +67,7 @@ module.exports.Login = class Login
     #     from: JSON.parse
     'new': {}
     'date_joined': {db: true, default: -> new Date()}
+    'last_login': {db: true, default: -> new Date()}
 
   _table: 'auth_user'
 
@@ -73,6 +75,25 @@ module.exports.Login = class Login
     Object.keys(@_opt)
     .filter (v)=> !!@_opt[v].parse
     .map (v)=> [v, @_opt[v].parse]
+
+  _opt_defaults: (data, db = false)->
+    Object.keys(data).reduce (result, item)=>
+      if db and !( @_opt[item] and @_opt[item].db )
+        return result
+      result[item] = [
+        (value)=>
+          if !( @_opt[item] and @_opt[item].default ) or data[item]
+            return value
+          if typeof @_opt[item].default is 'function'
+            return @_opt[item].default({id: data.id})
+          return @_opt[item].default
+        (value)=>
+          if !(@_opt[item] and @_opt[item].validate)
+            return value
+          return @_opt[item].validate(value)
+      ].reduce ( (value, fn)-> fn(value) ), data[item]
+      return result
+    , {}
 
   _user_get: (where, update, callback)->
     if !callback
@@ -85,53 +106,37 @@ module.exports.Login = class Login
       parse: @_parse()
     , (user)=>
       if !user
-        return callback(null)
-      user = Object.assign({new: false}, user, update)
-      callback(user)
-      config.db.update
-        table: @_table
-        data: Object.assign({last_login: new Date()}, update)
-        where: {id: user.id}
+        return callback null
+      user = @_opt_defaults Object.assign(user, update, {new: false, last_login: null})
+      callback user
+      @_user_update user
 
   _user_update: (update)->
-    data = Object.keys(update).reduce (result, item)=>
-      if item isnt 'id' and @_opt[item].db
-        result[item] = update[item]
-      return result
-    , {}
-    if Object.keys(data).length > 0
-      config.db.update
-        table: @_table
-        data: data
-        where: {id: update.id}
-        parse: @_parse()
+    data = _omit @_opt_defaults(update, true), ['id']
+    if Object.keys(data).length <= 0
+      return
+    config.db.update
+      table: @_table
+      data: data
+      where: {id: update.id}
+      parse: @_parse()
 
   _user_create: (data, callback)->
-    data.language = @_opt.language.validate(data.language)
-    data = Object.assign Object.keys(@_opt).reduce( (result, item)=>
-      if @_opt[item].db and 'default' of @_opt[item]
-        result[item] = if typeof @_opt[item].default is 'function' then @_opt[item].default() else @_opt[item].default
-      result
-    , {}), data
+    data_db = @_opt_defaults Object.assign( Object.keys(@_opt).reduce( (result, item)=>
+      Object.assign result, if @_opt[item].db and 'default' of @_opt[item] then {[item]: ''}
+    , {}), data), true
     config.db.insert
       table: @_table
-      data: Object.assign {last_login: new Date()}, data
+      data: data_db
       parse: @_parse()
     , (id)=>
-      user = Object.assign {id, new: true}, data
-      if !user.name
-        user.name = @_opt.name.default({id})
-        config.db.update
-          table: @_table
-          data: {name: user.name}
-          where: {id: user.id}
-      callback(Object.assign({id: id, new: true}, user))
+      # trying to update if suddenly `name` is empty
+      data_db = @_opt_defaults Object.assign(data_db, {id, new: true})
+      callback(data_db)
+      @_user_update(data_db)
 
   _user_create_or_update: (where, data, callback)->
-    #omit language update
-    data_get = Object.assign {}, data
-    delete data_get.language
-    @_user_get where, data_get, (user)=>
+    @_user_get where, _omit(data, ['language']), (user)=>
       if user
         return callback(user)
       @_user_create Object.assign(where, data), callback

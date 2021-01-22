@@ -133,100 +133,158 @@ describe 'Athorize', ->
           parse: 'p'
       assert.deepEqual [ ['some', 'p'] ], login._parse()
 
+    it '_opt', ->
+      assert.deepEqual {db: true, public: true}, login._opt.id
+      assert.equal true, login._opt.language.db
+      assert.deepEqual {db: true}, login._opt.draugiem_uid
+      assert.deepEqual {db: true}, login._opt.facebook_uid
+      assert.deepEqual {db: true}, login._opt.google_uid
+      assert.deepEqual {db: true}, login._opt.inbox_uid
+      assert.deepEqual {db: true}, login._opt.apple_uid
+      assert.deepEqual {db: true, default: '', public: true}, login._opt.img
+      assert.deepEqual {}, login._opt.new
+      assert.equal true, login._opt.date_joined.db
+      assert.equal true, new Date().getTime() - 10 < login._opt.date_joined.default() < new Date().getTime() + 10
+      assert.equal true, login._opt.last_login.db
+      assert.equal true, new Date().getTime() - 10 < login._opt.last_login.default() < new Date().getTime() + 10
+
     it '_opt name', ->
       assert.equal '', login._opt.name.default()
       assert.equal '', login._opt.name.default({})
       assert.equal 'Raccoon 5', login._opt.name.default({id: 5})
 
-    it '_user_get', ->
-      login._parse = sinon.fake.returns 'p'
-      login._user_get({id: 5}, spy)
-      assert.equal(1, db.select_one.callCount)
-      assert(db.select_one.getCall(0).args[0].select.indexOf('id') >= 0)
-      assert.equal('auth_user', db.select_one.getCall(0).args[0].table)
-      assert.deepEqual({id: 5}, db.select_one.getCall(0).args[0].where)
-      assert.equal('p', db.select_one.getCall(0).args[0].parse)
-      db.select_one.getCall(0).args[1]({id: 5})
-      assert.equal(1, spy.callCount)
-      assert.deepEqual({id: 5, new: false}, spy.getCall(0).args[0])
 
-    it '_user_get update', ->
-      login._user_get({id: 5}, spy)
-      db.select_one.getCall(0).args[1]({id: 5})
-      assert.equal(1, db.update.callCount)
-      assert.equal('auth_user', db.update.getCall(0).args[0].table)
-      assert.deepEqual(['last_login'], Object.keys(db.update.getCall(0).args[0].data))
-      assert.deepEqual({id: 5}, db.update.getCall(0).args[0].where)
+    describe '_opt_defaults', ->
+      beforeEach ->
+        login._opt =
+          img: {}
+          name:
+            default: 'Some'
 
-    it '_user_get update additional', ->
-      login._user_get({id: 5}, {name: 's a'}, spy)
-      db.select_one.getCall(0).args[1]({id: 5, name: 'other'})
-      assert.deepEqual(['last_login', 'name'], Object.keys(db.update.getCall(0).args[0].data))
-      assert.equal('s a', db.update.getCall(0).args[0].data.name)
-      assert.equal('s a', spy.getCall(0).args[0].name)
+      it 'default', ->
+        assert.deepEqual {name: 'name'}, login._opt_defaults({name: 'name'})
+        assert.deepEqual {name: 'Some'}, login._opt_defaults({name: undefined})
 
-    it '_user_get not found', ->
-      login._user_get({id: 5}, spy)
-      db.select_one.getCall(0).args[1](null)
-      assert.equal(1, spy.callCount)
-      assert.equal(null, spy.getCall(0).args[0])
-      assert.equal(0, db.update.callCount)
+      it 'no default', ->
+        assert.deepEqual {img: ''}, login._opt_defaults({img: ''})
 
-    it '_user_create', ->
-      login._opt.name.default = name_default = sinon.fake (arg)->
-        if !arg
-          return ''
-        'arg'
-      login._parse = sinon.fake.returns 'p'
-      login._user_create({draugiem_uid: 5}, spy)
-      assert.equal(1, db.insert.callCount)
-      assert.equal('auth_user', db.insert.getCall(0).args[0].table)
-      assert.equal(5, db.insert.getCall(0).args[0].data.draugiem_uid)
-      assert.equal('', db.insert.getCall(0).args[0].data.name)
-      assert.equal('', db.insert.getCall(0).args[0].data.img)
-      assert.deepEqual(new Date(), db.insert.getCall(0).args[0].data.date_joined)
-      assert.deepEqual(new Date(), db.insert.getCall(0).args[0].data.last_login)
-      assert.equal('p', db.insert.getCall(0).args[0].parse)
-      db.insert.getCall(0).args[1](2)
-      assert.equal 1, db.update.callCount
-      assert.deepEqual {
-        table: 'auth_user'
-        data: {name: 'arg'}
-        where: {id: 2}
-      }, db.update.getCall(0).args[0]
-      assert.equal 2, name_default.callCount
-      assert.equal undefined, name_default.getCall(0).args[0]
-      assert.deepEqual {id: 2}, name_default.getCall(1).args[0]
-      assert.equal(1, spy.callCount)
-      assert.equal(2, spy.getCall(0).args[0].id)
-      assert.equal('arg', spy.getCall(0).args[0].name)
-      assert.deepEqual(new Date(), spy.getCall(0).args[0].date_joined)
-      assert.equal(5, spy.getCall(0).args[0].draugiem_uid)
-      assert.equal(true, spy.getCall(0).args[0].new)
+      it 'default function', ->
+        login._opt.name.default = fake = sinon.fake.returns 'n1'
+        assert.deepEqual {name: 'n1', id: 5}, login._opt_defaults({name: '', id: 5})
+        assert.equal 1, fake.callCount
+        assert.deepEqual {id: 5}, fake.getCall(0).args[0]
 
-    it '_user_create (name exist)', ->
-      login._opt.name.default = name_default = sinon.fake.returns ''
-      login._parse = sinon.fake.returns 'p'
-      login._user_create({draugiem_uid: 5, name: 'se'}, spy)
-      assert.equal('se', db.insert.getCall(0).args[0].data.name)
-      db.insert.getCall(0).args[1](2)
-      assert.equal 0, db.update.callCount
-      assert.equal 1, name_default.callCount
-      assert.equal undefined, name_default.getCall(0).args[0]
-      assert.equal('se', spy.getCall(0).args[0].name)
+      it 'validate', ->
+        login._opt.name.validate = fake = sinon.fake.returns 'v1'
+        assert.deepEqual {name: 'v1'}, login._opt_defaults({name: 'n5'})
+        assert.equal 1, fake.callCount
+        assert.equal 'n5', fake.getCall(0).args[0]
 
-    it '_user_create (addtitional _opt)', ->
-      Login::_opt.rating = {default: 1600, db: true}
-      login._user_create({draugiem_uid: 5}, spy)
-      assert.equal(1600, db.insert.getCall(0).args[0].data.rating)
+      it 'db', ->
+        assert.deepEqual {}, login._opt_defaults({name: 'name'}, true)
+        login._opt.name.db = true
+        assert.deepEqual {name: 'name'}, login._opt_defaults({name: 'name'}, true)
 
-    it '_user_create (default language)', ->
-      Login::_opt.language.validate = stub = sinon.stub()
-      stub.returns('lv')
-      login._user_create({draugiem_uid: 5, language: 'lv_GB'}, spy)
-      assert.equal(1, stub.callCount)
-      assert.equal('lv_GB', stub.getCall(0).args[0])
-      assert.equal('lv', db.insert.getCall(0).args[0].data.language)
+
+    describe '_user_get', ->
+      beforeEach ->
+        login._parse = sinon.fake.returns 'p'
+        login._opt =
+          id:
+            db: true
+          name:
+            db: true
+          img: {}
+        login._opt_defaults = sinon.fake.returns {id: 5, name: 'val'}
+        login._user_update = sinon.spy()
+
+      it 'default', ->
+        login._user_get({id: 5}, spy)
+        assert.equal(1, db.select_one.callCount)
+        assert.deepEqual ['id', 'name'], db.select_one.getCall(0).args[0].select
+        assert.equal('auth_user', db.select_one.getCall(0).args[0].table)
+        assert.deepEqual({id: 5}, db.select_one.getCall(0).args[0].where)
+        assert.equal('p', db.select_one.getCall(0).args[0].parse)
+        db.select_one.getCall(0).args[1]({id: 5, d: 't'})
+        assert.equal 1, login._opt_defaults.callCount
+        assert.deepEqual {id: 5, d: 't', new: false, last_login: null}, login._opt_defaults.getCall(0).args[0]
+        assert.equal 1, login._user_update.callCount
+        assert.deepEqual {id: 5, name: 'val'}, login._user_update.getCall(0).args[0]
+        assert.equal(1, spy.callCount)
+        assert.deepEqual({id: 5, name: 'val'}, spy.getCall(0).args[0])
+
+      it 'not found', ->
+        login._user_get({id: 5}, spy)
+        db.select_one.getCall(0).args[1](null)
+        assert.equal(1, spy.callCount)
+        assert.equal(null, spy.getCall(0).args[0])
+        assert.equal(0, db.update.callCount)
+
+      it 'additional update', ->
+        login._user_get({id: 5}, {facebook: '10'}, spy)
+        db.select_one.getCall(0).args[1]({id: 5, facebook: '5'})
+        assert.equal '10', login._opt_defaults.getCall(0).args[0].facebook
+
+
+    describe '_user_create', ->
+      beforeEach ->
+        login._opt =
+          empty: {}
+          new: {default: true}
+          name:
+            db: true
+          default:
+            db: true
+            default: ''
+          defaultover:
+            db: true
+            default: 'over'
+        login._opt_defaults = sinon.fake.returns {name: 'validated'}
+        login._parse = sinon.fake.returns 'p'
+        login._user_update = sinon.spy()
+
+      it 'default', ->
+        login._user_create({name: 'name', defaultover: 'de'}, spy)
+        assert.equal 1, login._opt_defaults.callCount
+        assert.deepEqual {default: '', name: 'name', defaultover: 'de'}, login._opt_defaults.getCall(0).args[0]
+        assert.equal true, login._opt_defaults.getCall(0).args[1]
+        assert.equal(1, db.insert.callCount)
+        assert.equal('auth_user', db.insert.getCall(0).args[0].table)
+        assert.deepEqual {name: 'validated'}, db.insert.getCall(0).args[0].data
+        assert.equal('p', db.insert.getCall(0).args[0].parse)
+        assert.equal 1, login._parse.callCount
+        login._opt_defaults = sinon.fake.returns {name: 'nnew', id: 2}
+        db.insert.getCall(0).args[1](2)
+        assert.equal 1, login._opt_defaults.callCount
+        assert.deepEqual {name: 'validated', id: 2, new: true}, login._opt_defaults.getCall(0).args[0]
+        assert.equal 1, spy.callCount
+        assert.deepEqual {name: 'nnew', id: 2}, spy.getCall(0).args[0]
+        assert.equal 1, login._user_update.callCount
+        assert.deepEqual {name: 'nnew', id: 2}, login._user_update.getCall(0).args[0]
+
+
+    describe '_user_update', ->
+      beforeEach ->
+        login._opt_defaults = sinon.fake.returns {name: 'n', id: 3}
+        login._parse = sinon.fake.returns 'p'
+
+      it 'default', ->
+        login._user_update({name: 's', id: 3})
+        assert.equal 1, login._opt_defaults.callCount
+        assert.deepEqual {name: 's', id: 3}, login._opt_defaults.getCall(0).args[0]
+        assert.equal true, login._opt_defaults.getCall(0).args[1]
+        assert.equal(1, db.update.callCount)
+        assert.equal('auth_user', db.update.getCall(0).args[0].table)
+        assert.deepEqual({id: 3}, db.update.getCall(0).args[0].where)
+        assert.deepEqual({name: 'n'}, db.update.getCall(0).args[0].data)
+        assert.equal('p', db.update.getCall(0).args[0].parse)
+        assert.equal 1, login._parse.callCount
+
+      it 'no update data', ->
+        login._opt_defaults = sinon.fake.returns {id: 3}
+        login._user_update({name: 's', id: 3})
+        assert.equal(0, db.update.callCount)
+
 
     it '_user_create_or_update (update)', ->
       login._user_create = sinon.spy()
@@ -251,18 +309,6 @@ describe 'Athorize', ->
       assert.equal(1, spy.callCount)
       assert.deepEqual({id: 5}, spy.getCall(0).args[0])
 
-    it '_user_update', ->
-      login._parse = sinon.fake.returns 'p'
-      login._user_update({name: 's', new: false, id: 3})
-      assert.equal(1, db.update.callCount)
-      assert.equal('auth_user', db.update.getCall(0).args[0].table)
-      assert.deepEqual({id: 3}, db.update.getCall(0).args[0].where)
-      assert.deepEqual({name: 's'}, db.update.getCall(0).args[0].data)
-      assert.equal('p', db.update.getCall(0).args[0].parse)
-
-    it '_user_update (no params)', ->
-      login._user_update({new: false, id: 3})
-      assert.equal(0, db.update.callCount)
 
     it 'db check (null)', ->
       login._table_session = 's_table'

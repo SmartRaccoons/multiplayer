@@ -44,10 +44,9 @@ module.exports.Mysql = class Mysql
     where_str
 
   _parse: (parse, data, to_db = true)->
-    parse.forEach (parse)->
-      if parse[0] of data
-        data[parse[0]] = parse[1][if to_db then 'to' else 'from'](data[parse[0]])
-    data
+    parse.reduce (result, item)->
+      Object.assign result, if item[0] of data then { [item[0]]: item[1][ if to_db then 'to' else 'from' ](data[item[0]]) }
+    , Object.assign({}, data)
 
   select_raw: (query, data, callback)->
     # console.info query, data

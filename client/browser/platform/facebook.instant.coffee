@@ -9,7 +9,7 @@ window.o.PlatformFacebookInstant = class FacebookInstant extends window.o.Platfo
         @router.unbind 'request', fn
     @router.bind 'request', fn
     @router.bind 'connect', =>
-      FBInstant.player.getSignedPlayerInfoAsync( [ FBInstant.getLocale(), FBInstant.player.getName(), FBInstant.player.getPhoto() or '' ].join(';') )
+      FBInstant.player.getSignedPlayerInfoAsync( [ FBInstant.getLocale(), FBInstant.player.getName() or '', FBInstant.player.getPhoto() or '' ].join(';') )
       .then (result)=>
         @auth_send { 'facebook': 'fbinstant:' + result.getSignature()}
     # @router.bind "request:buy:#{@_name}", ({service, id})=>

@@ -18,7 +18,7 @@
         };
         this.router.bind('request', fn);
         this.router.bind('connect', () => {
-          return FBInstant.player.getSignedPlayerInfoAsync([FBInstant.getLocale(), FBInstant.player.getName(), FBInstant.player.getPhoto() || ''].join(';')).then((result) => {
+          return FBInstant.player.getSignedPlayerInfoAsync([FBInstant.getLocale(), FBInstant.player.getName() || '', FBInstant.player.getPhoto() || ''].join(';')).then((result) => {
             return this.auth_send({
               'facebook': 'fbinstant:' + result.getSignature()
             });

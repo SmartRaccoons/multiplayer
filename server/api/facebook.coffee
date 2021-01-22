@@ -36,7 +36,7 @@ module.exports.ApiFacebook = class ApiFacebook
     try
       encoded_data = JSON.parse( crypto.enc.Base64.parse( code.split('fbinstant:')[1].split('.')[1] ).toString(crypto.enc.Utf8) )
       player_data = encoded_data.request_payload.split(';')
-      if !player_data[1] or !encoded_data.player_id
+      if !encoded_data.player_id
         return null
       return {
         facebook_uid: encoded_data.player_id

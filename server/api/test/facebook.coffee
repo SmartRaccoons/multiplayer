@@ -101,4 +101,3 @@ describe 'ApiFacebook', ->
       assert.equal null, o._instant_get_encoded_data hash('fbinstant:')
       assert.equal null, o._instant_get_encoded_data hash( JSON.stringify({player_id: 5, request_payload: "en_US;Nāme;UltraPhoto"})+'d' )
       assert.equal null, o._instant_get_encoded_data hash( JSON.stringify({player_id: null, request_payload: "en_US;Nāme;UltraPhoto"}) )
-      assert.equal null, o._instant_get_encoded_data hash( JSON.stringify({player_id: 5, request_payload: "en_US;;"}) )
