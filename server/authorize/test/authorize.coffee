@@ -148,10 +148,10 @@ describe 'Athorize', ->
       assert.equal true, login._opt.last_login.db
       assert.equal true, new Date().getTime() - 10 < login._opt.last_login.default() < new Date().getTime() + 10
 
-    it '_opt name', ->
-      assert.equal '', login._opt.name.default()
-      assert.equal '', login._opt.name.default({})
-      assert.equal 'Raccoon 5', login._opt.name.default({id: 5})
+    it '_opt name validate', ->
+      assert.equal '', login._opt.name.validate(null, {})
+      assert.equal 'Raccoon 5', login._opt.name.validate('', {id: 5})
+      assert.equal 'n', login._opt.name.validate('n', {id: 5})
 
 
     describe '_opt_defaults', ->
@@ -163,22 +163,24 @@ describe 'Athorize', ->
 
       it 'default', ->
         assert.deepEqual {name: 'name'}, login._opt_defaults({name: 'name'})
-        assert.deepEqual {name: 'Some'}, login._opt_defaults({name: undefined})
+        assert.deepEqual {name: ''}, login._opt_defaults({name: ''})
+        assert.deepEqual {name: 'Some'}, login._opt_defaults({name: null})
 
       it 'no default', ->
         assert.deepEqual {img: ''}, login._opt_defaults({img: ''})
 
       it 'default function', ->
         login._opt.name.default = fake = sinon.fake.returns 'n1'
-        assert.deepEqual {name: 'n1', id: 5}, login._opt_defaults({name: '', id: 5})
+        assert.deepEqual {name: 'n1', id: 5}, login._opt_defaults({name: null, id: 5})
         assert.equal 1, fake.callCount
         assert.deepEqual {id: 5}, fake.getCall(0).args[0]
 
       it 'validate', ->
         login._opt.name.validate = fake = sinon.fake.returns 'v1'
-        assert.deepEqual {name: 'v1'}, login._opt_defaults({name: 'n5'})
+        assert.deepEqual {id: 5, name: 'v1'}, login._opt_defaults({name: 'n5', id: 5})
         assert.equal 1, fake.callCount
         assert.equal 'n5', fake.getCall(0).args[0]
+        assert.deepEqual {id: 5}, fake.getCall(0).args[1]
 
       it 'db', ->
         assert.deepEqual {}, login._opt_defaults({name: 'name'}, true)
@@ -246,7 +248,7 @@ describe 'Athorize', ->
       it 'default', ->
         login._user_create({name: 'name', defaultover: 'de'}, spy)
         assert.equal 1, login._opt_defaults.callCount
-        assert.deepEqual {default: '', name: 'name', defaultover: 'de'}, login._opt_defaults.getCall(0).args[0]
+        assert.deepEqual {default: null, name: 'name', defaultover: 'de'}, login._opt_defaults.getCall(0).args[0]
         assert.equal true, login._opt_defaults.getCall(0).args[1]
         assert.equal(1, db.insert.callCount)
         assert.equal('auth_user', db.insert.getCall(0).args[0].table)

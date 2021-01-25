@@ -48,9 +48,11 @@ module.exports.Login = class Login
   _opt:
     'id': {db: true, public: true}
     'name':
-      default: (opt)->
-        if opt and opt.id
-          return "Raccoon #{opt.id}"
+      validate: (v, {id})->
+        if v
+          return v
+        if id
+          return "Raccoon #{id}"
         return ''
       db: true
       public: true
@@ -82,7 +84,7 @@ module.exports.Login = class Login
         return result
       result[item] = [
         (value)=>
-          if !( @_opt[item] and @_opt[item].default ) or data[item]
+          if !( @_opt[item] and 'default' of @_opt[item] ) or !( data[item] is null )
             return value
           if typeof @_opt[item].default is 'function'
             return @_opt[item].default({id: data.id})
@@ -90,7 +92,7 @@ module.exports.Login = class Login
         (value)=>
           if !(@_opt[item] and @_opt[item].validate)
             return value
-          return @_opt[item].validate(value)
+          return @_opt[item].validate(value, {id: data.id})
       ].reduce ( (value, fn)-> fn(value) ), data[item]
       return result
     , {}
@@ -123,7 +125,7 @@ module.exports.Login = class Login
 
   _user_create: (data, callback)->
     data_db = @_opt_defaults Object.assign( Object.keys(@_opt).reduce( (result, item)=>
-      Object.assign result, if @_opt[item].db and 'default' of @_opt[item] then {[item]: ''}
+      Object.assign result, if @_opt[item].db and 'default' of @_opt[item] then {[item]: null}
     , {}), data), true
     config.db.insert
       table: @_table
