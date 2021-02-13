@@ -40,8 +40,8 @@
       }, params));
     }
 
-    buy(params) {
-      return this.router.send(`buy:${this._name}`, Object.assign({
+    buy(params, name = null) {
+      return this.router.send(`buy:${name || this._name}`, Object.assign({
         language: App.lang
       }, params));
     }

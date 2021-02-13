@@ -25,7 +25,8 @@ window.o.PlatformCommon = class Common
           actions: [ {'reload': _l('Authorize.button.reload')} ]
     }, params)
 
-  buy: (params)-> @router.send "buy:#{@_name}", Object.assign {language: App.lang}, params
+  buy: (params, name = null)->
+    @router.send "buy:#{name or @_name}", Object.assign {language: App.lang}, params
 
   auth_send: (p)->
     @router.message(_l('Authorize.Authorizing'))
