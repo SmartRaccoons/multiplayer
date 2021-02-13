@@ -5,13 +5,58 @@
   Popup = window.o.ViewPopup;
 
   window.o.ViewPopupIframe = PopupAuthorize = (function() {
-    class PopupAuthorize extends Popup {};
+    class PopupAuthorize extends Popup {
+      render() {
+        super.render(...arguments);
+        this.$iframe = this.$('iframe');
+        this.$iframe_parent = this.$iframe.parent();
+        this._resize();
+        this._resize_timeout = setTimeout((() => {
+          return this._resize();
+        }), 1000);
+        return this;
+      }
+
+      _resize() {
+        var height, scale, width;
+        if (!this.options.min_width) {
+          return;
+        }
+        width = this.$iframe_parent.width();
+        height = this.$iframe_parent.height();
+        if (this.options.min_width < width || width < 50) {
+          return;
+        }
+        scale = Math.round(this.options.min_width * 100 / width) / 100;
+        if (!this.$iframe_wrap) {
+          this.$iframe_wrap = $('<div>');
+          this.$iframe.wrap(this.$iframe_wrap);
+        }
+        this.$iframe_wrap.css({
+          overlow: 'hidden',
+          width: width,
+          height: height
+        });
+        return this.$iframe.css({
+          'transform-origin': '0 0',
+          'transform': `scale(${1 / scale})`,
+          width: this.options.min_width,
+          height: height * scale
+        });
+      }
+
+      remove() {
+        clearTimeou(this._resize_timeout);
+        return super.remove(...arguments);
+      }
+
+    };
 
     PopupAuthorize.prototype.className = Popup.prototype.className + '-iframe';
 
     PopupAuthorize.prototype.options_default = {
       close: true,
-      body: _.template(`<iframe frameborder='0' src='<%= self.options.link %>' style='width:100%;height:100%;'>`)
+      body: _.template(`<iframe frameborder='0' src='<%= self.options.link %>' style='width:100%;height:100%;'></div>`)
     };
 
     return PopupAuthorize;
