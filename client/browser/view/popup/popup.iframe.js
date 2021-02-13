@@ -33,7 +33,7 @@
           this.$iframe.wrap(this.$iframe_wrap);
         }
         this.$iframe_wrap.css({
-          overlow: 'hidden',
+          overflow: 'hidden',
           width: width,
           height: height
         });
@@ -56,7 +56,7 @@
 
     PopupAuthorize.prototype.options_default = {
       close: true,
-      body: _.template(`<iframe frameborder='0' src='<%= self.options.link %>' style='width:100%;height:100%;'></div>`)
+      body: _.template(`<iframe frameborder='0' src='<%= self.options.link %>' style='width:100%;height:100%;'>`)
     };
 
     return PopupAuthorize;

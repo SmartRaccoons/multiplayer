@@ -28,7 +28,7 @@ window.o.ViewPopupIframe = class PopupAuthorize extends Popup
       @$iframe_wrap = $('<div>')
       @$iframe.wrap @$iframe_wrap
     @$iframe_wrap.css
-      overlow: 'hidden'
+      overflow: 'hidden'
       width: width
       height: height
     @$iframe.css
