@@ -38,5 +38,5 @@ window.o.ViewPopupIframe = class PopupAuthorize extends Popup
       height: height * scale
 
   remove: ->
-    clearTimeou @_resize_timeout
+    clearTimeout @_resize_timeout
     super ...arguments

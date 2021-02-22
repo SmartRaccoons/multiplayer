@@ -46,7 +46,7 @@
       }
 
       remove() {
-        clearTimeou(this._resize_timeout);
+        clearTimeout(this._resize_timeout);
         return super.remove(...arguments);
       }
 
