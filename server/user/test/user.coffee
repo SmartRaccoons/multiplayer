@@ -221,6 +221,12 @@ describe 'User', ->
       assert.equal('room:remove', user.publish.getCall(0).args[0])
       assert.equal(1, user.publish.getCall(0).args[1])
 
+    it 'room remove (null)', ->
+      user.publish = sinon.spy()
+      user.room = null
+      user._room_remove()
+      assert.equal 0, user.publish.callCount
+
     it 'room exec', ->
       user.room = {id: 1, module: 'Room'}
       Room::emit_self_exec = spy = sinon.spy()

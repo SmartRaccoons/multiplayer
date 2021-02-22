@@ -336,6 +336,8 @@ module.exports.User = class User extends User
     @publish 'room:add', @room
 
   _room_remove: ->
+    if !@room
+      return
     @publish 'room:remove', @room
     @room = null
 
