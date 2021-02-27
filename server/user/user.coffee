@@ -258,12 +258,14 @@ module.exports.User = class User extends User
           if !service
             return console.info "#{params.platform} not found #{@id}", params
           params.subscription = service in Object.keys(config.buy.subscription)
-
+        cordova_finish = => @publish "#{mt}:cordova:finish", { id_local: params.id_local }
         cordova.payment_validate _pick(params, ['transaction', 'subscription', 'product_id', 'platform']), (err, _payment_validate_params)=>
           if err
             console.info 'payment validate error', err, params, _payment_validate_params
             return
           {product_id, transaction_id, expire} = _payment_validate_params
+          if !product_id and params.product_id is config.cordova.id
+            return cordova_finish()
           service = _invert(config[params.platform].buy_transaction)[product_id]
           if !service
             return console.info "#{params.platform} not found #{@id}", params, _payment_validate_params
@@ -282,7 +284,7 @@ module.exports.User = class User extends User
           , (error)=>
             if error
               return console.info "#{params.platform} #{product_id} finished error #{@id}:", error
-            @publish "#{mt}:cordova:finish", { id_local: params.id_local }
+            cordova_finish()
 
   _bind_socket_coins_history: ->
     mt = 'coins:history'

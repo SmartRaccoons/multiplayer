@@ -837,6 +837,22 @@ describe 'User', ->
         assert.equal 'buy:cordova:finish', user.publish.getCall(0).args[0]
         assert.deepEqual {id_local: 0}, user.publish.getCall(0).args[1]
 
+      it 'cordova ios (product_id null)', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr', product_id: 'cid' }
+        cordova_payment_validate.getCall(0).args[1](null, {platform: 'ios', product_id: null})
+        assert.equal 0, buy_complete.callCount
+        assert.equal 1, user.publish.callCount
+        assert.equal 'buy:cordova:finish', user.publish.getCall(0).args[0]
+        assert.deepEqual {id_local: 0}, user.publish.getCall(0).args[1]
+
+      it 'cordova ios (product_id null) app not match', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr', product_id: 'cidother' }
+        cordova_payment_validate.getCall(0).args[1](null, {platform: 'ios', product_id: null})
+        assert.equal 0, buy_complete.callCount
+        assert.equal 0, user.publish.callCount
+
       it 'cordova ios (complete error)', ->
         user._bind_socket_coins_buy(['cordova'])
         socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
