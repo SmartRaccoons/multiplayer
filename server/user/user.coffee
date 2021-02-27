@@ -256,17 +256,17 @@ module.exports.User = class User extends User
             return
           service = _invert(config[params.platform].buy_transaction)[params.product_id]
           if !service
-            return console.info "#{params.platform} #{params.product_id} #{@id} not found #{@id}"
+            return console.info "#{params.platform} not found #{@id}", params
           params.subscription = service in Object.keys(config.buy.subscription)
 
         cordova.payment_validate _pick(params, ['transaction', 'subscription', 'product_id', 'platform']), (err, _payment_validate_params)=>
           if err
-            console.info 'payment validate error', err, params
+            console.info 'payment validate error', err, params, _payment_validate_params
             return
           {product_id, transaction_id, expire} = _payment_validate_params
           service = _invert(config[params.platform].buy_transaction)[product_id]
           if !service
-            return console.info "#{params.platform} #{product_id} not found #{@id}"
+            return console.info "#{params.platform} not found #{@id}", params, _payment_validate_params
           new (Authorize.cordova)().buy_complete {
             platform: params.platform
             transaction_id
