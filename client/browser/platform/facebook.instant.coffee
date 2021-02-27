@@ -31,6 +31,18 @@ window.o.PlatformFacebookInstant = class FacebookInstant extends window.o.Platfo
     #   subscription_id
     # }, ->
 
+  notification_enable: (callback)->
+    FBInstant.player.canSubscribeBotAsync().then (can_subscribe)=>
+      callback can_subscribe
+    .catch =>
+      callback false
+
+  notification_ask: (callback)->
+    FBInstant.player.subscribeBotAsync().then =>
+      callback true
+    .catch =>
+      callback false
+
   init: (assets, callback)->
     loaded = 0
     start = =>

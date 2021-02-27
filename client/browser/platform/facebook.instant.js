@@ -43,6 +43,22 @@
       //   action
       //   subscription_id
       // }, ->
+      notification_enable(callback) {
+        return FBInstant.player.canSubscribeBotAsync().then((can_subscribe) => {
+          return callback(can_subscribe);
+        }).catch(() => {
+          return callback(false);
+        });
+      }
+
+      notification_ask(callback) {
+        return FBInstant.player.subscribeBotAsync().then(() => {
+          return callback(true);
+        }).catch(() => {
+          return callback(false);
+        });
+      }
+
       init(assets, callback) {
         var loaded, start;
         loaded = 0;
