@@ -49,11 +49,12 @@ module.exports.Login = class Login
     'id': {db: true, public: true}
     'name':
       validate: (v, {id})->
-        if v
+        _prefix = 'Raccoon'
+        if v and v isnt _prefix
           return v
         if id
-          return "Raccoon #{id}"
-        return ''
+          return [_prefix, id].join ' '
+        return _prefix
       db: true
       public: true
     'language': {db: true}

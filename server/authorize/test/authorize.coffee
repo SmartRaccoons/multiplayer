@@ -149,8 +149,9 @@ describe 'Athorize', ->
       assert.equal true, new Date().getTime() - 10 < login._opt.last_login.default() < new Date().getTime() + 10
 
     it '_opt name validate', ->
-      assert.equal '', login._opt.name.validate(null, {})
+      assert.equal 'Raccoon', login._opt.name.validate(null, {})
       assert.equal 'Raccoon 5', login._opt.name.validate('', {id: 5})
+      assert.equal 'Raccoon 5', login._opt.name.validate('Raccoon', {id: 5})
       assert.equal 'n', login._opt.name.validate('n', {id: 5})
 
 
