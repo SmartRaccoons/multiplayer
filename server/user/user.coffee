@@ -283,7 +283,9 @@ module.exports.User = class User extends User
             } )
           , (error)=>
             if error
-              return console.info "#{params.platform} #{product_id} finished error #{@id}:", error
+              console.info "#{params.platform} #{product_id} finished error #{@id}:", error
+              if error isnt 'transaction already completed'
+                return
             cordova_finish()
 
   _bind_socket_coins_history: ->
