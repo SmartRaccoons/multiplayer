@@ -48,50 +48,48 @@ medias =
 
   screen:
     ios: [
-      ['@2x~universal~anyany', 2732, 2732, 200]
-      ['@2x~universal~comany', 1278, 2732, 200]
-      ['@2x~universal~comcom', 1334, 750, 100]
-      ['@3x~universal~anyany', 2208, 2208, 200]
-      ['@3x~universal~anycom', 2208, 1242, 200]
-      ['@3x~universal~comany', 1242, 2208, 200]
+      ['@2x~universal~anyany', 2732, 2732]
+      ['@2x~universal~comany', 1278, 2732]
+      ['@2x~universal~comcom', 1334, 750]
+      ['@3x~universal~anyany', 2208, 2208]
+      ['@3x~universal~anycom', 2208, 1242]
+      ['@3x~universal~comany', 1242, 2208]
     ].map( (params)->
       return {
         src: "Default#{params[0]}.png"
         width: params[1]
         height: params[2]
-        padding: if params[3] then params[3] else 0
         tag: 'splash'
         dimensionhide: true
       }
     ).concat [
         # legacy
-        ['~iphone', 320, 480, 10]
-        ['@2x~iphone', 640, 960, 30]
-        ['-Portrait~ipad', 768, 1024, 50]
-        ['-Portrait@2x~ipad', 1536, 2048, 100]
-        ['-Landscape~ipad', 1024, 768, 50]
-        ['-Landscape@2x~ipad', 2048, 1536, 200]
-        ['-568h@2x~iphone', 640, 1136, 50]
-        ['-667h', 750, 1334, 50]
-        ['-736h', 1242, 2208, 200]
-        ['-Landscape-736h', 2208, 1242, 200]
-        ['-2436h', 1125, 2436, 200]
-        ['-Landscape-2436h', 2436, 1125, 200]
+        ['~iphone', 320, 480]
+        ['@2x~iphone', 640, 960]
+        ['-Portrait~ipad', 768, 1024]
+        ['-Portrait@2x~ipad', 1536, 2048]
+        ['-Landscape~ipad', 1024, 768]
+        ['-Landscape@2x~ipad', 2048, 1536]
+        ['-568h@2x~iphone', 640, 1136]
+        ['-667h', 750, 1334]
+        ['-736h', 1242, 2208]
+        ['-Landscape-736h', 2208, 1242]
+        ['-2436h', 1125, 2436]
+        ['-Landscape-2436h', 2436, 1125]
       ].map (params)->
         return {
           src: "Default#{params[0]}.png"
           width: params[1]
           height: params[2]
-          padding: if params[3] then params[3] else 0
           tag: 'splash'
         }
     android: [
-      ['hdpi', 800, 480, 30]
-      ['ldpi', 320, 200, 10]
-      ['mdpi', 480, 320, 20]
-      ['xhdpi', 1280, 720, 50]
-      ['xxhdpi', 1600, 960, 80]
-      ['xxxhdpi', 1920, 1280, 100]
+      ['hdpi', 800, 480]
+      ['ldpi', 320, 200]
+      ['mdpi', 480, 320]
+      ['xhdpi', 1280, 720]
+      ['xxhdpi', 1600, 960]
+      ['xxxhdpi', 1920, 1280]
     ].reduce (acc, params)->
       acc.concat ['', 'land', 'port'].map (orientation)->
         orientation_dec = orientation or 'land'
@@ -100,7 +98,6 @@ medias =
           density: "#{if orientation then "#{orientation}-" else ''}#{params[0]}"
           width: if orientation_dec is 'land' then params[1] else params[2]
           height: if orientation_dec is 'land' then params[2] else params[1]
-          padding: if params[3] then params[3] else 0
           tag: 'splash'
         }
     , []

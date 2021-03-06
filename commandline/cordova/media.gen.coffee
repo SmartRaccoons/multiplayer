@@ -11,9 +11,11 @@ exports.mediagen = (op, done)->
     icon: 'design/icon.png'
     screen: 'design/screen.png'
     screen_background: 'design/screen_background.png'
+    directory_clear: true
   }, op
   path_res = "#{op.path}/res"
-  directory_clear(path_res)
+  if op.directory_clear
+    directory_clear(path_res)
   medias = cordova_media({platforms: op.platforms})
   fnc =
     icon: (img)->
@@ -36,7 +38,13 @@ exports.mediagen = (op, done)->
     screen: (img)->
       sh = sharp(op.screen)
       if img.width
-        sh = sh.resize(img.width - img.padding, img.height - img.padding, {fit: 'inside'})
+        padding = do =>
+          if typeof img.padding is 'function'
+            return img.padding(img)
+          if img.padding
+            return img.padding
+          return Math.round(img.width * 0.1)
+        sh = sh.resize(img.width - padding, img.height - padding, {fit: 'inside'})
       sh.toBuffer()
       .then (screen)->
         sh2 = sharp(op.screen_background)
@@ -47,16 +55,19 @@ exports.mediagen = (op, done)->
         .toFile(img.dest)
 
   Object.keys(medias).forEach (media)->
-    fs.mkdirSync "#{path_res}/#{media}"
+    if !fs.existsSync "#{path_res}/#{media}"
+      fs.mkdirSync "#{path_res}/#{media}"
     Object.keys(medias[media]).forEach (platform)->
-      fs.mkdirSync "#{path_res}/#{media}/#{platform}"
+      if !fs.existsSync "#{path_res}/#{media}/#{platform}"
+        fs.mkdirSync "#{path_res}/#{media}/#{platform}"
   Promise.all Object.keys(medias).map (media)->
     Promise.all Object.keys(medias[media]).map (platform)->
       Promise.all(
         medias[media][platform].map (img)->
-          fnc[media](Object.assign(img, {
+          fnc[media](Object.assign({
             dest: "#{path_res}/#{media}/#{platform}/#{img.src}"
-          }))
+            padding: op.screen_padding
+          }, img))
         .concat fnc[media]({dest: "#{path_res}/#{media}.png"})
       )
   .then => done()
