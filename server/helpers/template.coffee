@@ -1,47 +1,5 @@
 fs = require('fs')
-
-
-_template = do ->
-  settings =
-    evaluate: /<%([\s\S]+?)%>/g
-    interpolate: /<%=([\s\S]+?)%>/g
-    escape: /<%-([\s\S]+?)%>/g
-  noMatch = /.^/
-  escapes =
-    '\\': '\\'
-    '\'': '\''
-    'r': '\u000d'
-    'n': '\n'
-    't': '\u0009'
-    'u2028': '\u2028'
-    'u2029': '\u2029'
-  for p of escapes
-    escapes[escapes[p]] = p
-  escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g
-  unescaper = /\\(\\|'|r|n|t|u2028|u2029)/g
-
-  (text, data, objectName) ->
-    settings.variable = objectName
-    source = '__p+=\'' + text.replace(escaper, (match) ->
-      '\\' + escapes[match]
-    ).replace(settings.escape or noMatch, (match, code) ->
-      '\'+\n_.escape(' + unescape(code) + ')+\n\''
-    ).replace(settings.interpolate or noMatch, (match, code) ->
-      '\'+\n(' + unescape(code) + ')+\n\''
-    ).replace(settings.evaluate or noMatch, (match, code) ->
-      '\';\n' + unescape(code) + '\n;__p+=\''
-    ) + '\';\n'
-    if !settings.variable
-      source = 'with(obj||{}){\n' + source + '}\n'
-    source = 'var __p=\'\';var print=function(){__p+=Array.prototype.join.call(arguments, \'\')};\n' + source + 'return __p;\n'
-    render = new Function(settings.variable or 'obj', source)
-    if data
-      return render(data)
-    template = (data) ->
-      render.call this, data
-    template.source = 'function(' + (settings.variable or 'obj') + '){\n' + source + '}'
-    template
-
+_template = require('lodash').template
 
 config = {}
 

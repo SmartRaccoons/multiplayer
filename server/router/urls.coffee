@@ -138,18 +138,18 @@ module.exports.authorize = (app)->
           button: _l('UserNotify.Forget email button')
         })
 
-module.exports.index = (app, locales)->
+module.exports.index = (app, locales, template_file = 'index', url = '')->
   index = locales.reduce (acc, language)->
     Object.assign acc, {
       [language]: template.generate
-        template: 'index'
+        template: template_file
         language: language
         locales: locales
         _l: (v)-> locale._(v, language)
       }
   , {}
   locales.forEach (language, i)->
-    app.get '/' + (if i > 0 then language else ''), (req, res)->
+    app.get '/' + [ (if i > 0 then language else ''), url ].filter( (p)-> !!p ).join('/'), (req, res)->
       res.send index[language]
 
 

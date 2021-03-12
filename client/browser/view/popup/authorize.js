@@ -14,8 +14,8 @@
       head: _.template(`<%= _l('Authorize.head') %>`),
       body: _.template(`<div class='&-legal'>
   <%= _l('Authorize.legal.head', {
-    terms: '<a target="_blank" href="'+ App.config.legal.terms +'">' + _l('Authorize.legal.terms') + '</a>',
-    privacy: '<a target="_blank" href="'+ App.config.legal.privacy +'">' + _l('Authorize.legal.privacy') + '</a>'
+    terms: '<a target="_blank" href="'+ (typeof App.config.legal.terms === 'function' ? App.config.legal.terms() : App.config.legal.terms ) +'">' + _l('Authorize.legal.terms') + '</a>',
+    privacy: '<a target="_blank" href="'+ (typeof App.config.legal.privacy === 'function' ? App.config.legal.privacy() : App.config.legal.privacy ) +'">' + _l('Authorize.legal.privacy') + '</a>'
   }) %>
 </div>
 <div class='&-buttons' data-lang='<%= App.lang %>'>
