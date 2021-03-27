@@ -152,6 +152,7 @@ CREATE TABLE `user_message` (
   `added` datetime NOT NULL,
   `actual` datetime DEFAULT NULL,
   `platform` json DEFAULT NULL,
+  `language` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `user_message_user_id` (`user_id`),
   CONSTRAINT `user_message_user_id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
