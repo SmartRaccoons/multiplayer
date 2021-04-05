@@ -37,7 +37,7 @@ if touch
       @$el.addClass(@className)
     @__events_delegate()
     @__events_binded_el = []
-    @__options_bind = Object.keys(@options_bind).reduce (acc, v)=>
+    @__options_bind = Object.keys(@options_bind).sort().reduce (acc, v)=>
       acc.concat { events: v.split(','), fn: @options_bind[v].bind(@) }
     , []
     @

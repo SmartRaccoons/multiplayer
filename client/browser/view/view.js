@@ -35,7 +35,7 @@
         }
         this.__events_delegate();
         this.__events_binded_el = [];
-        this.__options_bind = Object.keys(this.options_bind).reduce((acc, v) => {
+        this.__options_bind = Object.keys(this.options_bind).sort().reduce((acc, v) => {
           return acc.concat({
             events: v.split(','),
             fn: this.options_bind[v].bind(this)
