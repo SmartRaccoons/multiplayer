@@ -68,11 +68,15 @@ exports.compile_file = ({coffee, sass, file, file_str, file_out, haml, callback}
                   ["#{fn}($str, $style: '')"]: (img_path, style)->
                     extension = img_path.getValue().split('.').pop()
                     img_content = fs.readFileSync "#{opt.pathImage}/#{img_path.getValue()}"
+                    data = 'image'
+                    if extension in ['woff', 'woff2']
+                      data = 'application'
+                      extension = "font-#{extension};charset=utf-8"
                     if extension is 'svg'
                       extension = 'svg+xml'
                       if style.getValue()
                         img_content = Buffer.from( (img_content + '').replace( /\<style\>.*\<\/style\>/, "<style>#{style.getValue()}</style>" ) )
-                    new sass_module.types.String("""url("data:image/#{extension};base64,#{img_content.toString('base64')}")""")
+                    new sass_module.types.String("""url("data:#{data}/#{extension};base64,#{img_content.toString('base64')}")""")
               Object.assign acc, fn
             , {}
           }
