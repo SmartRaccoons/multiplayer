@@ -57,6 +57,7 @@ module.exports.Login = class Login
         return _prefix
       db: true
       public: true
+      default: 'Raccoon'
     'language': {db: true}
     'draugiem_uid': {db: true}
     'facebook_uid': {db: true}
