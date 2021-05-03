@@ -222,7 +222,7 @@ describe 'Room', ->
       assert.equal(1, spy.callCount)
       assert.equal(6, spy.getCall(0).args[0])
       assert.equal('_room_update', spy.getCall(0).args[1])
-      assert.deepEqual({id: 1, type: 'spectator'}, spy.getCall(0).args[2])
+      assert.deepEqual({id: 1, module: 'RoomGame', type: 'spectator'}, spy.getCall(0).args[2])
       assert.equal 1, update.callCount
       assert.deepEqual {users: [{id: 5}], spectators: [{id: 3}, {id: 4}, {id: 6}]}, update.getCall(0).args[0]
 

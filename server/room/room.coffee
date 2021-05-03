@@ -112,7 +112,7 @@ exports.Room = class Room extends PubsubModule
     if !@user_exist(user.id)
       return false
     @spectators.push @users.splice(@user_get(user.id, true), 1)[0]
-    @emit_user_exec(user.id, '_room_update', {id: @id, type: 'spectator'})
+    @emit_user_exec(user.id, '_room_update', {id: @id, module: @_module(), type: 'spectator'})
     @emit 'update', {users: @users, spectators: @spectators}
     return true
 
