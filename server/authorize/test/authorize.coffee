@@ -785,6 +785,14 @@ describe 'Athorize', ->
       assert.equal 1, spy2.callCount
       assert.equal 'status not active', spy2.getCall(0).args[0]
 
+    it 'buy_complete (subscription - no user id)', ->
+      login.buy_complete {id: '22', subscription: true}, 'a', spy
+      delete payment_subscription_success.user
+      TestFacebook.get.getCall(0).args[1](null, payment_subscription_success)
+      assert.equal 0, login._user_get.callCount
+      assert.equal(1, spy.callCount)
+      assert.equal('user is missing', spy.getCall(0).args[0])
+
 
   describe 'LoginGoogle', ->
     login = null

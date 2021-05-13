@@ -257,6 +257,9 @@ module.exports.facebook = class LoginFacebook extends Login
         return
       if res.status isnt 'active'
         return callback_end "status not active"
+      if !res.user
+        console.info res
+        return callback_end "user is missing"
       @_user_get {facebook_uid: res.user.id}, (user)=>
         if !user
           return callback_end("user not found: #{res.user.id}")
