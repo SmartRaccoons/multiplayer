@@ -69,6 +69,11 @@ module.exports.authorize = (app)->
         params_language = language_validate(if params[2] then params[2] else '')
         new (Authorize.apple)().authorize {code: req.body.code, language: params_language, params: {user: req.body.user, post: true} }, (user)=>
           res.redirect "#{params_url}?apple=#{req.body.code}&state=#{params_code}"
+    if platform is 'facebook' and config_get(platform).deletion_callback
+      app.post config_get(platform).deletion_callback, (req, res)->
+        console.log(req.body)
+        console.log(req.query)
+
     app.get config_get(platform).login_full, (req, res)->
       res.redirect links[platform]('/g', '', language_validate(req.query.language))
     app.get config_get(platform).login + '/:id', (req, res)->
