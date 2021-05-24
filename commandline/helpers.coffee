@@ -118,23 +118,23 @@ exports.directory_clear = directory_clear = (path, except = [], dir_main = true)
 
 
 exports.platform_compile_js = ({platform, babel, uglifyjs, template, include_js})->
-  fs.writeFileSync "public/d/j-#{platform}.js", (include_js or []).concat( template.js_get(platform) ).map( (f)->
-    if f.substr(-3) is '.js'
-      return fs.readFileSync(f, 'utf8')
-    return f
-  ).join("\n")
-  Promise.all(
-    [
-      if babel then babel else null,
-      if uglifyjs then uglifyjs else null
-    ].filter (ex)-> !!ex
-    .map (ex)->
-      exec_promise (if typeof ex isnt 'string' then ex else ({input, output})-> "#{ex} #{input} -o #{output}")({
-        input: "public/d/j-#{platform}.js"
-        output: "public/d/j-#{platform}.js"
-      })
-  )
-
+  cmd = (ex)->
+    (if typeof ex isnt 'string' then ex else ({input, output})-> "#{ex} #{input} -o #{output}")({
+      input: file_location
+      output: file_location
+    })
+  file_location = "public/d/j-#{platform}.js"
+  new Promise (resolve, reject)->
+    fs.writeFileSync file_location, (include_js or []).concat( template.js_get(platform) ).map( (f)->
+      if f.substr(-3) is '.js'
+        return fs.readFileSync(f, 'utf8')
+      return f
+    ).join("\n")
+    if babel
+      await exec_promise cmd(babel)
+    if uglifyjs
+      await exec_promise cmd(uglifyjs)
+    resolve()
 
 exports.platform_compile_css = ({uglifycss, input, output})->
   exec_promise "#{if !uglifycss then 'cat' else uglifycss} client/browser/css/#{input or 'screen'}.css > public/d/#{output or 'c'}.css"

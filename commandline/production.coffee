@@ -13,14 +13,17 @@ exports.production = (op, done)->
     babel: './node_modules/@babel/cli/bin/babel.js --source-type=script'
   }, op
   template_config = Object.keys(op.template.config_get().javascripts)
+  platforms = ['standalone', 'draugiem', 'facebook', 'inbox']
+    .filter (platform)-> template_config.indexOf(platform) >= 0
   Promise.all( [
+      new Promise (resolve, reject)->
+        platforms.forEach (platform)->
+          platform_compile_html {template: op.template, params: {platform, template: 'game', path_www: '/'} }
+        resolve()
       platform_compile_css(op)
     ].concat(
-      ['standalone', 'draugiem', 'facebook', 'inbox']
-      .filter (platform)-> template_config.indexOf(platform) >= 0
-      .map (platform)->
+      platforms.map (platform)->
         platform_compile_js Object.assign( {platform}, op )
-        platform_compile_html {template: op.template, params: {platform, template: 'game', path_www: '/'} }
     )
   ).then => done()
 
