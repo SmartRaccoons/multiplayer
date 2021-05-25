@@ -15,7 +15,8 @@ window.o.Analytic = class AnalyticFirebase
   screen: (view)->
     firebase.analytics().setCurrentScreen(view)
 
-  exception: (description)->
+  exception: ({msg, url, line, column, user_agent})->
+    @event 'JS Error', {msg, url, line, column, user_agent}
     # firebase.analytics().logEvent('exception', params);
 
   buy_start: (params)->
