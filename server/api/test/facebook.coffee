@@ -14,9 +14,9 @@ describe 'ApiFacebook', ->
   spy = null
   o = null
   key = 'bd23a0c148ae8dafc826bbb84e9aaece'
-  hash = (request, key_other)->
+  hash = (request, key_other, prefix = '')->
     request_base64 = crypto.enc.Base64.stringify(crypto.enc.Utf8.parse(request))
-    'fbinstant:' + [
+    prefix + [
       crypto.enc.Base64.stringify( crypto.HmacSHA256(request_base64, key_other or key) ).replace(/\+/g, '-').replace(/\//g, '_')
       request_base64
     ].join('.')
@@ -52,6 +52,19 @@ describe 'ApiFacebook', ->
       assert.equal 1, spy.callCount
       assert.equal 'd', spy.getCall(0).args[0]
 
+    it '_signed_request_validate', ->
+      request = '{"original":"āuch"}'
+      assert.equal true, o._signed_request_validate hash(request)
+      assert.equal false, o._signed_request_validate( hash(request, 'otherkey') )
+      assert.equal true, o._signed_request_validate hash(request, 'otherkey'), 'otherkey'
+      assert.equal false, o._signed_request_validate( hash(request).substr(4) )
+      assert.equal false, o._signed_request_validate( 'agyas.sysuf' )
+      assert.equal false, o._signed_request_validate( '' )
+
+    it '_signed_request_parse', ->
+      assert.deepEqual {player_id: 5, request_payload: 'r_payl'}, o._signed_request_parse hash(JSON.stringify({player_id: 5, request_payload: "r_payl"}))
+      assert.equal null, o._signed_request_parse hash('err')
+
 
   describe '_authorize_facebook', ->
     beforeEach ->
@@ -86,18 +99,41 @@ describe 'ApiFacebook', ->
       assert.equal(null, spy.getCall(0).args[0])
 
 
-  describe 'validate', ->
-    it '_validate', ->
-      request = '{"original":"āuch"}'
-      assert.equal true, o._instant_validate hash(request)
-      assert.equal false, o._instant_validate( hash(request, 'otherkey') )
-      assert.equal false, o._instant_validate( hash(request).substr(4) )
-      assert.equal false, o._instant_validate( 'fbinstant:agyas.sysuf' )
-      assert.equal false, o._instant_validate( 'fbinstant:' )
+  describe '_instant_validate', ->
+    beforeEach ->
+      o._signed_request_validate = sinon.fake.returns true
 
-    it '_get_encoded_data', ->
-      assert.deepEqual {facebook_uid: 5, language: 'en_US', name: 'Nāme', img: 'UltraPhoto'}, o._instant_get_encoded_data hash(JSON.stringify({player_id: 5, request_payload: "en_US;Nāme;UltraPhoto"}))
-      assert.equal null, o._instant_get_encoded_data hash(JSON.stringify({player_id: 5, request_payload: "en_US;Nāme;"})).img
-      assert.equal null, o._instant_get_encoded_data hash('fbinstant:')
-      assert.equal null, o._instant_get_encoded_data hash( JSON.stringify({player_id: 5, request_payload: "en_US;Nāme;UltraPhoto"})+'d' )
-      assert.equal null, o._instant_get_encoded_data hash( JSON.stringify({player_id: null, request_payload: "en_US;Nāme;UltraPhoto"}) )
+    it 'default', ->
+      assert.equal true, o._instant_validate 'fbinstant:tr'
+      assert.equal 1, o._signed_request_validate.callCount
+      assert.equal 'tr', o._signed_request_validate.getCall(0).args[0]
+
+    it 'validate false', ->
+      o._signed_request_validate = -> false
+      assert.equal false, o._instant_validate 'fbinstant:tr'
+
+    it 'not string', ->
+      assert.equal false, o._instant_validate {}
+
+
+  describe '_instant_get_encoded_data', ->
+    data = null
+    beforeEach ->
+      data = {player_id: 5, request_payload: "en_US;Nāme;UltraPhoto"}
+      o._signed_request_parse = sinon.fake -> data
+
+    it 'default', ->
+      assert.deepEqual {facebook_uid: 5, language: 'en_US', name: 'Nāme', img: 'UltraPhoto'}, o._instant_get_encoded_data('fbinstant:da')
+      assert.equal 1, o._signed_request_parse.callCount
+      assert.equal 'da', o._signed_request_parse.getCall(0).args[0]
+
+    it 'no image', ->
+      data.request_payload = "en_US;Nāme"
+      assert.equal null, o._instant_get_encoded_data('fbinstant:da').img
+
+    it 'return null', ->
+      o._signed_request_parse = -> null
+      assert.equal null, o._instant_get_encoded_data({})
+
+    it 'not string', ->
+      assert.equal null, o._instant_get_encoded_data({})

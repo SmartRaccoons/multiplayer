@@ -14,6 +14,8 @@ Facebook_Authorize =
   _authorize_facebook: null
   _instant_validate: null
   _instant_get_encoded_data: null
+  _signed_request_validate: null
+  _signed_request_parse: null
 Google_Authorize =
   authorize: null
 Apple_Authorize =
@@ -41,6 +43,8 @@ Authorize = proxyquire '../authorize',
       _authorize_facebook: -> Facebook_Authorize._authorize_facebook.apply(@, arguments)
       _instant_validate: -> Facebook_Authorize._instant_validate.apply(@, arguments)
       _instant_get_encoded_data: -> Facebook_Authorize._instant_get_encoded_data.apply(@, arguments)
+      _signed_request_validate: -> Facebook_Authorize._signed_request_validate.apply(@, arguments)
+      _signed_request_parse: -> Facebook_Authorize._signed_request_parse.apply(@, arguments)
   '../api/google':
     ApiGoogle: class ApiGoogle
       authorize: -> Google_Authorize.authorize.apply(@, arguments)
@@ -626,6 +630,7 @@ describe 'Athorize', ->
     it 'default', ->
       assert.equal('auth_user_session_facebook', login._table_session)
       assert.equal('transaction_facebook', login._table_transaction)
+      assert.equal('deletion_facebook', login._table_deletion)
       assert.equal('facebook', login._name)
 
     it 'authorize (facebook instant)', ->
@@ -792,6 +797,97 @@ describe 'Athorize', ->
       assert.equal 0, login._user_get.callCount
       assert.equal(1, spy.callCount)
       assert.equal('user is missing', spy.getCall(0).args[0])
+
+
+    describe 'deletion_request', ->
+      beforeEach ->
+        Facebook_Authorize._signed_request_validate = sinon.fake.returns true
+        Facebook_Authorize._signed_request_parse = sinon.fake.returns {
+          user_id: 'fbu1',
+          algorithm: 'HMAC-SHA256',
+          issued_at: 1621944556
+        }
+        login._user_get = sinon.spy()
+        uuid_v4 = sinon.fake.returns 'rnd'
+
+      it 'default', ->
+        login.deletion_request('req', spy)
+        assert.equal 1, Facebook_Authorize._signed_request_validate.callCount
+        assert.equal 'req', Facebook_Authorize._signed_request_validate.getCall(0).args[0]
+        assert.equal 1, Facebook_Authorize._signed_request_parse.callCount
+        assert.equal 'req', Facebook_Authorize._signed_request_parse.getCall(0).args[0]
+        assert.equal 1, login._user_get.callCount
+        assert.deepEqual {facebook_uid: 'fbu1'}, login._user_get.getCall(0).args[0]
+        login._user_get.getCall(0).args[1]({id: 5})
+        assert.equal 1, db.select_one.callCount
+        assert.equal 'deletion_facebook', db.select_one.getCall(0).args[0].table
+        assert.deepEqual ['status', 'code'], db.select_one.getCall(0).args[0].select
+        assert.deepEqual {user_id: 5}, db.select_one.getCall(0).args[0].where
+        db.select_one.getCall(0).args[1](null)
+        assert.equal 1, db.insert.callCount
+        assert.equal 'deletion_facebook', db.insert.getCall(0).args[0].table
+        assert.equal true, db.insert.getCall(0).args[0].data.initiated <= new Date()
+        assert.equal 5, db.insert.getCall(0).args[0].data.user_id
+        assert.equal 5, db.insert.getCall(0).args[0].data.user_id
+        assert.equal 'Initiated', db.insert.getCall(0).args[0].data.status
+        assert.equal 'rnd', db.insert.getCall(0).args[0].data.code
+        assert.equal 1, uuid_v4.callCount
+        db.insert.getCall(0).args[1]()
+        assert.equal 1, spy.callCount
+        assert.deepEqual {status: 'Initiated', code: 'rnd'}, spy.getCall(0).args[0]
+
+      it 'signed_request invalid', ->
+        Facebook_Authorize._signed_request_validate = -> false
+        login.deletion_request('req', spy)
+        assert.equal 0, Facebook_Authorize._signed_request_parse.callCount
+        assert.equal 0, login._user_get.callCount
+        assert.equal 1, spy.callCount
+        assert.equal null, spy.getCall(0).args[0]
+
+      it 'signed_request no user_id', ->
+        Facebook_Authorize._signed_request_parse = -> {}
+        login.deletion_request('req', spy)
+        assert.equal 0, login._user_get.callCount
+        assert.equal 1, spy.callCount
+        assert.equal null, spy.getCall(0).args[0]
+
+      it 'signed_request no data', ->
+        Facebook_Authorize._signed_request_parse = -> null
+        login.deletion_request('req', spy)
+        assert.equal 0, login._user_get.callCount
+        assert.equal 1, spy.callCount
+        assert.equal null, spy.getCall(0).args[0]
+
+      it 'user not found', ->
+        login.deletion_request('req', spy)
+        login._user_get.getCall(0).args[1](null)
+        assert.equal 0, db.select_one.callCount
+        assert.equal 1, spy.callCount
+        assert.equal null, spy.getCall(0).args[0]
+
+      it 'result found', ->
+        login.deletion_request('req', spy)
+        login._user_get.getCall(0).args[1]({id: 5})
+        db.select_one.getCall(0).args[1]({status: 'Init', code: 'cd'})
+        assert.equal 1, spy.callCount
+        assert.deepEqual {status: 'Init', code: 'cd'}, spy.getCall(0).args[0]
+        assert.equal 0, db.insert.callCount
+
+
+    it 'deletion_status', ->
+      login.deletion_status('cd', spy)
+      assert.equal 1, db.select_one.callCount
+      assert.equal 'deletion_facebook', db.select_one.getCall(0).args[0].table
+      assert.deepEqual ['status'], db.select_one.getCall(0).args[0].select
+      assert.deepEqual {code: 'cd'}, db.select_one.getCall(0).args[0].where
+      db.select_one.getCall(0).args[1]({status: 'init'})
+      assert.equal 1, spy.callCount
+      assert.deepEqual {status: 'init'}, spy.getCall(0).args[0]
+
+    it 'deletion_status (not found)', ->
+      login.deletion_status('cd', spy)
+      db.select_one.getCall(0).args[1](null)
+      assert.equal null, spy.getCall(0).args[0]
 
 
   describe 'LoginGoogle', ->

@@ -225,11 +225,47 @@ module.exports.facebook = class LoginFacebook extends Login
   _name: 'facebook'
   _table_session: 'auth_user_session_facebook'
   _table_transaction: 'transaction_facebook'
+  _table_deletion: 'deletion_facebook'
   _api_call: ({code}, callback)->
     facebook._authorize_facebook code, (user)->
       if !user
         return callback null
       callback {facebook_uid: user.facebook_uid}, _pick(user, ['facebook_token_for_business', 'name', 'img', 'language'])
+
+  deletion_request: (signed_request, callback)->
+    if !facebook._signed_request_validate(signed_request)
+      return callback null, 'request invalid'
+    request_parsed = facebook._signed_request_parse(signed_request)
+    if !( request_parsed and request_parsed.user_id )
+      return callback null, 'parse error'
+    @_user_get {facebook_uid: request_parsed.user_id}, (user)=>
+      if !user
+        return callback null, 'user not found: ' + request_parsed.user_id
+      config.db.select_one
+        select: ['status', 'code']
+        table: @_table_deletion
+        where: {user_id: user.id}
+      , (result)=>
+        if result
+          return callback result
+        code = uuidv4()
+        status = 'Initiated'
+        config.db.insert
+          table: @_table_deletion
+          data:
+            initiated: new Date()
+            user_id: user.id
+            status: status
+            code: code
+          , (id)=> callback({status, code})
+
+  deletion_status: (code, callback)->
+    config.db.select_one
+      select: ['status']
+      table: @_table_deletion
+      where: {code}
+    , (result)->
+      callback if result then {status: result.status} else null
 
   authorize: ({code, language}, callback)->
     if facebook._instant_validate(code)

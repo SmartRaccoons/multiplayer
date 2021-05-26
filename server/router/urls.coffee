@@ -14,7 +14,9 @@ AuthorizeEmail = null
 locale = null
 template = null
 User = null
+helpers_email = null
 config_callback( ->
+  helpers_email = module_get('server.helpers.email')
   Anonymous = module_get('server.authorize').Anonymous
   Authorize = module_get('server.authorize')
   AuthorizeEmail = module_get('server.authorize').email
@@ -69,10 +71,30 @@ module.exports.authorize = (app)->
         params_language = language_validate(if params[2] then params[2] else '')
         new (Authorize.apple)().authorize {code: req.body.code, language: params_language, params: {user: req.body.user, post: true} }, (user)=>
           res.redirect "#{params_url}?apple=#{req.body.code}&state=#{params_code}"
-    if platform is 'facebook' and config_get(platform).deletion_callback
+    do =>
+      if !( platform is 'facebook' and config_get(platform).deletion_callback )
+        return
+      template = do =>
+        deletion = template_local('deletion')
+        (params)=> deletion Object.assign({message: '', error: ''}, params)
+      deletion_url = config_get(platform).deletion_url
       app.post config_get(platform).deletion_callback, (req, res)->
-        console.log(req.body)
-        console.log(req.query)
+        new (Authorize[platform])().deletion_request req.body.signed_request, (result, error)->
+          if !result
+            return res.sendStatus(404)
+          res.json
+            confirmation_code: result.code
+            url: "#{config_get('server')}#{deletion_url}/#{result.code}"
+          helpers_email.send_admin {subject: 'Deletion request', text: ''}
+      app.get "#{deletion_url}/:code", (req, res)->
+        new (Authorize[platform])().deletion_status req.params.code, (result)=>
+          if !result
+            return res.send template({
+              error: 'Something is wrong'
+            })
+          res.send template({
+            message: "Deletion request status: #{result.status}"
+          })
 
     app.get config_get(platform).login_full, (req, res)->
       res.redirect links[platform]('/g', '', language_validate(req.query.language))

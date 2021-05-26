@@ -180,3 +180,15 @@ CREATE TABLE `auth_user_cordova_params` (
   KEY `auth_user_cordova_params_id` (`user_id`),
   CONSTRAINT `auth_user_cordova_params_id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `deletion_facebook` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `code` text DEFAULT NULL,
+  `status` text DEFAULT NULL,
+  `initiated` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `deletion_facebook__user_id` (`user_id`),
+  KEY `deletion_facebook__code` (`code`(20)),
+  CONSTRAINT `deletion_facebook__id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
