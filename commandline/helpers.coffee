@@ -116,6 +116,14 @@ exports.directory_clear = directory_clear = (path, except = [], dir_main = true)
   if !dir_main
     fs.rmdirSync path
 
+exports.directory_create = (path)->
+  path.split('/').slice(0, -1).reduce (acc, file)->
+    dir = "#{acc}#{file}"
+    if dir and !fs.existsSync dir
+      fs.mkdirSync dir
+    return "#{dir}/"
+  , ''
+
 
 exports.platform_compile_js = ({platform, babel, uglifyjs, template, include_js})->
   cmd = (ex)->

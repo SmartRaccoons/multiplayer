@@ -1,5 +1,6 @@
 fs = require('fs')
 directory_clear = require('./helpers').directory_clear
+directory_create = require('./helpers').directory_create
 platform_compile_js = require('./helpers').platform_compile_js
 platform_compile_css = require('./helpers').platform_compile_css
 platform_compile_html = require('./helpers').platform_compile_html
@@ -34,6 +35,7 @@ exports.copy = (op, done)->
     fs.copyFileSync "public/#{op.platform}.html", "#{op.path}/index.html"
     fs.unlinkSync "public/#{op.platform}.html"
     ['c.css', "j-#{op.platform}.js"].concat(op.files).forEach (f)->
+      directory_create "#{op.path}/d/#{f}"
       fs.copyFileSync "public/d/#{f}", "#{op.path}/d/#{f}"
     fs.unlinkSync "public/d/j-#{op.platform}.js"
     done()
