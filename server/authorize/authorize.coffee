@@ -61,6 +61,7 @@ module.exports.Login = class Login
     'language': {db: true}
     'draugiem_uid': {db: true}
     'facebook_uid': {db: true}
+    'facebook_token_for_business': {db: true}
     'google_uid': {db: true}
     'inbox_uid': {db: true}
     'apple_uid': {db: true}
