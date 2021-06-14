@@ -16,7 +16,8 @@
         return callback();
       }
       return this.router.subview_append(new window.o.ViewPopupLanguage()).bind('language', (language) => {
-        return App.lang = language;
+        App.lang = language;
+        return this._language_set = true;
       }).bind('remove', () => {
         return callback();
       }).render().$el.appendTo(this.router.$el);
@@ -50,7 +51,9 @@
       this.router.message(_l('Authorize.Authorizing'));
       return this.router.send('authenticate:try', Object.assign({
         platform: this.options.platform
-      }, p));
+      }, this._language_set ? {
+        language: App.lang
+      } : void 0, p));
     }
 
   };

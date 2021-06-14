@@ -459,6 +459,16 @@ describe 'Athorize', ->
       assert.equal(1, spy.callCount)
       assert.deepEqual({id: 555}, spy.getCall(0).args[0])
 
+    it 'new update (with language)', ->
+      login.authorize({code: 'code', language: 'ru'}, spy)
+      login._user_session_check.getCall(0).args[1](null)
+      login._api_call.getCall(0).args[1]({fb: '56'}, {name: 'n', img: 'im'})
+      assert.deepEqual({
+        name: 'n'
+        img: 'im'
+        language: 'ru'
+      }, login._user_create_or_update.getCall(0).args[1])
+
     it 'authorize new (create session)', ->
       login.authorize({code: 'code'}, spy)
       login._user_session_check.getCall(0).args[1](null)

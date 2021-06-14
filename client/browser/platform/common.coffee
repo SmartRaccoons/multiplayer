@@ -10,6 +10,7 @@ window.o.PlatformCommon = class Common
     @router.subview_append(new window.o.ViewPopupLanguage())
     .bind 'language', (language)=>
       App.lang = language
+      @_language_set = true
     .bind 'remove', => callback()
     .render()
     .$el.appendTo(@router.$el)
@@ -30,4 +31,8 @@ window.o.PlatformCommon = class Common
 
   auth_send: (p)->
     @router.message(_l('Authorize.Authorizing'))
-    @router.send 'authenticate:try', Object.assign( {platform: @options.platform}, p )
+    @router.send 'authenticate:try', Object.assign(
+      {platform: @options.platform}
+      if @_language_set then {language: App.lang}
+      p
+    )

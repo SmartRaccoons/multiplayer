@@ -178,7 +178,7 @@ module.exports.Login = class Login
       @_api_call params, (where, user, session={})=>
         if not where
           return callback(null)
-        @_user_create_or_update where, user, (user)=>
+        @_user_create_or_update where, Object.assign({}, user, if params.language then {language: params.language}), (user)=>
           callback(user)
           @_user_session_save Object.assign({user_id: user.id, code}, session)
 
