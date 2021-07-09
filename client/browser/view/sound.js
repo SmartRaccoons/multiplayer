@@ -16,11 +16,29 @@
       this.id = __ids;
       this.cordova = cordova();
       this.media = this.cordova ? new Media(this.options.url) : new Audio(this.options.url);
+      if (!this.cordova) {
+        this.media.addEventListener('loadeddata', () => {
+          this._duration_mls = Math.round(this.media.duration * 1000);
+          return this.trigger('loadeddata');
+        });
+      }
       this.volume(this.options.volume);
       this.__remove_callback = setTimeout(() => {
         return this.remove();
-      }, 1000 * 60);
+      }, 1000 * 60 * 5);
       this;
+    }
+
+    duration(callback, binded = false) {
+      if (this._duration_mls) {
+        return callback(this._duration_mls);
+      }
+      if (binded) {
+        return callback(0);
+      }
+      return this.bind('loadeddata', () => {
+        return this.duration(callback, true);
+      });
     }
 
     volume(volume) {
@@ -102,7 +120,7 @@
       document.body.addEventListener('touchstart', fn);
     }
 
-    play(sound) {
+    _media_get(sound) {
       var media;
       if (!__enable) {
         return;
@@ -117,15 +135,33 @@
         media = new SoundMedia({
           volume: this.options.volume,
           url: `${this.options.path}${sound}.${this.options.extension}`
-        }).play();
+        });
         this.__medias.push(media);
         media.on('remove', () => {
           return this.__medias.splice(this.get(media.id, true), 1);
         });
         return media;
       } catch (error) {
-
+        return null;
       }
+    }
+
+    duration(sound, callback) {
+      var media;
+      media = this._media_get(sound);
+      if (!media) {
+        return;
+      }
+      return media.duration(callback);
+    }
+
+    play(sound) {
+      var media;
+      media = this._media_get(sound);
+      if (!media) {
+        return;
+      }
+      return media.play();
     }
 
     get(id, index = false) {

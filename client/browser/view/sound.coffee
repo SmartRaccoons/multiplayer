@@ -9,11 +9,22 @@ class SoundMedia extends SimpleEvent
     @id = __ids
     @cordova = cordova()
     @media = if @cordova then new Media(@options.url) else new Audio(@options.url)
+    if !@cordova
+      @media.addEventListener 'loadeddata', =>
+        @_duration_mls = Math.round @media.duration * 1000
+        @trigger 'loadeddata'
     @volume(@options.volume)
     @__remove_callback = setTimeout =>
       @remove()
-    , 1000 * 60
+    , 1000 * 60 * 5
     @
+
+  duration: (callback, binded = false)->
+    if @_duration_mls
+      return callback(@_duration_mls)
+    if binded
+      return callback(0)
+    @bind 'loadeddata', => @duration(callback, true)
 
   volume: (volume)->
     @options.volume = volume
@@ -71,7 +82,7 @@ __enable = true
     document.body.addEventListener('click', fn)
     document.body.addEventListener('touchstart', fn)
 
-  play: (sound)->
+  _media_get: (sound)->
     if !__enable
       return
     if !@__enable
@@ -82,12 +93,25 @@ __enable = true
       media = new SoundMedia({
         volume: @options.volume
         url: "#{@options.path}#{sound}.#{@options.extension}"
-      }).play()
+      })
       @__medias.push media
       media.on 'remove', =>
         @__medias.splice @get(media.id, true), 1
       return media
     catch
+      return null
+
+  duration: (sound, callback)->
+    media = @_media_get(sound)
+    if !media
+      return
+    media.duration(callback)
+
+  play: (sound)->
+    media = @_media_get(sound)
+    if !media
+      return
+    media.play()
 
   get: (id, index = false)-> @__medias[if index then 'findIndex' else 'find']( (m)-> m.id is id )
 
