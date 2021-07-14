@@ -19,7 +19,7 @@
         this.router.bind('connect', () => {
           return this.auth_send({
             vkontakte: window.location.href.split('?')[1],
-            language: this.router._get('language') === '0' ? 'ru' : 'en'
+            language: this.router._get('language') === '3' ? 'en' : 'ru'
           });
         });
         this;
