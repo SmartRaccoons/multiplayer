@@ -9,6 +9,7 @@
     "url": "https://github.com/SmartRaccoons/multiplayer.git"
   },
   "dependencies": {
+    "@vkontakte/vk-bridge": "^2.4.4",
     "apple-signin-auth": "^1.5.1",
     "body-parser": "^1.19.0",
     "crypto-js": "^4.0.0",
