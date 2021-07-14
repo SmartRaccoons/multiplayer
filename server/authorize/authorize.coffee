@@ -413,7 +413,7 @@ module.exports.vkontakte = class LoginVkontakte extends Login
     vkontakte_user = vkontakte.authorize code
     if !vkontakte_user
       return callback null
-    @_user_create_or_update {vkontakte_uid: vkontakte_user.uid}, Object.assign({}, {name: vkontakte_user.name, img: vkontakte_user.img, language}), (user)=>
+    @_user_create_or_update {vkontakte_uid: vkontakte_user.uid}, Object.assign( {language}, _pick(vkontakte, ['name', 'img']) ), (user)=>
       callback(user)
 
 

@@ -31,9 +31,8 @@ module.exports.ApiVkontakte = class ApiVkontakte
       return null
     params = {uid: url.viewer_id}
     try
-      api_result = JSON.parse(url.api_result)
+      api_result = JSON.parse(decodeURIComponent(url.api_result))
       params.name = [api_result.response[0].first_name, api_result.response[0].last_name].join ' '
       params.img = api_result.response[0].photo
     catch e
-      return null
     return params
