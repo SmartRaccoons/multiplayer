@@ -9,6 +9,7 @@ CREATE TABLE `auth_user` (
   `google_uid` varchar(100) DEFAULT NULL,
   `apple_uid` varchar(100) DEFAULT NULL,
   `inbox_uid` varchar(100) DEFAULT NULL,
+  `vkontakte_uid` varchar(100) DEFAULT NULL,
   `name` varchar(100) NOT NULL,
   `img` varchar(1000) DEFAULT NULL,
   `last_login` datetime NOT NULL,
@@ -19,6 +20,7 @@ CREATE TABLE `auth_user` (
   KEY `auth_user__facebook_uid` (`facebook_uid`),
   KEY `auth_user__google_uid` (`google_uid`),
   KEY `auth_user__inbox_uid` (`inbox_uid`)
+  KEY `auth_user__vkontakte_uid` (`vkontakte_uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 

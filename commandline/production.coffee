@@ -13,7 +13,7 @@ exports.production = (op, done)->
     babel: './node_modules/@babel/cli/bin/babel.js --source-type=script'
   }, op
   template_config = Object.keys(op.template.config_get().javascripts)
-  platforms = ['standalone', 'draugiem', 'facebook', 'inbox']
+  platforms = ['standalone', 'draugiem', 'facebook', 'inbox', 'vkontakte']
     .filter (platform)-> template_config.indexOf(platform) >= 0
   Promise.all( [
       new Promise (resolve, reject)->

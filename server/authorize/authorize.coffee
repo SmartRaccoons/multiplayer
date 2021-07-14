@@ -4,6 +4,7 @@ fbgraph = require('fbgraph')
 ApiGoogle = require('../api/google').ApiGoogle
 ApiApple = require('../api/apple').ApiApple
 ApiInbox = require('../api/inbox').ApiInbox
+ApiVkontakte = require('../api/vkontakte').ApiVkontakte
 ApiDraugiem = require('../api/draugiem').ApiDraugiem
 ApiFacebook = require('../api/facebook').ApiFacebook
 
@@ -15,6 +16,7 @@ _omit = require('lodash').omit
 
 config = {}
 inbox = null
+vkontakte = null
 google = null
 apple = null
 facebook = null
@@ -36,6 +38,8 @@ config_callback ->
     config.inbox =
       buy_price: config_get('inbox').buy_price
     inbox = new ApiInbox(config_get(['inbox', 'server']))
+  if config_get('vkontakte')
+    vkontakte = new ApiVkontakte(config_get(['vkontakte', 'server']))
   if config_get('google')
     google = new ApiGoogle(config_get(['google', 'server', 'code_url']))
   if config_get('apple')
@@ -64,6 +68,7 @@ module.exports.Login = class Login
     'facebook_token_for_business': {db: true}
     'google_uid': {db: true}
     'inbox_uid': {db: true}
+    'vkontakte_uid': {db: true}
     'apple_uid': {db: true}
     'img': {default: '', db: true, public: true}
     # 'params':
@@ -399,6 +404,17 @@ module.exports.inbox = class LoginInbox extends Login
 
   buy_complete: (transaction_id, callback_save, callback_end)->
     @_transaction_get {transaction_id}, callback_save, callback_end
+
+
+module.exports.vkontakte = class LoginVkontakte extends Login
+  _name: 'vkontakte'
+  # _table_transaction: 'transaction_vkontakte'
+  authorize: ({code, language}, callback)->
+    vkontakte_user = vkontakte.authorize code
+    if !vkontakte_user
+      return callback null
+    @_user_create_or_update {vkontakte_uid: vkontakte_user.uid}, Object.assign({}, {name: vkontakte_user.name, img: vkontakte_user.img, language}), (user)=>
+      callback(user)
 
 
 module.exports.email = class LoginEmail extends Login

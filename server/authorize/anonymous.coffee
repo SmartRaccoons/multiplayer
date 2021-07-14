@@ -10,7 +10,7 @@ locale = null
 email = null
 _authorize = null
 config_callback ->
-  platforms = ['draugiem', 'facebook', 'google', 'apple', 'inbox', 'email'].filter (platform)-> !!config_get(platform)
+  platforms = ['draugiem', 'facebook', 'google', 'apple', 'inbox', 'vkontakte', 'email'].filter (platform)-> !!config_get(platform)
   dbmemory = config_get('dbmemory')
   locale = module_get('locale')
   email = module_get('server.helpers.email')
