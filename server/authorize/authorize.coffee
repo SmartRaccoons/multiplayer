@@ -5,6 +5,7 @@ ApiGoogle = require('../api/google').ApiGoogle
 ApiApple = require('../api/apple').ApiApple
 ApiInbox = require('../api/inbox').ApiInbox
 ApiVkontakte = require('../api/vkontakte').ApiVkontakte
+ApiOdnoklassniki = require('../api/odnoklassniki').ApiOdnoklassniki
 ApiDraugiem = require('../api/draugiem').ApiDraugiem
 ApiFacebook = require('../api/facebook').ApiFacebook
 
@@ -17,6 +18,7 @@ _omit = require('lodash').omit
 config = {}
 inbox = null
 vkontakte = null
+odnoklassniki = null
 google = null
 apple = null
 facebook = null
@@ -40,6 +42,8 @@ config_callback ->
     inbox = new ApiInbox(config_get(['inbox', 'server']))
   if config_get('vkontakte')
     vkontakte = new ApiVkontakte(config_get(['vkontakte', 'server']))
+  if config_get('odnoklassniki')
+    odnoklassniki = new ApiOdnoklassniki(config_get(['odnoklassniki', 'server']))
   if config_get('google')
     google = new ApiGoogle(config_get(['google', 'server', 'code_url']))
   if config_get('apple')
@@ -69,6 +73,7 @@ module.exports.Login = class Login
     'google_uid': {db: true}
     'inbox_uid': {db: true}
     'vkontakte_uid': {db: true}
+    'odnoklassniki_uid': {db: true}
     'apple_uid': {db: true}
     'img': {default: '', db: true, public: true}
     # 'params':
@@ -414,6 +419,17 @@ module.exports.vkontakte = class LoginVkontakte extends Login
     if !vkontakte_user
       return callback null
     @_user_create_or_update {vkontakte_uid: vkontakte_user.uid}, Object.assign( {language}, _pick(vkontakte, ['name', 'img']) ), (user)=>
+      callback(user)
+
+
+module.exports.odnoklassniki = class LoginOdnoklassniki extends Login
+  _name: 'odnoklassniki'
+  # _table_transaction: 'transaction_odnoklassniki'
+  authorize: ({code, language}, callback)->
+    odnoklassniki_user = odnoklassniki.authorize code
+    if !odnoklassniki_user
+      return callback null
+    @_user_create_or_update {odnoklassniki_uid: odnoklassniki_user.uid}, Object.assign( {language}, _pick(odnoklassniki_user, ['name', 'img']) ), (user)=>
       callback(user)
 
 
