@@ -24,5 +24,4 @@ module.exports.ApiOdnoklassniki = class ApiOdnoklassniki
       params.name = url.user_name
       params.img = url.user_image
     catch e
-    console.info params
     return params

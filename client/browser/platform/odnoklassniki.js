@@ -25,6 +25,23 @@
         this;
       }
 
+      __init(callback) {
+        var script;
+        script = document.createElement('script');
+        script.defer = 'defer';
+        script.onload = function() {
+          var rParams;
+          rParams = FAPI.Util.getRequestParameters();
+          return FAPI.init(rParams["api_server"], rParams["apiconnection"], callback, function() {});
+        };
+        script.src = '//api.ok.ru/js/fapi5.js';
+        return document.head.appendChild(script);
+      }
+
+      invite({text, params, selected_uids}) {
+        return FAPI.UI.showInvite(text, params, selected_uids);
+      }
+
     };
 
     Odnoklassniki.prototype._name = 'odnoklassniki';

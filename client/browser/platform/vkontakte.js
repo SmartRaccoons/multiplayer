@@ -25,6 +25,25 @@
         this;
       }
 
+      __init(callback) {
+        var script;
+        script = document.createElement('script');
+        script.onload = function() {
+          vkBridge.send('VKWebAppInit');
+          return callback();
+        };
+        script.src = '//unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js';
+        return document.head.appendChild(script);
+      }
+
+      invite() {
+        return vkBridge.send("VKWebAppShowInviteBox", {});
+      }
+
+      share({link}) {
+        return vkBridge.send("VKWebAppShare", {link});
+      }
+
     };
 
     Vkontakte.prototype._name = 'vkontakte';

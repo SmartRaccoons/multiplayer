@@ -14,3 +14,17 @@ window.o.PlatformVkontakte = class Vkontakte extends window.o.PlatformCommon
         vkontakte: window.location.href.split('?')[1]
         language: if @router._get('language') is '3' then 'en' else 'ru'
     @
+
+  __init: (callback)->
+    script = document.createElement('script')
+    script.onload = ->
+      vkBridge.send('VKWebAppInit')
+      callback()
+    script.src = '//unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js'
+    document.head.appendChild(script)
+
+  invite: ->
+    vkBridge.send("VKWebAppShowInviteBox", {})
+
+  share: ({link})->
+    vkBridge.send("VKWebAppShare", {link})

@@ -14,3 +14,15 @@ window.o.PlatformOdnoklassniki = class Odnoklassniki extends window.o.PlatformCo
         odnoklassniki: window.location.href.split('?')[1]
         language: 'ru'
     @
+
+  __init: (callback)->
+    script = document.createElement('script')
+    script.defer = 'defer'
+    script.onload = ->
+      rParams = FAPI.Util.getRequestParameters()
+      FAPI.init rParams["api_server"], rParams["apiconnection"], callback, ->
+    script.src = '//api.ok.ru/js/fapi5.js'
+    document.head.appendChild(script)
+
+  invite: ({text, params, selected_uids})->
+    FAPI.UI.showInvite(text, params, selected_uids)
