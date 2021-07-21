@@ -126,7 +126,6 @@ CREATE TABLE `transaction_odnoklassniki` (
   `id` int NOT NULL AUTO_INCREMENT,
   `service` varchar(10) NOT NULL,
   `user_id` int NOT NULL,
-  `language` varchar(12) NOT NULL,
   `fulfill` int DEFAULT '0',
   `created` datetime DEFAULT NULL,
   `fulfilled` datetime DEFAULT NULL,
