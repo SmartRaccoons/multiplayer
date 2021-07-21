@@ -1069,7 +1069,7 @@ describe 'Athorize', ->
       assert.equal 0, spy.callCount
       assert.equal 1, login._transaction_create.callCount
       assert.deepEqual {service: 1, user_id: 5}, login._transaction_create.getCall(0).args[0]
-      login._transaction_create.getCall(0).args[1](6)
+      login._transaction_create.getCall(0).args[1]({id: 6})
       assert.equal 1, spy.callCount
       assert.deepEqual {transaction_id: 6, price: 90}, spy.getCall(0).args[0]
 
@@ -1084,7 +1084,7 @@ describe 'Athorize', ->
       assert.equal 'query', Odnoklassniki_Authorize.buy_params.getCall(0).args[0]
       Odnoklassniki_Authorize.buy_params.getCall(0).args[1]({transaction_id: 2, price: 90})
       assert.equal 1, login._transaction_get.callCount
-      assert.deepEqual {transaction_id: 2}, login._transaction_get.getCall(0).args[0]
+      assert.deepEqual {id: 2}, login._transaction_get.getCall(0).args[0]
       assert.deepEqual spy2, login._transaction_get.getCall(0).args[2]
       login._transaction_get.getCall(0).args[1]({transaction: {service: 1}})
       assert.equal 0, spy2.callCount

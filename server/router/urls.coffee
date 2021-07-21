@@ -254,7 +254,7 @@ module.exports.payments = (app)->
       return
     if config_get(platform).transaction
       transaction.platforms[platform](platform, config_get(platform).transaction)
-  if config_get('inbox')
+  if config_get('inbox') and config_get('inbox').transaction
     app.use bodyParser.json {
       type: (req)->
         if req.url.indexOf("/#{config_get('inbox').transaction}") >= 0

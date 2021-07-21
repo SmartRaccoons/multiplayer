@@ -22,7 +22,7 @@
             language: 'ru'
           });
         });
-        this.router.bind(`request:buy:${this._name}`, ({service, id, price}) => {
+        this.router.bind(`request:buy:${this._name}`, ({service, transaction_id, price}) => {
           var params;
           params = this._buy_params({service, transaction_id, price});
           return FAPI.UI.showPayment(params.name, params.description, params.code, price, null, JSON.stringify({transaction_id}), 'ok', true);
@@ -37,7 +37,8 @@
         script.onload = function() {
           var rParams;
           rParams = FAPI.Util.getRequestParameters();
-          return FAPI.init(rParams["api_server"], rParams["apiconnection"], callback, function() {});
+          FAPI.init(rParams["api_server"], rParams["apiconnection"], callback, function() {});
+          return window.API_callback = function(method, result, data) {};
         };
         script.src = '//api.ok.ru/js/fapi5.js';
         return document.head.appendChild(script);

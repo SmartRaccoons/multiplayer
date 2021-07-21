@@ -13,7 +13,7 @@ window.o.PlatformOdnoklassniki = class Odnoklassniki extends window.o.PlatformCo
       @auth_send
         odnoklassniki: window.location.href.split('?')[1]
         language: 'ru'
-    @router.bind "request:buy:#{@_name}", ({service, id, price})=>
+    @router.bind "request:buy:#{@_name}", ({service, transaction_id, price})=>
       params = @_buy_params({service, transaction_id, price})
       FAPI.UI.showPayment(
         params.name,
@@ -33,6 +33,7 @@ window.o.PlatformOdnoklassniki = class Odnoklassniki extends window.o.PlatformCo
     script.onload = ->
       rParams = FAPI.Util.getRequestParameters()
       FAPI.init rParams["api_server"], rParams["apiconnection"], callback, ->
+      window.API_callback = (method, result, data)->
     script.src = '//api.ok.ru/js/fapi5.js'
     document.head.appendChild(script)
 

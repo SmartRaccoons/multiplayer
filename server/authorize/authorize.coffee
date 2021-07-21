@@ -440,14 +440,14 @@ module.exports.odnoklassniki = class LoginOdnoklassniki extends Login
     @_transaction_create
       service: service
       user_id: user_id
-    , (id)=>
+    , ({id})=>
       callback({transaction_id: id, price: config.odnoklassniki.buy_price[service]})
 
   buy_complete: (query, callback_save, callback_end)->
     odnoklassniki.buy_params query, (buy_params, error, error_code)=>
       if error
         return callback_end(error, error_code)
-      @_transaction_get {transaction_id: buy_params.transaction_id}, (params)=>
+      @_transaction_get {id: buy_params.transaction_id}, (params)=>
         if config.odnoklassniki.buy_price[params.transaction.service] isnt buy_params.price
           return callback_end('price is not match')
         return callback_save(params)
