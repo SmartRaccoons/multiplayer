@@ -193,6 +193,28 @@ module.exports.payments = (app)->
             if err
               console.info 'transaction draugiem', err, req.query.id
             res.send('OK')
+      odnoklassniki: (platform, url)->
+        app.get url, (req, res)->
+          res.set('Content-Type', 'application/xml')
+          transaction.callback req.query, platform, (err, err_code)->
+            console.info err, err_code
+            if err
+              console.info 'transaction odnoklassniki', err, req.query
+              if !err_code
+                err_code = 1001
+              err_descriptions =
+                1001: 'CALLBACK_INVALID_PAYMENT : Payment is invalid and can not be processed'
+                104: 'PARAM_SIGNATURE : Invalid Signature'
+              res.set('invocation-error', "#{err_code}")
+              return res.send """<?xml version="1.0" encoding="UTF-8"?>
+                <ns2:error_response xmlns:ns2='http://api.forticom.com/1.0/'>
+                    <error_code>#{err_code}</error_code>
+                    <error_msg>#{err_descriptions[err_code]}</error_msg>
+                </ns2:error_response>"""
+            res.send """<?xml version="1.0" encoding="UTF-8"?>
+              <callbacks_payment_response xmlns="http://api.forticom.com/1.0/">
+                  true
+              </callbacks_payment_response>"""
       facebook: (platform, url)->
         app.all url, (req, res)->
           if req.method is 'GET'

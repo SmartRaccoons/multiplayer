@@ -789,6 +789,13 @@ describe 'User', ->
         user.options.api.buy.getCall(0).args[1]({id: 10})
         assert.equal 'buy:inbox', user.publish.getCall(0).args[0]
 
+      it 'odnoklassniki', ->
+        user.options.api._name = 'odnoklassniki'
+        user._bind_socket_coins_buy(['odnoklassniki'])
+        socket.emit 'buy:odnoklassniki', {service: 2}
+        user.options.api.buy.getCall(0).args[1]({id: 10})
+        assert.equal 'buy:odnoklassniki', user.publish.getCall(0).args[0]
+
       it 'not included', ->
         user.options.api._name = 'inbox'
         user._bind_socket_coins_buy(['facebook'])

@@ -5,6 +5,7 @@ proxyquire = require('proxyquire')
 
 
 class Facebook
+class Odnoklassniki
 class User
 
 helpers_email = {}
@@ -16,7 +17,7 @@ urls = proxyquire('../urls', {
     module_get: (plugin)->
       if plugin is 'server.helpers.email'
         return helpers_email
-      { facebook: Facebook, User }
+      { facebook: Facebook, odnoklassniki: Odnoklassniki, User }
     config_get: (p)-> config[p]
 })
 
@@ -31,6 +32,7 @@ describe 'Urls', ->
     spy = sinon.spy()
     res =
       send: sinon.spy()
+      set: sinon.spy()
       json: sinon.spy()
       sendStatus: sinon.spy()
     app =
@@ -178,3 +180,50 @@ describe 'Urls', ->
         req.body = req_subscription
         app.all.getCall(0).args[1] req, res
         assert.deepEqual {id: '301663523297285', subscription: true}, buy_complete.getCall(0).args[0]
+
+
+    describe 'odnoklassniki', ->
+      req_query = null
+      buy_complete = null
+      beforeEach ->
+        req_query = 'query'
+        req =
+          method: 'GET'
+        config.odnoklassniki = { transaction: 'odnurl' }
+        Odnoklassniki::buy_complete = buy_complete = sinon.spy()
+
+        urls.payments(app)
+
+      it 'payment', ->
+        req.query = req_query
+        assert.equal 1, app.get.callCount
+        assert.equal 'odnurl', app.get.getCall(0).args[0]
+        app.get.getCall(0).args[1] req, res
+        assert.equal 1, buy_complete.callCount
+        assert.equal 'query', buy_complete.getCall(0).args[0]
+        buy_complete.getCall(0).args[2]()
+        assert.equal 1, res.set.callCount
+        assert.equal 'Content-Type', res.set.getCall(0).args[0]
+        assert.equal 'application/xml', res.set.getCall(0).args[1]
+        assert.equal 1, res.send.callCount
+        assert.equal """<?xml version="1.0" encoding="UTF-8"?>
+          <callbacks_payment_response xmlns="http://api.forticom.com/1.0/">
+              true
+          </callbacks_payment_response>""", res.send.getCall(0).args[0]
+
+      it 'payment (error)', ->
+        req.query = req_query
+        app.get.getCall(0).args[1] req, res
+        buy_complete.getCall(0).args[2]('m', 104)
+        assert.equal 2, res.set.callCount
+        assert.equal 'invocation-error', res.set.getCall(1).args[0]
+        assert.equal '104', res.set.getCall(1).args[1]
+        assert.equal 1, res.send.callCount
+        assert.equal true, res.send.getCall(0).args[0].indexOf( "<error_code>104</error_code>" ) >= 0
+
+      it 'payment (error other)', ->
+        req.query = req_query
+        app.get.getCall(0).args[1] req, res
+        buy_complete.getCall(0).args[2]('m')
+        assert.equal 1, res.send.callCount
+        assert.equal true, res.send.getCall(0).args[0].indexOf( "<error_code>1001</error_code>" ) >= 0

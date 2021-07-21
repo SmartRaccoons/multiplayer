@@ -227,7 +227,7 @@ module.exports.User = class User extends User
 
   _bind_socket_coins_buy: (platforms = ['facebook', 'draugiem', 'inbox'])->
     mt = 'buy'
-    ['facebook', 'draugiem', 'inbox'].forEach (platform)=>
+    ['facebook', 'draugiem', 'inbox', 'odnoklassniki'].forEach (platform)=>
       if ! (platforms.indexOf(platform) >= 0 and @options.api._name is platform)
         return
       @options.socket.on "#{mt}:#{platform}", (args)=>

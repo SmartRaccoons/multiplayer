@@ -43,6 +43,8 @@ config_callback ->
   if config_get('vkontakte')
     vkontakte = new ApiVkontakte(config_get(['vkontakte', 'server']))
   if config_get('odnoklassniki')
+    config.odnoklassniki =
+      buy_price: config_get('odnoklassniki').buy_price
     odnoklassniki = new ApiOdnoklassniki(config_get(['odnoklassniki', 'server']))
   if config_get('google')
     google = new ApiGoogle(config_get(['google', 'server', 'code_url']))
@@ -424,13 +426,32 @@ module.exports.vkontakte = class LoginVkontakte extends Login
 
 module.exports.odnoklassniki = class LoginOdnoklassniki extends Login
   _name: 'odnoklassniki'
-  # _table_transaction: 'transaction_odnoklassniki'
+  _table_transaction: 'transaction_odnoklassniki'
   authorize: ({code, language}, callback)->
     odnoklassniki_user = odnoklassniki.authorize code
     if !odnoklassniki_user
       return callback null
     @_user_create_or_update {odnoklassniki_uid: odnoklassniki_user.uid}, Object.assign( {language}, _pick(odnoklassniki_user, ['name', 'img']) ), (user)=>
       callback(user)
+
+  buy: ({service, user_id}, callback)->
+    if !(service of config.odnoklassniki.buy_price)
+      return
+    @_transaction_create
+      service: service
+      user_id: user_id
+    , (id)=>
+      callback({transaction_id: id, price: config.odnoklassniki.buy_price[service]})
+
+  buy_complete: (query, callback_save, callback_end)->
+    odnoklassniki.buy_params query, (buy_params, error, error_code)=>
+      if error
+        return callback_end(error, error_code)
+      @_transaction_get {transaction_id: buy_params.transaction_id}, (params)=>
+        if config.odnoklassniki.buy_price[params.transaction.service] isnt buy_params.price
+          return callback_end('price is not match')
+        return callback_save(params)
+      , callback_end
 
 
 module.exports.email = class LoginEmail extends Login

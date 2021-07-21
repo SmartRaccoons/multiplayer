@@ -22,6 +22,11 @@
             language: 'ru'
           });
         });
+        this.router.bind(`request:buy:${this._name}`, ({service, id, price}) => {
+          var params;
+          params = this._buy_params({service, transaction_id, price});
+          return FAPI.UI.showPayment(params.name, params.description, params.code, price, null, JSON.stringify({transaction_id}), 'ok', true);
+        });
         this;
       }
 
@@ -40,6 +45,10 @@
 
       invite({text, params, selected_uids}) {
         return FAPI.UI.showInvite(text, params, selected_uids);
+      }
+
+      _buy_params() {
+        throw 'buy params missing';
       }
 
     };

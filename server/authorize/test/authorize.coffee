@@ -25,6 +25,9 @@ Inbox_Authorize =
   constructor: ->
   authorize: null
   transaction_create: null
+Odnoklassniki_Authorize =
+  constructor: ->
+  buy_params: ->
 
 config = {}
 config_callbacks = []
@@ -57,6 +60,10 @@ Authorize = proxyquire '../authorize',
       constructor: -> Inbox_Authorize.constructor.apply(@, arguments)
       authorize: -> Inbox_Authorize.authorize.apply(@, arguments)
       transaction_create: -> Inbox_Authorize.transaction_create.apply(@, arguments)
+  '../api/odnoklassniki':
+    ApiOdnoklassniki: class ApiOdnoklassniki
+      constructor: -> Odnoklassniki_Authorize.constructor.apply(@, arguments)
+      buy_params: -> Odnoklassniki_Authorize.buy_params.apply(@, arguments)
   '../../config':
     config_get: (param)-> config[param]
     config_callback: (c)-> config_callbacks.push c
@@ -70,6 +77,7 @@ LoginFacebook = Authorize.facebook
 LoginGoogle = Authorize.google
 LoginApple = Authorize.apple
 LoginInbox = Authorize.inbox
+LoginOdnoklassniki = Authorize.odnoklassniki
 LoginCordova = Authorize.cordova
 LoginEmail = Authorize.email
 Login = Authorize.Login
@@ -91,6 +99,9 @@ describe 'Athorize', ->
       inbox:
         buy_price:
           1: 70
+      odnoklassniki:
+        buy_price:
+          1: 90
       google:
         id: 'gid'
       apple:
@@ -144,6 +155,8 @@ describe 'Athorize', ->
       assert.deepEqual {db: true}, login._opt.facebook_uid
       assert.deepEqual {db: true}, login._opt.google_uid
       assert.deepEqual {db: true}, login._opt.inbox_uid
+      assert.deepEqual {db: true}, login._opt.vkontakte_uid
+      assert.deepEqual {db: true}, login._opt.odnoklassniki_uid
       assert.deepEqual {db: true}, login._opt.apple_uid
       assert.deepEqual {db: true, default: '', public: true}, login._opt.img
       assert.deepEqual {}, login._opt.new
@@ -1036,6 +1049,64 @@ describe 'Athorize', ->
       assert.deepEqual({transaction_id: '22'}, login._transaction_get.getCall(0).args[0])
       assert.equal('a', login._transaction_get.getCall(0).args[1])
       assert.equal('b', login._transaction_get.getCall(0).args[2])
+
+
+  describe 'LoginOdnoklassniki', ->
+    login = null
+    beforeEach ->
+      login = new LoginOdnoklassniki()
+      login._transaction_create = sinon.spy()
+      login._transaction_get = sinon.spy()
+      Odnoklassniki_Authorize.buy_params = sinon.fake.returns {transaction_id: 2, price: 400}
+
+    it 'default', ->
+      assert.equal 'transaction_odnoklassniki', login._table_transaction
+
+    it 'authorize'
+
+    it 'buy', ->
+      login.buy {service: 1, user_id: 5}, spy
+      assert.equal 0, spy.callCount
+      assert.equal 1, login._transaction_create.callCount
+      assert.deepEqual {service: 1, user_id: 5}, login._transaction_create.getCall(0).args[0]
+      login._transaction_create.getCall(0).args[1](6)
+      assert.equal 1, spy.callCount
+      assert.deepEqual {transaction_id: 6, price: 90}, spy.getCall(0).args[0]
+
+    it 'buy (service not exist)', ->
+      login.buy {service: 2, user_id: 5}, spy
+      assert.equal 0, spy.callCount
+      assert.equal 0, login._transaction_create.callCount
+
+    it 'buy_complete', ->
+      login.buy_complete 'query', spy, spy2
+      assert.equal 1, Odnoklassniki_Authorize.buy_params.callCount
+      assert.equal 'query', Odnoklassniki_Authorize.buy_params.getCall(0).args[0]
+      Odnoklassniki_Authorize.buy_params.getCall(0).args[1]({transaction_id: 2, price: 90})
+      assert.equal 1, login._transaction_get.callCount
+      assert.deepEqual {transaction_id: 2}, login._transaction_get.getCall(0).args[0]
+      assert.deepEqual spy2, login._transaction_get.getCall(0).args[2]
+      login._transaction_get.getCall(0).args[1]({transaction: {service: 1}})
+      assert.equal 0, spy2.callCount
+      assert.equal 1, spy.callCount
+      assert.deepEqual {transaction: {service: 1}}, spy.getCall(0).args[0]
+
+    it 'buy_complete (error in buy params)', ->
+      login.buy_complete 'query', spy, spy2
+      Odnoklassniki_Authorize.buy_params.getCall(0).args[1](null, 'err', 404)
+      assert.equal 0, login._transaction_get.callCount
+      assert.equal 1, spy2.callCount
+      assert.equal 'err', spy2.getCall(0).args[0]
+      assert.equal 404, spy2.getCall(0).args[1]
+      assert.equal 0, spy.callCount
+
+    it 'buy_complete (price isnt match)', ->
+      login.buy_complete 'query', spy, spy2
+      Odnoklassniki_Authorize.buy_params.getCall(0).args[1]({transaction_id: 2, price: 91})
+      login._transaction_get.getCall(0).args[1]({transaction: {service: 1}})
+      assert.equal 1, spy2.callCount
+      assert.equal 'price is not match', spy2.getCall(0).args[0]
+      assert.equal 0, spy.callCount
 
 
   describe 'LoginCordova', ->

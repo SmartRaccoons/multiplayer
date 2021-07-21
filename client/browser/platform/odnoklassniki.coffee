@@ -13,6 +13,18 @@ window.o.PlatformOdnoklassniki = class Odnoklassniki extends window.o.PlatformCo
       @auth_send
         odnoklassniki: window.location.href.split('?')[1]
         language: 'ru'
+    @router.bind "request:buy:#{@_name}", ({service, id, price})=>
+      params = @_buy_params({service, transaction_id, price})
+      FAPI.UI.showPayment(
+        params.name,
+        params.description,
+        params.code,
+        price,
+        null,
+        JSON.stringify({transaction_id}),
+        'ok',
+        true
+      )
     @
 
   __init: (callback)->
@@ -26,3 +38,6 @@ window.o.PlatformOdnoklassniki = class Odnoklassniki extends window.o.PlatformCo
 
   invite: ({text, params, selected_uids})->
     FAPI.UI.showInvite(text, params, selected_uids)
+
+  _buy_params: ->
+    throw 'buy params missing'
