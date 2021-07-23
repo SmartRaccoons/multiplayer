@@ -257,7 +257,7 @@ module.exports.User = class User extends User
           service = _invert(config[params.platform].buy_transaction)[params.product_id]
           if !service
             return console.info "#{params.platform} not found #{@id}", params
-          params.subscription = service in Object.keys(config.buy.subscription)
+          params.subscription = !!config.buy.subscription and service in Object.keys(config.buy.subscription)
         cordova_finish = => @publish "#{mt}:cordova:finish", { id_local: params.id_local }
         cordova.payment_validate _pick(params, ['transaction', 'subscription', 'product_id', 'platform']), (err, _payment_validate_params)=>
           if err

@@ -903,6 +903,12 @@ describe 'User', ->
         socket.emit 'buy:cordova', {id_local: 0, product_id: 'vip5', platform: 'android', transaction: 'tr' }
         assert.equal true, cordova_payment_validate.getCall(0).args[0].subscription
 
+      it 'cordova android subscription (config subscription emtpy)', ->
+        delete config.buy.subscription
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, product_id: 'vip5', platform: 'android', transaction: 'tr' }
+        assert.equal false, cordova_payment_validate.getCall(0).args[0].subscription
+
       it 'cordova android no product', ->
         user._bind_socket_coins_buy(['cordova'])
         socket.emit 'buy:cordova', {id_local: 0, product_id: 'novip', platform: 'android', transaction: 'tr' }

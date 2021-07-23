@@ -274,6 +274,8 @@ module.exports.socket = ({ server, log, version, callback })->
   Socket = require('../helpers/socket')({ version })
   SocketIO(server, {
       serveClient: false
+      cors:
+        origin: "*"
       # pingInterval: 7 * 1000
       # pingTimeout: 30 * 1000
   }).on 'connection', (client)->
