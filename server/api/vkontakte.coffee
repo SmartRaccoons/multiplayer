@@ -29,6 +29,8 @@ module.exports.ApiVkontakte = class ApiVkontakte
       return null
     if !url.sign or params_hash isnt url.sign
       return null
+    if !url.viewer_id
+      return null
     params = {uid: url.viewer_id}
     try
       api_result = JSON.parse(decodeURIComponent(url.api_result))
