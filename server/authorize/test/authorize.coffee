@@ -694,6 +694,11 @@ describe 'Athorize', ->
       assert.deepEqual({facebook_uid: '5'}, spy.getCall(0).args[0])
       assert.deepEqual({name: 'n', language: 'lg', facebook_token_for_business: 'tk', img: 'im'}, spy.getCall(0).args[1])
 
+    it 'success (language params)', ->
+      login._api_call({code: 'code', language: 'ru'}, spy)
+      Facebook_Authorize._authorize_facebook.getCall(0).args[1]({facebook_uid: '5', name: 'n', facebook_token_for_business: 'tk', img: 'im', language: 'lg'})
+      assert.equal 'ru', spy.getCall(0).args[1].language
+
     it 'error', ->
       login._api_call('code', spy)
       Facebook_Authorize._authorize_facebook.getCall(0).args[1](null)
@@ -930,6 +935,12 @@ describe 'Athorize', ->
       assert.equal(1, spy.callCount)
       assert.deepEqual({google_uid: 'as'}, spy.getCall(0).args[0])
       assert.deepEqual({name: 'n', img: 'p', language: 'en-GB'}, spy.getCall(0).args[1])
+
+    it 'success (with language)', ->
+      login._api_call({language: 'ru'}, spy)
+      assert.equal(1, Google_Authorize.authorize.callCount)
+      Google_Authorize.authorize.getCall(0).args[1]({uid: 'as', language: 'en-GB', name: 'n', img: 'p'})
+      assert.equal 'ru', spy.getCall(0).args[1].language
 
     it 'no uid', ->
       login._api_call('code', spy)

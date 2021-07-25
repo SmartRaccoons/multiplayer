@@ -239,11 +239,11 @@ module.exports.facebook = class LoginFacebook extends Login
   _table_session: 'auth_user_session_facebook'
   _table_transaction: 'transaction_facebook'
   _table_deletion: 'deletion_facebook'
-  _api_call: ({code}, callback)->
+  _api_call: ({code, language}, callback)->
     facebook._authorize_facebook code, (user)->
       if !user
         return callback null
-      callback {facebook_uid: user.facebook_uid}, _pick(user, ['facebook_token_for_business', 'name', 'img', 'language'])
+      callback {facebook_uid: user.facebook_uid}, Object.assign( {language: language or user.language}, _pick(user, ['facebook_token_for_business', 'name', 'img']) )
 
   deletion_request: (signed_request, callback)->
     if !facebook._signed_request_validate(signed_request)
@@ -339,7 +339,7 @@ module.exports.google = class LoginGoogle extends Login
     google.authorize params, (user)=>
       if not user or not user.uid
         return callback(null)
-      callback({google_uid: user.uid}, {language: user.language, name: user.name, img: user.img})
+      callback({google_uid: user.uid}, {language: params.language or user.language, name: user.name, img: user.img})
 
 
 module.exports.apple = class LoginApple extends Login
