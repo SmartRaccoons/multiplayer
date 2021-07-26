@@ -19,9 +19,12 @@
                 {
                   'login': _l('Authorize.button.login')
                 }
-              ]
+              ],
+              close: !!this.options.anonymous
             }).bind('login', () => {
               return this.auth_popup();
+            }).bind('close', () => {
+              return this.router.trigger('anonymous');
             });
           }
           if (event === 'authenticate:params') {
@@ -37,14 +40,7 @@
         };
         this.router.bind('request', fn);
         this.router.bind('connect', () => {
-          if (!this.auth()) {
-            if (!this.options.language_check) {
-              return this.auth_popup();
-            }
-            return this.language_check(() => {
-              return this.auth_popup();
-            });
-          }
+          return this._auto_login();
         });
         this.router.bind('logout', () => {
           this._auth_clear();
@@ -55,16 +51,18 @@
       auth_popup() {
         var authorize;
         authorize = this.router.subview_append(new this.Authorize({
+          close: !!this.options.anonymous,
           platforms: Object.keys(App.config.login),
           parent: this.router.$el
         }));
-        authorize.bind('authorize', (platform) => {
+        return authorize.bind('authorize', (platform) => {
           if (platform === 'email') {
             return this.auth_email();
           }
           return window.location.href = App.config.login[platform] + '?language=' + App.lang;
-        });
-        return authorize.render();
+        }).bind('close', () => {
+          return this.router.trigger('anonymous');
+        }).render();
       }
 
       _auth_clear() {

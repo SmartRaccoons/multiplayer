@@ -91,6 +91,7 @@
 
     Popup.prototype.events = {
       'click button[data-action="close"]': function() {
+        this.trigger('close');
         if (!this._remove_timeout) {
           return this.remove();
         }

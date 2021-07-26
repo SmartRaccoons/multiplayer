@@ -17,8 +17,11 @@ window.o.PlatformStandalone = class Standalone extends window.o.PlatformCommon
             {'reload': _l('Authorize.button.reload')}
             {'login': _l('Authorize.button.login')}
           ]
+          close: !!@options.anonymous
         .bind 'login', =>
           @auth_popup()
+        .bind 'close', =>
+          @router.trigger 'anonymous'
       if event is 'authenticate:params'
         @_auth_clear()
         for platform, value of data
@@ -26,22 +29,20 @@ window.o.PlatformStandalone = class Standalone extends window.o.PlatformCommon
       if event is 'authenticate:success'
         @router.unbind 'request', fn
     @router.bind 'request', fn
-    @router.bind 'connect', =>
-      if !@auth()
-        if !@options.language_check
-          return @auth_popup()
-        @language_check => @auth_popup()
+    @router.bind 'connect', => @_auto_login()
     @router.bind 'logout', =>
       @_auth_clear()
       window.location.reload true
 
   auth_popup: ->
-    authorize = @router.subview_append new @Authorize({platforms: Object.keys(App.config.login), parent: @router.$el})
+    authorize = @router.subview_append new @Authorize({close: !!@options.anonymous, platforms: Object.keys(App.config.login), parent: @router.$el})
     authorize.bind 'authorize', (platform)=>
       if platform is 'email'
         return @auth_email()
       window.location.href = App.config.login[platform] + '?language=' + App.lang
-    authorize.render()
+    .bind 'close', =>
+      @router.trigger 'anonymous'
+    .render()
 
   _auth_clear: -> Object.keys(App.config.login).forEach (c)-> Cookies.set(c, '')
 

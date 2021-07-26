@@ -16,11 +16,24 @@
         return callback();
       }
       return this.router.subview_append(new window.o.ViewPopupLanguage()).bind('language', (language) => {
-        App.lang = language;
-        return this._language_set = true;
+        return this._language_update(language);
       }).bind('remove', () => {
         return callback();
       }).render().$el.appendTo(this.router.$el);
+    }
+
+    _auto_login() {
+      if (!this.auth()) {
+        if (this.options.anonymous) {
+          return this.router.trigger('anonymous');
+        }
+        if (!this.options.language_check) {
+          return this.auth_popup();
+        }
+        return this.language_check(() => {
+          return this.auth_popup();
+        });
+      }
     }
 
     connect(params) {
@@ -39,6 +52,11 @@
           });
         }
       }, params));
+    }
+
+    _language_update(language) {
+      App.lang = language;
+      return this._language_set = true;
     }
 
     buy(params, name = null) {

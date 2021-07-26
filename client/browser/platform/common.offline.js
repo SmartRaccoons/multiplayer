@@ -7,21 +7,10 @@
 
     class PlatformOffline extends window.o.PlatformCommon {
       constructor() {
-        var connect_fresh, fn;
+        var fn;
         super(...arguments);
         this._queue_success_login = [];
         this._login_code_params = {};
-        connect_fresh = () => {
-          this._login_code_params.random = null;
-          if (!this.auth()) {
-            if (!this.options.language_check) {
-              return this.auth_popup();
-            }
-            return this.language_check(() => {
-              return this.auth_popup();
-            });
-          }
-        };
         fn = (event, data) => {
           var platform, results, value;
           if (event === 'authenticate:error') {
@@ -41,7 +30,7 @@
             });
           }
           if (event === 'authenticate:code_error') {
-            return connect_fresh();
+            return this._auto_login();
           }
           if (event === 'authenticate:success') {
             this.success_login(data);
@@ -68,7 +57,7 @@
               random: this._login_code_params.random
             });
           }
-          return connect_fresh();
+          return this._auto_login();
         });
         this.router.bind('logout', () => {
           this._auth_clear();
@@ -116,9 +105,12 @@
                   stay: true,
                   body: _l('Authorize.button.open')
                 }
-              ]
+              ],
+              close: !!this.options.anonymous
             }).bind('open', () => {
               return window.open(App.config[this.options.platform].market, '_system');
+            }).bind('close', () => {
+              return this.router.trigger('anonymous');
             });
           }
         });
@@ -164,13 +156,20 @@
         return link;
       }
 
+      _auto_login() {
+        super._auto_login(...arguments);
+        this._login_code_params.random = null;
+        return this;
+      }
+
       auth_popup() {
         var authorize;
         authorize = this.router.subview_append(new this.Authorize({
+          close: !!this.options.anonymous,
           platforms: Object.keys(App.config.login),
           parent: this.router.$el
         }));
-        authorize.bind('authorize', (platform) => {
+        return authorize.bind('authorize', (platform) => {
           if (platform === 'email') {
             return this.auth_email();
           }
@@ -181,8 +180,9 @@
             });
           }
           return this.auth_popup_device(this._login_code_params);
-        });
-        return authorize.render();
+        }).bind('close', () => {
+          return this.router.trigger('anonymous');
+        }).render();
       }
 
       _auth_clear() {

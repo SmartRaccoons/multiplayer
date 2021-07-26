@@ -13,12 +13,6 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
     super ...arguments
     @_queue_success_login = []
     @_login_code_params = {}
-    connect_fresh = =>
-      @_login_code_params.random = null
-      if !@auth()
-        if !@options.language_check
-          return @auth_popup()
-        @language_check => @auth_popup()
     fn = (event, data)=>
       if event is 'authenticate:error'
         @_login_code_params.random = null
@@ -32,7 +26,7 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
         .bind 'login', =>
           @auth_popup()
       if event is 'authenticate:code_error'
-        return connect_fresh()
+        return @_auto_login()
       if event is 'authenticate:success'
         @success_login(data)
         @router.unbind 'request', fn
@@ -47,7 +41,7 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
     @router.bind 'connect', =>
       if @_login_code_params.random
         return @router.send 'authenticate:code_check', {random: @_login_code_params.random}
-      connect_fresh()
+      @_auto_login()
     @router.bind 'logout', =>
       @_auth_clear()
       window.location.reload true
@@ -77,8 +71,11 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
           actions: [
             {event: 'open', stay: true, body: _l('Authorize.button.open')}
           ]
+          close: !!@options.anonymous
         .bind 'open', =>
           window.open App.config[@options.platform].market, '_system'
+        .bind 'close', =>
+          @router.trigger 'anonymous'
     })
 
   _version_error: ->
@@ -109,8 +106,13 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
     .render().$el.appendTo @router.$el
     return link
 
+  _auto_login: ->
+    super ...arguments
+    @_login_code_params.random = null
+    @
+
   auth_popup: ->
-    authorize = @router.subview_append new @Authorize({platforms: Object.keys(App.config.login), parent: @router.$el})
+    authorize = @router.subview_append new @Authorize({close: !!@options.anonymous, platforms: Object.keys(App.config.login), parent: @router.$el})
     authorize.bind 'authorize', (platform)=>
       if platform is 'email'
         return @auth_email()
@@ -118,7 +120,9 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
       if !@_login_code_params.random
         return @router.send 'authenticate:code', {language: App.lang}
       @auth_popup_device @_login_code_params
-    authorize.render()
+    .bind 'close', =>
+      @router.trigger 'anonymous'
+    .render()
 
   _auth_clear: -> Object.keys(App.config.login).forEach (c)-> Cookies.set(c, '')
 

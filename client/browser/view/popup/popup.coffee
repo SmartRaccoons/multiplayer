@@ -53,6 +53,7 @@ window.o.ViewPopup = class Popup extends window.o.View
         , 1000
   events:
     'click button[data-action="close"]': ->
+      @trigger 'close'
       if !@_remove_timeout
         return @remove()
       @$el.attr('data-add', '')
