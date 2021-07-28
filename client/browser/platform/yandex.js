@@ -32,12 +32,6 @@
       }
 
       _get_user(callback = function() {}, callback_error = function() {}) {
-        // ysdk.getPlayer({signed: true, scope: true}).then(function(player){ console.info(player) }).catch( function () { console.info('not authorized') } )
-        this.auth_send({
-          yandex: 'O3SAuJAq/PLFHNCFb3/vZLyQbNHA3lIIzoTN8OtCalY=.eyJhbGdvcml0aG0iOiJITUFDLVNIQTI1NiIsImlzc3VlZEF0IjoxNjI3NDc2NzQ5LCJyZXF1ZXN0UGF5bG9hZCI6IiIsImRhdGEiOnsiaWQiOiJNbFduc2JYNVV3N0MzRW50YlNPYWNYZ3UvcDNGYWpLT21PMFV5U2FWczFNPSIsInVuaXF1ZUlEIjoiTWxXbnNiWDVVdzdDM0VudGJTT2FjWGd1L3AzRmFqS09tTzBVeVNhVnMxTT0iLCJsYW5nIjoiZW4iLCJwdWJsaWNOYW1lIjoiVmFsZXJ5IiwiYXZhdGFySWRIYXNoIjoiSTY2RjU3SldRTFVSRjZITTMySEU2R1lVSTJJM0RQSVA1WFZaTzdOT1c0NUhZNDVPSDZOVkpCUEdKTjY3NTJWRzNGWVBIRzYyRFpKV1ZUTldZTEhGVEdTWEU3RVBCRTNKSElPNFdHWUE2SjJPRUtJVFEyWldNUDZKQTdLRjVWSUlZR1pKUE1BN0ozUE9STkxYNjQyV01ZWE8iLCJzY29wZVBlcm1pc3Npb25zIjp7ImF2YXRhciI6ImFsbG93IiwicHVibGljX25hbWUiOiJhbGxvdyJ9fX0='
-        });
-        callback();
-        return;
         return ysdk.getPlayer({
           signed: true,
           scope: true
