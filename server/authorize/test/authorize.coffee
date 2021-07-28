@@ -28,6 +28,9 @@ Inbox_Authorize =
 Odnoklassniki_Authorize =
   constructor: ->
   buy_params: ->
+Yandex_Authorize =
+  constructor: ->
+  authorize: ->
 
 config = {}
 config_callbacks = []
@@ -64,6 +67,10 @@ Authorize = proxyquire '../authorize',
     ApiOdnoklassniki: class ApiOdnoklassniki
       constructor: -> Odnoklassniki_Authorize.constructor.apply(@, arguments)
       buy_params: -> Odnoklassniki_Authorize.buy_params.apply(@, arguments)
+  '../api/yandex':
+    ApiYandex: class ApiYandex
+      constructor: (@params)->
+      authorize: -> Yandex_Authorize.authorize.apply(@, arguments)
   '../../config':
     config_get: (param)-> config[param]
     config_callback: (c)-> config_callbacks.push c
@@ -78,6 +85,7 @@ LoginGoogle = Authorize.google
 LoginApple = Authorize.apple
 LoginInbox = Authorize.inbox
 LoginOdnoklassniki = Authorize.odnoklassniki
+LoginYandex = Authorize.yandex
 LoginCordova = Authorize.cordova
 LoginEmail = Authorize.email
 Login = Authorize.Login
@@ -102,6 +110,8 @@ describe 'Athorize', ->
       odnoklassniki:
         buy_price:
           1: 90
+      yandex:
+        app_key: 'ak'
       google:
         id: 'gid'
       apple:
@@ -157,6 +167,7 @@ describe 'Athorize', ->
       assert.deepEqual {db: true}, login._opt.inbox_uid
       assert.deepEqual {db: true}, login._opt.vkontakte_uid
       assert.deepEqual {db: true}, login._opt.odnoklassniki_uid
+      assert.deepEqual {db: true}, login._opt.yandex_uid
       assert.deepEqual {db: true}, login._opt.apple_uid
       assert.deepEqual {db: true, default: '', public: true}, login._opt.img
       assert.deepEqual {}, login._opt.new
@@ -1118,6 +1129,43 @@ describe 'Athorize', ->
       assert.equal 1, spy2.callCount
       assert.equal 'price is not match', spy2.getCall(0).args[0]
       assert.equal 0, spy.callCount
+
+
+  describe 'LoginYandex', ->
+    login = null
+    beforeEach ->
+      login = new LoginYandex()
+      # login._transaction_create = sinon.spy()
+      # login._transaction_get = sinon.spy()
+      Yandex_Authorize.authorize = sinon.spy()
+      login._user_create_or_update = sinon.spy()
+
+    it 'default', ->
+      assert.equal 'yandex', LoginYandex::_name
+
+    it 'authorize', ->
+      login.authorize {code: 'cd', language: 'sr'}, spy
+      assert.equal 1, Yandex_Authorize.authorize.callCount
+      assert.equal 'cd', Yandex_Authorize.authorize.getCall(0).args[0]
+      Yandex_Authorize.authorize.getCall(0).args[1]({uid: '5', name: 'nm', img: 'im', language: 'ru'})
+      assert.equal 1, login._user_create_or_update.callCount
+      assert.deepEqual {yandex_uid: '5'}, login._user_create_or_update.getCall(0).args[0]
+      assert.deepEqual {name: 'nm', img: 'im', language: 'sr'}, login._user_create_or_update.getCall(0).args[1]
+      login._user_create_or_update.getCall(0).args[2]('usr')
+      assert.equal 1, spy.callCount
+      assert.equal 'usr', spy.getCall(0).args[0]
+
+    it 'language not set', ->
+      login.authorize {code: 'cd'}, spy
+      Yandex_Authorize.authorize.getCall(0).args[1]({uid: '5', name: 'nm', img: 'im', language: 'ru'})
+      assert.equal 'ru', login._user_create_or_update.getCall(0).args[1].language
+
+    it 'authorize error', ->
+      login.authorize {code: 'cd', language: 'sr'}, spy
+      Yandex_Authorize.authorize.getCall(0).args[1](null)
+      assert.equal 0, login._user_create_or_update.callCount
+      assert.equal 1, spy.callCount
+      assert.equal null, spy.getCall(0).args[0]
 
 
   describe 'LoginCordova', ->
