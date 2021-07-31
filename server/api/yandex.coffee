@@ -32,3 +32,15 @@ module.exports.ApiYandex = class ApiYandex
       img: "https://games-sdk.yandex.ru/api/sdk/v1/player/avatar/#{json.data.avatarIdHash}/islands-retina-small"
       name: json.data.publicName
     }
+
+  payment: (urls_params, callback)->
+    json = @_sign_check urls_params
+    if !json
+      return callback(null)
+    data = if Array.isArray(json.data) then json.data[0] else json.data
+    if !data.developerPayload
+      return callback(null)
+    callback {
+      token: data.token
+      transaction_id: parseInt(data.developerPayload)
+    }

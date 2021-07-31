@@ -67,3 +67,54 @@ describe 'ApiYandex', ->
       json_data.data.uniqueID = ''
       o.authorize data_get(), spy
       assert.equal null, spy.getCall(0).args[0]
+
+
+  describe 'payment', ->
+    beforeEach ->
+      json_data =
+        algorithm: 'HMAC-SHA256',
+        issuedAt: 1627748940,
+        requestPayload: '',
+        data:
+          token: 'pto',
+          status: 'success',
+          errorCode: '',
+          errorDescription: '',
+          url: 'https://yandex.ru/games/sdk/payments/trust-fake.html',
+          product:
+            id: 'chips1',
+            title: '1 000',
+            description: 'Фишки для игры',
+            price: [Object],
+            imagePrefix: 'https://avatars.mds.yandex.net/get-games/18ffd/'
+          developerPayload: '10'
+      o._sign_check = sinon.fake.returns json_data
+
+    it 'default', ->
+      data = data_get()
+      o.payment data, spy
+      assert.equal 1, o._sign_check.callCount
+      assert.equal data, o._sign_check.getCall(0).args[0]
+      assert.equal 1, spy.callCount
+      assert.deepEqual {transaction_id: 10, token: 'pto'}, spy.getCall(0).args[0]
+
+    it 'array of products', ->
+      json_data.data = [
+        json_data.data
+      ]
+      data = data_get()
+      o.payment data, spy
+      assert.equal 1, spy.callCount
+      assert.deepEqual {transaction_id: 10, token: 'pto'}, spy.getCall(0).args[0]
+
+    it 'sign invalid', ->
+      o._sign_check = -> null
+      o.payment data_get(), spy
+      assert.equal null, spy.getCall(0).args[0]
+
+    it 'missing transaction_id', ->
+      json_data.data.developerPayload = null
+      data = data_get()
+      o.payment data, spy
+      assert.equal 1, spy.callCount
+      assert.equal null, spy.getCall(0).args[0]

@@ -227,7 +227,7 @@ module.exports.User = class User extends User
 
   _bind_socket_coins_buy: (platforms = ['facebook', 'draugiem', 'inbox'])->
     mt = 'buy'
-    ['facebook', 'draugiem', 'inbox', 'odnoklassniki'].forEach (platform)=>
+    ['facebook', 'draugiem', 'inbox', 'odnoklassniki', 'yandex'].forEach (platform)=>
       if ! (platforms.indexOf(platform) >= 0 and @options.api._name is platform)
         return
       @options.socket.on "#{mt}:#{platform}", (args)=>
@@ -237,6 +237,21 @@ module.exports.User = class User extends User
         language = args.language
         @options.api.buy {service, user_id: @id, language}, (params)=>
           @publish "#{mt}:#{platform}", Object.assign({service}, params)
+
+    ['yandex'].forEach (platform)=>
+      if ! (platforms.indexOf(platform) >= 0 and @options.api._name is platform)
+        return
+      @options.socket.on "#{mt}:#{platform}:validate", (params_client)=>
+        if !( params_client and params_client.signature )
+          return
+        @options.api.buy_validate {user_id: @id, signature: params_client.signature}, (params_transaction)=>
+          @_buy_callback Object.assign({}, params_transaction, { platform } )
+        , (error)=>
+          if error
+            console.info "#{platform} finished error #{@id}:", error
+            if error isnt 'transaction already completed'
+              return
+          @publish "#{mt}:#{platform}:validate", params_client
 
     if 'inbox_standalone' in platforms
       @options.socket.on "#{mt}:inbox_standalone", (args)=>

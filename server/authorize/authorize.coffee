@@ -49,8 +49,8 @@ config_callback ->
       buy_price: config_get('odnoklassniki').buy_price
     odnoklassniki = new ApiOdnoklassniki(config_get(['odnoklassniki', 'server']))
   if config_get('yandex')
-    # config.yandex =
-    #   buy_price: config_get('yandex').buy_price
+    config.yandex =
+      buy_transaction: config_get('yandex').buy_transaction
     yandex = new ApiYandex(config_get(['yandex', 'server']))
   if config_get('google')
     google = new ApiGoogle(config_get(['google', 'server', 'code_url']))
@@ -463,13 +463,27 @@ module.exports.odnoklassniki = class LoginOdnoklassniki extends Login
 
 module.exports.yandex = class LoginYandex extends Login
   _name: 'yandex'
-  # _table_transaction: 'transaction_yandex'
+  _table_transaction: 'transaction_yandex'
   authorize: ({code, language}, callback)->
     yandex.authorize code, (yandex_user)=>
       if !yandex_user
         return callback null
       @_user_create_or_update {yandex_uid: yandex_user.uid}, Object.assign(_pick(yandex_user, ['name', 'img', 'language']), if language then {language} ), (user)=>
         callback user
+
+  buy: ({service, user_id}, callback)->
+    if !(service of config.yandex.buy_transaction)
+      return
+    @_transaction_create
+      service: service
+      user_id: user_id
+    , ({id})=> callback({transaction_id: id})
+
+  buy_validate: ({user_id, signature}, callback_save, callback_end)->
+    yandex.payment signature, (payment)=>
+      if !payment
+        return callback_end('signature error')
+      @_transaction_get {id: payment.transaction_id}, callback_save, callback_end
 
 
 module.exports.email = class LoginEmail extends Login

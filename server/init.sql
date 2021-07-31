@@ -136,6 +136,18 @@ CREATE TABLE `transaction_odnoklassniki` (
   CONSTRAINT `transaction_odnoklassniki__id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE `transaction_yandex` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `service` varchar(10) NOT NULL,
+  `user_id` int NOT NULL,
+  `fulfill` int DEFAULT '0',
+  `created` datetime DEFAULT NULL,
+  `fulfilled` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `transaction_yandex__user_id` (`user_id`),
+  CONSTRAINT `transaction_yandex__id_ref` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE `transaction_cordova` (
   `id` int NOT NULL AUTO_INCREMENT,
   `transaction_id` text NOT NULL,

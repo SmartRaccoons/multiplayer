@@ -31,6 +31,7 @@ Odnoklassniki_Authorize =
 Yandex_Authorize =
   constructor: ->
   authorize: ->
+  payment: ->
 
 config = {}
 config_callbacks = []
@@ -71,6 +72,7 @@ Authorize = proxyquire '../authorize',
     ApiYandex: class ApiYandex
       constructor: (@params)->
       authorize: -> Yandex_Authorize.authorize.apply(@, arguments)
+      payment: -> Yandex_Authorize.payment.apply(@, arguments)
   '../../config':
     config_get: (param)-> config[param]
     config_callback: (c)-> config_callbacks.push c
@@ -112,6 +114,8 @@ describe 'Athorize', ->
           1: 90
       yandex:
         app_key: 'ak'
+        buy_transaction:
+          1: 'ch'
       google:
         id: 'gid'
       apple:
@@ -1135,13 +1139,15 @@ describe 'Athorize', ->
     login = null
     beforeEach ->
       login = new LoginYandex()
-      # login._transaction_create = sinon.spy()
-      # login._transaction_get = sinon.spy()
+      login._transaction_create = sinon.spy()
+      login._transaction_get = sinon.spy()
       Yandex_Authorize.authorize = sinon.spy()
+      Yandex_Authorize.payment = sinon.spy()
       login._user_create_or_update = sinon.spy()
 
     it 'default', ->
       assert.equal 'yandex', LoginYandex::_name
+      assert.equal 'transaction_yandex', LoginYandex::_table_transaction
 
     it 'authorize', ->
       login.authorize {code: 'cd', language: 'sr'}, spy
@@ -1166,6 +1172,35 @@ describe 'Athorize', ->
       assert.equal 0, login._user_create_or_update.callCount
       assert.equal 1, spy.callCount
       assert.equal null, spy.getCall(0).args[0]
+
+    it 'buy', ->
+      login.buy {service: 1, user_id: 5}, spy
+      assert.equal 1, login._transaction_create.callCount
+      assert.deepEqual {service: 1, user_id: 5}, login._transaction_create.getCall(0).args[0]
+      login._transaction_create.getCall(0).args[1]({id: 12})
+      assert.equal 1, spy.callCount
+      assert.deepEqual {transaction_id: 12}, spy.getCall(0).args[0]
+
+    it 'buy (no service)', ->
+      login.buy {service: 2, user_id: 5}, spy
+      assert.equal 0, login._transaction_create.callCount
+
+    it 'buy_validate', ->
+      login.buy_validate {user_id: 5, signature: 'sig'}, 'fn1', 'fn2'
+      assert.equal 1, Yandex_Authorize.payment.callCount
+      assert.equal 'sig', Yandex_Authorize.payment.getCall(0).args[0]
+      Yandex_Authorize.payment.getCall(0).args[1] {transaction_id: 5}
+      assert.equal 1, login._transaction_get.callCount
+      assert.deepEqual {id: 5}, login._transaction_get.getCall(0).args[0]
+      assert.equal 'fn1', login._transaction_get.getCall(0).args[1]
+      assert.equal 'fn2', login._transaction_get.getCall(0).args[2]
+
+    it 'buy_validate (payment error)', ->
+      login.buy_validate {user_id: 5, signature: 'sig'}, 'fn1', spy
+      Yandex_Authorize.payment.getCall(0).args[1](null)
+      assert.equal 0, login._transaction_get.callCount
+      assert.equal 1, spy.callCount
+      assert.equal 'signature error', spy.getCall(0).args[0]
 
 
   describe 'LoginCordova', ->

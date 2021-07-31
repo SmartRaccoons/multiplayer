@@ -637,7 +637,7 @@ describe 'User', ->
     beforeEach ->
       socket = new SimpleEvent()
       socket.send = sinon.spy()
-      user = new User({id: 5, socket: socket, language: 'en', api: {buy: sinon.spy()}})
+      user = new User({id: 5, socket: socket, language: 'en', api: {buy: sinon.spy(), buy_validate: sinon.spy()}})
       user.room = {id: 3, module: 'Room'}
       user.room_exec = sinon.spy()
 
@@ -796,6 +796,13 @@ describe 'User', ->
         user.options.api.buy.getCall(0).args[1]({id: 10})
         assert.equal 'buy:odnoklassniki', user.publish.getCall(0).args[0]
 
+      it 'yandex', ->
+        user.options.api._name = 'yandex'
+        user._bind_socket_coins_buy(['yandex'])
+        socket.emit 'buy:yandex', {service: 2}
+        user.options.api.buy.getCall(0).args[1]({id: 10})
+        assert.equal 'buy:yandex', user.publish.getCall(0).args[0]
+
       it 'not included', ->
         user.options.api._name = 'inbox'
         user._bind_socket_coins_buy(['facebook'])
@@ -926,6 +933,45 @@ describe 'User', ->
         user._bind_socket_coins_buy(['cordovas'])
         socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
         assert.equal 0, cordova_payment_validate.callCount
+
+
+      describe 'validate', ->
+
+        describe 'yandex', ->
+          beforeEach ->
+            user.options.api._name = 'yandex'
+            user._bind_socket_coins_buy(['yandex'])
+
+
+          it 'default', ->
+            socket.emit 'buy:yandex:validate', {signature: 'sig', id_local: 2}
+            assert.equal 1, user.options.api.buy_validate.callCount
+            assert.deepEqual {signature: 'sig', user_id: 5}, user.options.api.buy_validate.getCall(0).args[0]
+            user.options.api.buy_validate.getCall(0).args[1]({'pa': 'ram'})
+            assert.equal 1, user._buy_callback.callCount
+            assert.deepEqual {pa: 'ram', platform: 'yandex'}, user._buy_callback.getCall(0).args[0]
+            user.options.api.buy_validate.getCall(0).args[2]()
+            assert.equal 1, user._buy_callback.callCount
+            assert.equal 1, user.publish.callCount
+            assert.equal 'buy:yandex:validate', user.publish.getCall(0).args[0]
+            assert.deepEqual {signature: 'sig', id_local: 2}, user.publish.getCall(0).args[1]
+
+          it 'no params', ->
+            socket.emit 'buy:yandex:validate', null
+            socket.emit 'buy:yandex:validate', {no: 'signature'}
+            assert.equal 0, user.options.api.buy_validate.callCount
+
+          it 'validate error', ->
+            socket.emit 'buy:yandex:validate', {signature: 'sig', id_local: 2}
+            user.options.api.buy_validate.getCall(0).args[2]('err')
+            assert.equal 0, user.publish.callCount
+
+          it 'validate transaction completed', ->
+            socket.emit 'buy:yandex:validate', {signature: 'sig', id_local: 2}
+            user.options.api.buy_validate.getCall(0).args[2]('transaction already completed')
+            assert.equal 1, user.publish.callCount
+            assert.equal 'buy:yandex:validate', user.publish.getCall(0).args[0]
+            assert.deepEqual {signature: 'sig', id_local: 2}, user.publish.getCall(0).args[1]
 
 
   describe 'bonuses', ->
