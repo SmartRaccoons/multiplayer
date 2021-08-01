@@ -123,9 +123,10 @@
       _get_payments() {
         return this._payments.getPurchases().then((purchases) => {
           if (purchases.length > 0) {
-            return this._payment_validate(Object.assign({
-              signature: purchases.signature
-            }, purchases[0]));
+            return this._payment_validate({
+              signature: purchases.signature,
+              purchaseToken: purchases[0].purchaseToken
+            });
           }
         });
       }

@@ -80,7 +80,10 @@ window.o.PlatformYandex = class Yandex extends window.o.PlatformCommon
   _get_payments: ->
     @_payments.getPurchases().then (purchases)=>
       if purchases.length > 0
-        @_payment_validate Object.assign {signature: purchases.signature}, purchases[0]
+        @_payment_validate {
+          signature: purchases.signature
+          purchaseToken: purchases[0].purchaseToken
+        }
 
   auth_error: ->
     @router
