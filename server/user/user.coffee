@@ -183,11 +183,9 @@ module.exports.User = class User extends User
         @publish mt, Object.assign {}, params, params_additional
     @options.socket.on mt, =>
       @__coins_bonus_check type, ({left, coins})=>
-        params = {}
         if left is 0
-          @set_coins {type: bonus.type, coins}
-          params.reset = true
-        publish(params)
+          return @set_coins {type: bonus.type, coins}, => publish({reset: true})
+        publish()
     publish()
 
   emit_self_publish: (id, ev, params)-> @emit_self_exec.apply @, [id, 'publish', [ev, params]]
@@ -396,16 +394,17 @@ module.exports.User = class User extends User
 
   set_ifoffline: (id, params)-> @_set_db(Object.assign({id}, params))
 
-  _set_coins_db: ({user_id, coins, type})->
+  _set_coins_db: ({user_id, coins, type}, callback = ->)->
     config.db.insert
       table: @_coins_history_params.table
       data: {user_id, action: new Date(), coins, type}
+    , callback
 
-  set_coins: ({coins, type})->
+  set_coins: ({coins, type}, callback)->
     @set {coins: @options.coins + coins}
     if @options.coins_history?
       @options.coins_history.unshift {coins, type, action: new Date()}
-    @_set_coins_db {user_id: @id, coins, type}
+    @_set_coins_db {user_id: @id, coins, type}, callback
 
   set_coins_ifoffline: (id, {coins, type})->
     @_set_db({id, coins: {increase: coins}})

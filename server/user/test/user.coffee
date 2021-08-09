@@ -475,21 +475,28 @@ describe 'User', ->
       assert.deepEqual({id: 5, d: 'a'}, spy.getCall(0).args[0])
 
     it '_set_coins_db', ->
-      user._set_coins_db {user_id: 1, type: 2, coins: 5}
+      user._set_coins_db {user_id: 1, type: 2, coins: 5}, spy
       assert.equal 1, db.insert.callCount
       assert.equal 'coins_history', db.insert.getCall(0).args[0].table
       assert.deepEqual {user_id: 1, action: new Date(), type: 2, coins: 5}, db.insert.getCall(0).args[0].data
+      db.insert.getCall(0).args[1]()
+      assert.equal 1, spy.callCount
+
+    it '_set_coins_db (no callback)', ->
+      user._set_coins_db {user_id: 1, type: 2, coins: 5}
+      assert.doesNotThrow -> db.insert.getCall(0).args[1]()
 
     it 'set_coins', ->
       user.options.coins_history = [{coins: 2}]
       user.set = sinon.spy()
       user._set_coins_db = sinon.spy()
       user.options.coins = 10
-      user.set_coins {type: 2, coins: 5}
+      user.set_coins {type: 2, coins: 5}, 'cl'
       assert.equal 1, user.set.callCount
       assert.deepEqual {coins: 15}, user.set.getCall(0).args[0]
       assert.equal 1, user._set_coins_db.callCount
       assert.deepEqual {user_id: 5, type: 2, coins: 5}, user._set_coins_db.getCall(0).args[0]
+      assert.equal 'cl', user._set_coins_db.getCall(0).args[1]
       assert.deepEqual [{action: new Date(), type: 2, coins: 5}, {coins: 2}], user.options.coins_history
 
     it 'set_coins (no history)', ->
@@ -1058,9 +1065,11 @@ describe 'User', ->
         user.__coins_bonus_check.getCall(0).args[1]({left: 0, coins: 3})
         assert.equal 1, user.set_coins.callCount
         assert.deepEqual {type: 1, coins: 3}, user.set_coins.getCall(0).args[0]
+        user.set_coins.getCall(0).args[1]()
         assert.equal 2, user.__coins_bonus_check.callCount
         user.publish = sinon.spy()
         user.__coins_bonus_check.getCall(1).args[1]({left: 10})
+        user.set_coins.getCall(0).args[0]
         assert.deepEqual {reset: true, left: 10}, user.publish.getCall(0).args[1]
 
       it 'bind (left not zero)', ->
