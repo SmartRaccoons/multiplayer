@@ -21,6 +21,7 @@ CREATE TABLE `auth_user` (
   KEY `auth_user__draugiem_uid` (`draugiem_uid`),
   KEY `auth_user__facebook_uid` (`facebook_uid`),
   KEY `auth_user__google_uid` (`google_uid`),
+  KEY `auth_user__apple_uid` (`apple_uid`),
   KEY `auth_user__inbox_uid` (`inbox_uid`),
   KEY `auth_user__vkontakte_uid` (`vkontakte_uid`),
   KEY `auth_user__odnoklassniki_uid` (`odnoklassniki_uid`),
