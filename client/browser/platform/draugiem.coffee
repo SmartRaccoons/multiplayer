@@ -21,3 +21,12 @@ window.o.PlatformDraugiem = class Draugiem extends window.o.PlatformCommon
     $('<script>').attr
       'src': '//ifrype.com/applications/external/draugiem.js'
     .appendTo document.body
+
+
+  invite: (text)->
+    draugiemSendInvite(text)
+
+  share: ({text, title, prefix, link}, callback = ->)->
+    draugiemSay title, link, prefix, text, (success)->
+      if success
+        callback()

@@ -36,6 +36,18 @@
         }).appendTo(document.body);
       }
 
+      invite(text) {
+        return draugiemSendInvite(text);
+      }
+
+      share({text, title, prefix, link}, callback = function() {}) {
+        return draugiemSay(title, link, prefix, text, function(success) {
+          if (success) {
+            return callback();
+          }
+        });
+      }
+
     };
 
     Draugiem.prototype._name = 'draugiem';
