@@ -57,6 +57,9 @@ window.o.PlatformFacebookInstant = class FacebookInstant extends window.o.Platfo
         i.onload = ->
           loaded++
           start()
+        i.onerror = ->
+          loaded++
+          start()
         i.src = src
         start()
 

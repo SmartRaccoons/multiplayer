@@ -79,6 +79,10 @@
               loaded++;
               return start();
             };
+            i.onerror = function() {
+              loaded++;
+              return start();
+            };
             i.src = src;
             return start();
           });
