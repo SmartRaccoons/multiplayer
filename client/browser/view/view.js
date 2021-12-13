@@ -131,6 +131,10 @@
         });
       }
 
+      options_update_unbind(option) {
+        return this.unbind(`${update_ev}:${option}`);
+      }
+
       __option_get_from_str(str) {
         var res;
         res = str.trim().replace('&amp;', '&').match(/^(?:\&)\=([\w\.&\]\[]*)$/);
