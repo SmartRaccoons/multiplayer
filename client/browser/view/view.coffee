@@ -97,7 +97,7 @@ if touch
 
   options_update_bind: (option, exec)-> @bind "#{update_ev}:#{option}", => exec(@options[option])
 
-  options_update_unbind: (option)-> @unbind "#{update_ev}:#{option}"
+  options_update_unbind: (option, exec = null)-> @unbind "#{update_ev}:#{option}", exec
 
   __option_get_from_str: (str)->
     res = str.trim()
