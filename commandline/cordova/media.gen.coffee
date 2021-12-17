@@ -43,7 +43,7 @@ exports.mediagen = (op, done)->
             return img.padding(img)
           if img.padding
             return img.padding
-          return Math.round(img.width * 0.1)
+          return Math.round(img.width * 0.2)
         sh = sh.resize(img.width - padding, img.height - padding, {fit: 'inside'})
       sh.toBuffer()
       .then (screen)->

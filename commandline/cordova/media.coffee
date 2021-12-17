@@ -48,20 +48,20 @@ medias =
 
   screen:
     ios: [
-      ['@2x~universal~anyany', 2732, 2732]
+      ['@2x~universal~anyany', 2732, 2732, 1000]
       ['@2x~universal~comany', 1278, 2732]
       ['@2x~universal~comcom', 1334, 750]
-      ['@3x~universal~anyany', 2208, 2208]
+      ['@3x~universal~anyany', 2208, 2208, 1000]
       ['@3x~universal~anycom', 2208, 1242]
       ['@3x~universal~comany', 1242, 2208]
     ].map( (params)->
-      return {
+      return  Object.assign {
         src: "Default#{params[0]}.png"
         width: params[1]
         height: params[2]
         tag: 'splash'
         dimensionhide: true
-      }
+      }, if params[3] then {padding: params[3]}
     ).concat [
         # legacy
         ['~iphone', 320, 480]
