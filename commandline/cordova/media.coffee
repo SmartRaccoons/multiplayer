@@ -62,27 +62,28 @@ medias =
         tag: 'splash'
         dimensionhide: true
       }, if params[3] then {padding: params[3]}
-    ).concat [
-        # legacy
-        ['~iphone', 320, 480]
-        ['@2x~iphone', 640, 960]
-        ['-Portrait~ipad', 768, 1024]
-        ['-Portrait@2x~ipad', 1536, 2048]
-        ['-Landscape~ipad', 1024, 768]
-        ['-Landscape@2x~ipad', 2048, 1536]
-        ['-568h@2x~iphone', 640, 1136]
-        ['-667h', 750, 1334]
-        ['-736h', 1242, 2208]
-        ['-Landscape-736h', 2208, 1242]
-        ['-2436h', 1125, 2436]
-        ['-Landscape-2436h', 2436, 1125]
-      ].map (params)->
-        return {
-          src: "Default#{params[0]}.png"
-          width: params[1]
-          height: params[2]
-          tag: 'splash'
-        }
+    )
+    # .concat [
+    #     # legacy
+    #     ['~iphone', 320, 480]
+    #     ['@2x~iphone', 640, 960]
+    #     ['-Portrait~ipad', 768, 1024]
+    #     ['-Portrait@2x~ipad', 1536, 2048]
+    #     ['-Landscape~ipad', 1024, 768]
+    #     ['-Landscape@2x~ipad', 2048, 1536]
+    #     ['-568h@2x~iphone', 640, 1136]
+    #     ['-667h', 750, 1334]
+    #     ['-736h', 1242, 2208]
+    #     ['-Landscape-736h', 2208, 1242]
+    #     ['-2436h', 1125, 2436]
+    #     ['-Landscape-2436h', 2436, 1125]
+    #   ].map (params)->
+    #     return {
+    #       src: "Default#{params[0]}.png"
+    #       width: params[1]
+    #       height: params[2]
+    #       tag: 'splash'
+    #     }
     android: [
       ['hdpi', 800, 480]
       ['ldpi', 320, 200]
