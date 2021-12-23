@@ -13,10 +13,16 @@ class SoundMedia extends SimpleEvent
       @media.addEventListener 'loadeddata', =>
         @_duration_mls = Math.round @media.duration * 1000
         @trigger 'loadeddata'
-    @volume(@options.volume)
-    @__remove_callback = setTimeout =>
-      @remove()
-    , 1000 * 60 * 5
+      if @options.loop
+        @media.loop = true
+    if @options.fade_in
+      @fade_in(if typeof @options.fade_in is 'number' then @options.fade_in)
+    else
+      @volume(@options.volume)
+    if !@options.loop
+      @__remove_callback = setTimeout =>
+        @remove()
+      , 1000 * 30
     @
 
   duration: (callback, binded = false)->
@@ -50,16 +56,24 @@ class SoundMedia extends SimpleEvent
       @media.stop()
     @
 
-  fade_out: (mls, mls_left, volume = @options.volume, start = new Date().getTime())->
-    if !mls_left
-      mls_left = mls
-    window.requestAnimationFrame =>
-      end = new Date().getTime()
-      diff = end - start
-      if (mls_left - diff) <= 0
-        return @remove()
-      @volume volume * mls_left / mls
-      @fade_out(mls, mls_left - diff, volume, end)
+  fade: (volume_end = 0, volume_start = @options.volume, mls = 1000, remove = true)->
+    start = new Date().getTime()
+    fade = =>
+      window.requestAnimationFrame =>
+        if !@media
+          return
+        mls_left = mls - (new Date().getTime() - start )
+        if mls_left <= 0
+          if remove
+            @remove()
+          return
+        @volume volume_start + (volume_end - volume_start) * (1 - mls_left / mls)
+        fade()
+    fade()
+
+  fade_out: (mls)-> @fade(0, @options.volume, mls)
+
+  fade_in: (mls)-> @fade(@options.volume, 0, mls, false)
 
   remove: ->
     clearTimeout @__remove_callback
@@ -71,29 +85,43 @@ class SoundMedia extends SimpleEvent
 
 
 __enable = true
-@o.Sound = class Sound
+__iteraction = false
+@o.Sound = class Sound extends SimpleEvent
   constructor: (@options)->
+    super ...arguments
     @__medias = []
     @__muted = if Cookies? then !!parseInt(Cookies.get('__sound_muted')) else false
-    fn = =>
-      @__enable = true
-      document.body.removeEventListener('click', fn)
-      document.body.removeEventListener('touchstart', fn)
-    document.body.addEventListener('click', fn)
-    document.body.addEventListener('touchstart', fn)
+    enable = =>
+      __iteraction = true
+      @trigger 'enable'
+    if cordova()
+      setTimeout =>
+        enable()
+      , 100
+    else
+      fn = =>
+        __iteraction = true
+        @trigger 'enable'
+        document.body.removeEventListener('click', fn)
+        document.body.removeEventListener('touchstart', fn)
+      document.body.addEventListener('click', fn)
+      document.body.addEventListener('touchstart', fn)
+    @
 
-  _media_get: (sound)->
+  _media_create: (params)->
     if !__enable
       return
-    if !@__enable
+    if !__iteraction
       return
     if @__muted
       return
     try
-      media = new SoundMedia({
+      params = if typeof params is 'object' then params else {sound: params}
+      @trigger 'play', params.sound
+      media = new SoundMedia Object.assign({
         volume: @options.volume
-        url: "#{@options.path}#{sound}.#{@options.extension}"
-      })
+        url: "#{@options.path}#{params.sound}.#{@options.extension}"
+      }, params)
       @__medias.push media
       media.on 'remove', =>
         @__medias.splice @get(media.id, true), 1
@@ -101,17 +129,18 @@ __enable = true
     catch
       return null
 
-  duration: (sound, callback)->
-    media = @_media_get(sound)
-    if !media
-      return
-    media.duration(callback)
+  # duration: (sound, callback)->
+  #   media = @_media_get(sound)
+  #   if !media
+  #     return
+  #   media.duration(callback)
 
   play: (sound)->
-    media = @_media_get(sound)
+    media = @_media_create(sound)
     if !media
       return
     media.play()
+    media
 
   get: (id, index = false)-> @__medias[if index then 'findIndex' else 'find']( (m)-> m.id is id )
 
@@ -121,17 +150,14 @@ __enable = true
     @clear()
     __enable = false
 
-  fade: (media)->
-    if media
-      @get(media.id).fade_out(@options.fade_out)
-
-  clear: ->
+  _clear: ->
     @__medias.map (m)-> m.id
     .forEach (id)=> @get(id).remove()
 
   is_mute: -> @__muted
 
   mute: (@__muted)->
-    @clear()
+    @_clear()
     if Cookies?
       Cookies.set('__sound_muted', if @__muted then 1 else 0)
+    @trigger 'mute', @__muted

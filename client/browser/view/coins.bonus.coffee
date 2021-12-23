@@ -10,10 +10,13 @@
       if v is null
         return ''
       if v is 0
-        return _l("coinsbonus.#{@type}.get", {coins: @options.coins})
+        return @_get_button()
 
   events:
     'click button': 'get'
+
+  _get_button: ->
+    _l("coinsbonus.#{@type}.get", {coins: @options.coins})
 
   get: -> @trigger 'get'
 

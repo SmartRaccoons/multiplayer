@@ -4,6 +4,12 @@
 
   this.o.ViewCoinsBonus = CoinsBonus = (function() {
     class CoinsBonus extends this.o.View {
+      _get_button() {
+        return _l(`coinsbonus.${this.type}.get`, {
+          coins: this.options.coins
+        });
+      }
+
       get() {
         return this.trigger('get');
       }
@@ -24,9 +30,7 @@
           return '';
         }
         if (v === 0) {
-          return _l(`coinsbonus.${this.type}.get`, {
-            coins: this.options.coins
-          });
+          return this._get_button();
         }
       }
     };
