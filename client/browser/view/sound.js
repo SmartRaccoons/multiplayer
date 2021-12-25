@@ -67,9 +67,11 @@
 
     play() {
       if (this.cordova) {
-        this.media.play({
+        this.media.play(Object.assign({
           playAudioWhenScreenIsLocked: false
-        });
+        }, this.options.loop ? {
+          numberOfLoops: 111
+        } : void 0));
       } else {
         this.media.play();
       }

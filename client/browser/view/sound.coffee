@@ -45,7 +45,10 @@ class SoundMedia extends SimpleEvent
 
   play: ->
     if @cordova
-      @media.play({ playAudioWhenScreenIsLocked: false })
+      @media.play Object.assign(
+        { playAudioWhenScreenIsLocked: false }
+        if @options.loop then {numberOfLoops: 111}
+      )
     else
       @media.play()
     @
