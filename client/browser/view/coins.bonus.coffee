@@ -40,21 +40,19 @@
         })
       return CoinsBonus::options_html['left'].apply(@, [v])
   options_bind:
-    left: ->
-      @_start_timer = new Date()
+    left: (prev)->
+      if !@_start_timer or (@options.left isnt prev.left)
+        @_start_timer = new Date()
       clearTimeout @_left_timeout
-      @options_update { left_updated: @options.left }
       if @options.left is null or @options.left is 0
-        return
+        return @options_update { left_updated: @options.left }
       update = =>
-        @_left_timeout = setTimeout =>
-          left_updated = @options.left - Math.round( ( new Date().getTime() - @_start_timer.getTime() ) / 1000 )
-          if left_updated < 0
-            left_updated = 0
-          @options_update { left_updated }
-          if left_updated > 0
-            update()
-        , 1000
+        left_updated = @options.left - Math.round( ( new Date().getTime() - @_start_timer.getTime() ) / 1000 )
+        if left_updated < 0
+          left_updated = 0
+        @options_update { left_updated }
+        if left_updated > 0
+          @_left_timeout = setTimeout update, 1000
       update()
 
   remove: ->

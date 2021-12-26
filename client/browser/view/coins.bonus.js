@@ -80,28 +80,27 @@
     };
 
     CoinsBonusTimed.prototype.options_bind = {
-      left: function() {
+      left: function(prev) {
         var update;
-        this._start_timer = new Date();
+        if (!this._start_timer || (this.options.left !== prev.left)) {
+          this._start_timer = new Date();
+        }
         clearTimeout(this._left_timeout);
-        this.options_update({
-          left_updated: this.options.left
-        });
         if (this.options.left === null || this.options.left === 0) {
-          return;
+          return this.options_update({
+            left_updated: this.options.left
+          });
         }
         update = () => {
-          return this._left_timeout = setTimeout(() => {
-            var left_updated;
-            left_updated = this.options.left - Math.round((new Date().getTime() - this._start_timer.getTime()) / 1000);
-            if (left_updated < 0) {
-              left_updated = 0;
-            }
-            this.options_update({left_updated});
-            if (left_updated > 0) {
-              return update();
-            }
-          }, 1000);
+          var left_updated;
+          left_updated = this.options.left - Math.round((new Date().getTime() - this._start_timer.getTime()) / 1000);
+          if (left_updated < 0) {
+            left_updated = 0;
+          }
+          this.options_update({left_updated});
+          if (left_updated > 0) {
+            return this._left_timeout = setTimeout(update, 1000);
+          }
         };
         return update();
       }
