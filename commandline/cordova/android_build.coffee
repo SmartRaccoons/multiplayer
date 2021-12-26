@@ -19,5 +19,5 @@ exports.android_build = (op, done)->
   .then (res)=>
     console.info 'out: ', res.stdout
     console.info 'error: ', res.stderr
-    fs.copyFileSync "#{op.path}/platforms/android/app/build/outputs/apk/release/app-release.apk", "#{op.path}/android.apk"
+    fs.copyFileSync "#{op.path}/platforms/android/app/build/outputs/bundle/release/app-release.aab", "#{op.path}/android.aab"
     done()
