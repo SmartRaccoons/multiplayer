@@ -22,6 +22,7 @@ class LoginInbox
   buy: ->
 
 class Room
+  _messages_enable: true
   game_methods:
     'move':
       validate: (v)->
@@ -707,6 +708,40 @@ describe 'User', ->
       user.remove = sinon.spy()
       socket.emit 'remove'
       assert.equal(1, user.remove.callCount)
+
+
+    describe 'bind message', ->
+      fn = null
+      beforeEach ->
+        fn = (m)-> socket.emit 'message:add', m
+        user.room_exec = sinon.spy()
+        user.id = 5
+        user.room = {id: 1, module: 'Room'}
+
+      it 'default', ->
+        fn('m1')
+        assert.equal 1, user.room_exec.callCount
+        assert.equal '_message_add', user.room_exec.getCall(0).args[0]
+        assert.deepEqual {user_id: 5, message: 'm1'}, user.room_exec.getCall(0).args[1]
+
+      it 'messages disabled', ->
+        user.room.module = 'Room2'
+        fn('m1')
+        assert.equal 0, user.room_exec.callCount
+
+      it 'no room', ->
+        user.room = null
+        fn('m1')
+        assert.equal 0, user.room_exec.callCount
+
+      it 'no message', ->
+        fn()
+        assert.equal 0, user.room_exec.callCount
+
+      it 'other type', ->
+        fn({})
+        assert.equal 0, user.room_exec.callCount
+
 
     it '_bind_socket_coins_history', ->
       db.select = sinon.spy()

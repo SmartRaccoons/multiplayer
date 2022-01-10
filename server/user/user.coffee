@@ -209,6 +209,12 @@ module.exports.User = class User extends User
       if !params_new
         return
       @room_exec_game event, params_new
+    @options.socket.on 'message:add', (message)=>
+      if !( @room and message and typeof message is 'string' )
+        return
+      if !RoomModule[@room.module]::_messages_enable
+        return
+      @room_exec '_message_add', {user_id: @id, message }
     @options.socket.on 'remove', => @remove()
 
   _bind_socket_cordova: ->

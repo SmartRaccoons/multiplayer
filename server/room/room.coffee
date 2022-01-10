@@ -12,6 +12,7 @@ config_callback( ->
 
 _ids = 1
 exports.Room = class Room extends PubsubModule
+  _messages_enable: false
   game: class Game
     constructor: -> throw 'no game class'
   game_player_params: {id: 'id'}
@@ -60,6 +61,24 @@ exports.Room = class Room extends PubsubModule
     .concat(@spectators)
     .forEach (user)=>
       @emit_user_publish.apply @, [user.id].concat [ ev, if additional and additional[user.id] then Object.assign({}, pr, additional[user.id]) else pr ]
+
+  _message_add: ({user_id, message})->
+    if !@_messages_enable
+      return
+    user = @user_get(user_id)
+    user_type = 'user'
+    if !user
+      user = @spectator_get(user_id)
+      user_type = 'spectator'
+    if !user
+      return
+    @publish 'message:add', {
+      user:
+        name: user.name
+        id: user.id
+        type: user_type
+      message: message
+    }
 
   _game_exec: ({user_id, method, params})->
     if not (@_game and @game_methods[method] and

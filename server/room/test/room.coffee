@@ -281,6 +281,43 @@ describe 'Room', ->
       assert.equal('pr', spy.getCall(0).args[2])
 
 
+    describe '_message_add', ->
+      beforeEach ->
+        room.publish = sinon.spy()
+        room.user_get = sinon.fake.returns {name: 'bom', id: 6}
+        room.spectator_get = sinon.fake.returns {name: 'b', id: 7}
+        room._messages_enable = true
+
+      it 'default', ->
+        room._message_add {user_id: 2, message: 'z'}
+        assert.equal 1, room.publish.callCount
+        assert.equal 'message:add', room.publish.getCall(0).args[0]
+        assert.deepEqual {user: {id: 6, name: 'bom', type: 'user'}, message: 'z'}, room.publish.getCall(0).args[1]
+        assert.equal 0, room.spectator_get.callCount
+        assert.equal 1, room.user_get.callCount
+        assert.equal 2, room.user_get.getCall(0).args[0]
+
+      it 'user not found', ->
+        room.user_get = -> null
+        room._message_add {user_id: 3, message: 'z2'}
+        assert.equal 1, room.publish.callCount
+        assert.equal 'message:add', room.publish.getCall(0).args[0]
+        assert.deepEqual {user: {id: 7, name: 'b', type: 'spectator'}, message: 'z2'}, room.publish.getCall(0).args[1]
+        assert.equal 1, room.spectator_get.callCount
+        assert.equal 3, room.spectator_get.getCall(0).args[0]
+
+      it 'spectator not found', ->
+        room.user_get = -> null
+        room.spectator_get = -> null
+        room._message_add {user_id: 3, message: 'z2'}
+        assert.equal 0, room.publish.callCount
+
+      it 'messages disabled', ->
+        room._messages_enable = false
+        room._message_add {user_id: 3, message: 'z2'}
+        assert.equal 0, room.publish.callCount
+
+
   describe 'Game', ->
     beforeEach ->
       RoomGame_methods.constructor = sinon.spy()
