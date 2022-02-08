@@ -106,6 +106,7 @@ describe 'Athorize', ->
           1: 444
         buy_price:
           1: 1400
+        buy_price_static: false
       inbox:
         buy_price:
           1: 70
@@ -570,6 +571,12 @@ describe 'Athorize', ->
       login._transaction_create.getCall(0).args[1](55)
       assert.equal(1, spy.callCount)
       assert.deepEqual({link: 'li'}, spy.getCall(0).args[0])
+
+    it 'buy in euros', ->
+      config.draugiem.buy_price_static = true
+      config_callbacks[0]()
+      login.buy({service: 1, user_id: 333}, spy)
+      assert.equal(1400, spy_tr.getCall(0).args[1])
 
     it 'buy (no transaction)', ->
       login.buy({service: 22})

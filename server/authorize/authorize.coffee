@@ -38,6 +38,7 @@ config_callback ->
     config.draugiem =
       buy_transaction: config_get('draugiem').buy_transaction
       buy_price: config_get('draugiem').buy_price
+      buy_price_static: config_get('draugiem').buy_price_static
   if config_get('inbox')
     config.inbox =
       buy_price: config_get('inbox').buy_price
@@ -366,7 +367,7 @@ module.exports.draugiem = class LoginDraugiem extends Login
   buy: ({service, user_id}, callback)->
     if !(service of config.draugiem.buy_transaction)
       return
-    @api.transactionCreate config.draugiem.buy_transaction[service], Math.round(config.draugiem.buy_price[service] * 0.702804 ), (transaction)=>
+    @api.transactionCreate config.draugiem.buy_transaction[service], ( if config.draugiem.buy_price_static then config.draugiem.buy_price[service] else Math.round(config.draugiem.buy_price[service] * 0.702804 ) ), (transaction)=>
       @_transaction_create
         transaction_id: transaction.id
         service: service
