@@ -194,7 +194,6 @@
         } : () => {
           return opt_get();
         };
-        options = [option];
         if (option.indexOf('&') >= 0) {
           options = option.split('&');
           val_get = ((options) => {
@@ -204,6 +203,10 @@
               }).length === options.length;
             };
           })(options);
+        } else if (option.indexOf('.') >= 0) {
+          options = [option.split('.')[0]];
+        } else {
+          options = [option];
         }
         exec = () => {
           var val;

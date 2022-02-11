@@ -137,12 +137,15 @@ if touch
       .bind(@)(opt_get())
     else =>
       opt_get()
-    options = [option]
     if option.indexOf('&') >= 0
       options = option.split '&'
       val_get = do (options)=>
         =>
           options.filter( (option)=> @options[option] ).length is options.length
+    else if option.indexOf('.') >= 0
+      options = [ option.split('.')[0] ]
+    else
+      options = [option]
     exec = =>
       val = val_get()
       if attr is 'html'
