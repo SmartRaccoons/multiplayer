@@ -37,6 +37,10 @@ window.o.PlatformYandex = class Yandex extends window.o.PlatformCommon
       .then => @auth()
       .catch =>
 
+  user_load: ->
+    @_get_user ->, =>
+      @router.trigger 'anonymous'
+
   __init: (callback)->
     script = document.createElement('script')
     script.async = true
@@ -45,10 +49,7 @@ window.o.PlatformYandex = class Yandex extends window.o.PlatformCommon
       .init()
       .then (ysdk)=>
         window.ysdk = ysdk
-        callback()
-        @_get_user ->, =>
-          @router.trigger 'anonymous'
-
+        callback({language: window.ysdk.environment.i18n.lang})
     script.src = 'https://yandex.ru/games/sdk/v2'
     document.head.appendChild(script)
 

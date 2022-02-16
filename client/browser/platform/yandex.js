@@ -63,6 +63,12 @@
         });
       }
 
+      user_load() {
+        return this._get_user(function() {}, () => {
+          return this.router.trigger('anonymous');
+        });
+      }
+
       __init(callback) {
         var script;
         script = document.createElement('script');
@@ -70,9 +76,8 @@
         script.onload = () => {
           return YaGames.init().then((ysdk) => {
             window.ysdk = ysdk;
-            callback();
-            return this._get_user(function() {}, () => {
-              return this.router.trigger('anonymous');
+            return callback({
+              language: window.ysdk.environment.i18n.lang
             });
           });
         };
