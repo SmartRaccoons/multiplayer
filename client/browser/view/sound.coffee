@@ -3,18 +3,26 @@ cordova = -> !!window.cordova
 
 __ids = 0
 class SoundMedia extends SimpleEvent
-  constructor: (@options)->
+  constructor: (options)->
     super()
+    @options = Object.assign {
+      volume: 0
+      volume_prev: 0
+    }, options
     __ids++
     @id = __ids
     @cordova = cordova()
-    @media = if @cordova then new Media(@options.url) else new Audio(@options.url)
+    @media = do =>
+      if @cordova
+        return new Media(@options.url)
+      return new Howl({
+        src: [@options.url]
+        loop: @options.loop
+      })
     if !@cordova
-      @media.addEventListener 'loadeddata', =>
-        @_duration_mls = Math.round @media.duration * 1000
+      @media.once 'load', =>
+        @_duration_mls = Math.round @media.duration() * 1000
         @trigger 'loadeddata'
-      if @options.loop
-        @media.loop = true
     if @options.fade_in
       @fade_in(if typeof @options.fade_in is 'number' then @options.fade_in)
     else
@@ -25,14 +33,15 @@ class SoundMedia extends SimpleEvent
       , 1000 * 30
     @
 
-  duration: (callback, binded = false)->
+  duration: (callback)->
     if @_duration_mls
       return callback(@_duration_mls)
-    if binded
-      return callback(0)
-    @bind 'loadeddata', => @duration(callback, true)
+    @bind 'loadeddata', =>
+      @duration =>
+        callback @_duration_mls or 0
 
   volume: (volume)->
+    @options.volume_prev = @options.volume
     @options.volume = volume
     if @options.volume < 0
       @options.volume = 0
@@ -40,7 +49,7 @@ class SoundMedia extends SimpleEvent
     if @cordova
       @media.setVolume("#{rounded}")
     else
-      @media.volume = rounded
+      @media.volume(rounded)
     @
 
   play: ->
@@ -56,6 +65,8 @@ class SoundMedia extends SimpleEvent
   stop: ->
     @volume(0)
     if @cordova
+      @media.stop()
+    else
       @media.stop()
     @
 
@@ -83,6 +94,8 @@ class SoundMedia extends SimpleEvent
     @stop()
     if @cordova
       @media.release()
+    else
+      @media.unload()
     @media = null
     super()
 
@@ -109,6 +122,11 @@ __iteraction = false
         document.body.removeEventListener('touchstart', fn)
       document.body.addEventListener('click', fn)
       document.body.addEventListener('touchstart', fn)
+      document.addEventListener 'visibilitychange', =>
+        if document.hidden
+          @_mute_medias()
+        else
+          @_unmute_medias()
     @
 
   _media_create: (params)->
@@ -132,12 +150,6 @@ __iteraction = false
     catch
       return null
 
-  # duration: (sound, callback)->
-  #   media = @_media_get(sound)
-  #   if !media
-  #     return
-  #   media.duration(callback)
-
   play: (sound)->
     media = @_media_create(sound)
     if !media
@@ -156,6 +168,14 @@ __iteraction = false
   _clear: ->
     @__medias.map (m)-> m.id
     .forEach (id)=> @get(id).remove()
+
+  _mute_medias: ->
+    @__medias.map (m)-> m.id
+    .forEach (id)=> @get(id).volume(0)
+
+  _unmute_medias: ->
+    @__medias.map (m)-> m.id
+    .forEach (id)=> @get(id).volume(@get(id).options.volume_prev)
 
   is_mute: -> @__muted
 

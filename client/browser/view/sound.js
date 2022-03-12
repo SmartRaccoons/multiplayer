@@ -11,19 +11,27 @@
   SoundMedia = class SoundMedia extends SimpleEvent {
     constructor(options) {
       super();
-      this.options = options;
+      this.options = Object.assign({
+        volume: 0,
+        volume_prev: 0
+      }, options);
       __ids++;
       this.id = __ids;
       this.cordova = cordova();
-      this.media = this.cordova ? new Media(this.options.url) : new Audio(this.options.url);
+      this.media = (() => {
+        if (this.cordova) {
+          return new Media(this.options.url);
+        }
+        return new Howl({
+          src: [this.options.url],
+          loop: this.options.loop
+        });
+      })();
       if (!this.cordova) {
-        this.media.addEventListener('loadeddata', () => {
-          this._duration_mls = Math.round(this.media.duration * 1000);
+        this.media.once('load', () => {
+          this._duration_mls = Math.round(this.media.duration() * 1000);
           return this.trigger('loadeddata');
         });
-        if (this.options.loop) {
-          this.media.loop = true;
-        }
       }
       if (this.options.fade_in) {
         this.fade_in(typeof this.options.fade_in === 'number' ? this.options.fade_in : void 0);
@@ -38,20 +46,20 @@
       this;
     }
 
-    duration(callback, binded = false) {
+    duration(callback) {
       if (this._duration_mls) {
         return callback(this._duration_mls);
       }
-      if (binded) {
-        return callback(0);
-      }
       return this.bind('loadeddata', () => {
-        return this.duration(callback, true);
+        return this.duration(() => {
+          return callback(this._duration_mls || 0);
+        });
       });
     }
 
     volume(volume) {
       var rounded;
+      this.options.volume_prev = this.options.volume;
       this.options.volume = volume;
       if (this.options.volume < 0) {
         this.options.volume = 0;
@@ -60,7 +68,7 @@
       if (this.cordova) {
         this.media.setVolume(`${rounded}`);
       } else {
-        this.media.volume = rounded;
+        this.media.volume(rounded);
       }
       return this;
     }
@@ -81,6 +89,8 @@
     stop() {
       this.volume(0);
       if (this.cordova) {
+        this.media.stop();
+      } else {
         this.media.stop();
       }
       return this;
@@ -122,6 +132,8 @@
       this.stop();
       if (this.cordova) {
         this.media.release();
+      } else {
+        this.media.unload();
       }
       this.media = null;
       return super.remove();
@@ -134,10 +146,10 @@
   __iteraction = false;
 
   this.o.Sound = Sound = class Sound extends SimpleEvent {
-    constructor(options) {
+    constructor(options1) {
       var enable, fn;
       super(...arguments);
-      this.options = options;
+      this.options = options1;
       this.__medias = [];
       this.__muted = typeof Cookies !== "undefined" && Cookies !== null ? !!parseInt(Cookies.get('__sound_muted')) : false;
       enable = () => {
@@ -157,6 +169,13 @@
         };
         document.body.addEventListener('click', fn);
         document.body.addEventListener('touchstart', fn);
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            return this._mute_medias();
+          } else {
+            return this._unmute_medias();
+          }
+        });
       }
       this;
     }
@@ -191,11 +210,6 @@
       }
     }
 
-    // duration: (sound, callback)->
-    //   media = @_media_get(sound)
-    //   if !media
-    //     return
-    //   media.duration(callback)
     play(sound) {
       var media;
       media = this._media_create(sound);
@@ -226,6 +240,22 @@
         return m.id;
       }).forEach((id) => {
         return this.get(id).remove();
+      });
+    }
+
+    _mute_medias() {
+      return this.__medias.map(function(m) {
+        return m.id;
+      }).forEach((id) => {
+        return this.get(id).volume(0);
+      });
+    }
+
+    _unmute_medias() {
+      return this.__medias.map(function(m) {
+        return m.id;
+      }).forEach((id) => {
+        return this.get(id).volume(this.get(id).options.volume_prev);
       });
     }
 
