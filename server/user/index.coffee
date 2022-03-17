@@ -1,1 +1,4 @@
-module.exports = Object.assign require('./user'), require('./users')
+module.exports = Object.assign(
+  require('./user')
+  require('./users')
+)

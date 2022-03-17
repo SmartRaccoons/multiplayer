@@ -33,7 +33,12 @@ module.exports.Pubsub = class Pubsub
           callback_emit = args_other.pop() if typeof args_other[args_other.length - 1] is 'function'
           @emit.call @, callback.apply(@, args.slice(0, callback_args)), {method: args_other[0], params: args_other.slice(1)}, callback_emit
     @sub.on 'message', (ch, message)=>
-      m = JSON.parse(message)
+      m = JSON.parse message, (key, value)->
+        if typeof(value) is 'string'
+          regexp = /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.exec(value);
+          if regexp
+            return new Date(value)
+        return value
       @_events_holder.emit ch, m.data, m.server, m.server is @options.server_id
 
   on: (event, fn)->

@@ -4,9 +4,8 @@ PubsubServerObjects = require('../pubsub/objects').PubsubServerObjects
 
 
 User = null
-config_callback( ->
+config_callback ->
   User = module_get('server.user').User
-)()
 
 
 module.exports.Users = class Users extends PubsubServerObjects

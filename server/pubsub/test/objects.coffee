@@ -58,6 +58,10 @@ describe 'models', ->
       assert.equal(4, models.get(4).id)
       assert.equal(1, models.get(4, true))
 
+    it 'get_all', ->
+      models._all = [{id: 2}, {id: 4}, {id: 1}]
+      assert.equal(4, models.get_all(4).id)
+
     it '_add', ->
       models.bind 'add', spy
       models._add({id: 2})
@@ -143,8 +147,11 @@ describe 'models', ->
       assert.equal(0, spy3.callCount)
 
     it '_object_exec', ->
+      models.get = sinon.fake.returns undefined
       Model::emit_self_exec = spy
       models._object_exec(2, 'mt')
+      assert.equal 1, models.get.callCount
+      assert.equal 2, models.get.getCall(0).args[0]
       assert.equal 1, spy.callCount
       assert.equal 2, spy.getCall(0).args[0]
       assert.equal 'mt', spy.getCall(0).args[1]
