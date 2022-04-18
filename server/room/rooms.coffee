@@ -5,10 +5,9 @@ PubsubServerObjects = require('../pubsub/objects').PubsubServerObjects
 
 Room = null
 User = null
-config_callback( ->
+config_callback ->
   Room = module_get('server.room').Room
   User = module_get('server.user').User
-)()
 
 
 module.exports.Rooms = class Rooms extends PubsubServerObjects

@@ -16,9 +16,11 @@ class User extends SimpleEvent
 PubsubServer_methods =
   _create: ->
 
+config_callbacks = []
 Users = proxyquire('../users', {
   '../../config':
-    config_callback: (c)-> c
+    config_callback: (c)->
+      config_callbacks.push c
     module_get: -> {User}
   '../pubsub/objects':
     PubsubServerObjects: class PubsubServerObjects extends SimpleEvent
@@ -34,6 +36,7 @@ describe 'Users', ->
     clock = sinon.useFakeTimers()
     spy = sinon.spy()
     spy2 = sinon.spy()
+    config_callbacks[0]()
 
   afterEach ->
     clock.restore()

@@ -24,6 +24,9 @@ module.exports.PubsubServerObjects = class PubsubServerObjects extends PubsubSer
   get: (id, index=false)->
     @_objects[if index then 'findIndex' else 'find'] (ob)-> ob.id is id
 
+  get_all: (id)->
+    @_all.find (ob)-> ob.id is id
+
   _objects_exec: (params)->
     filter = params.filter
     for fn, args of params
@@ -38,7 +41,7 @@ module.exports.PubsubServerObjects = class PubsubServerObjects extends PubsubSer
         o[fn](args)
 
   _object_exec: (id, method, ...args)->
-    ob = @get()
+    ob = @get(id)
     if ob
       return ob[method].apply ob, args
     model = @model()

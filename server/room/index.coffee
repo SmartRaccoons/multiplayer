@@ -1,1 +1,4 @@
-module.exports = Object.assign require('./room'), require('./rooms')
+module.exports = Object.assign(
+  require('./room')
+  require('./rooms')
+)

@@ -60,6 +60,11 @@ describe 'Pubsub', ->
     assert.equal 1, m._events_holder.emit.getCall(0).args[2]
     assert.equal true, m._events_holder.emit.getCall(0).args[3]
 
+  it 'constructor (message stringify Date)', ->
+    m._events_holder.emit = sinon.spy()
+    sub.on.getCall(0).args[1]('event', JSON.stringify({data: {da: new Date()}, server: 1}))
+    assert.ok m._events_holder.emit.getCall(0).args[1].da instanceof Date
+
   it 'constructor (message server other)', ->
     m._events_holder.emit = sinon.spy()
     sub.on.getCall(0).args[1]('event', JSON.stringify({data: 'd', server: 2}))

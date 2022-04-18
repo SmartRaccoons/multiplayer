@@ -15,9 +15,11 @@ class Room extends SimpleEvent
 class User extends SimpleEvent
 
 
+config_callbacks = []
 {Rooms, RoomsLobby} = proxyquire('../rooms', {
   '../../config':
-    config_callback: (c)-> c
+    config_callback: (c)->
+      config_callbacks.push c
     module_get: -> {Room, User}
   '../pubsub/objects':
     PubsubServerObjects: class PubsubServerObjects extends SimpleEvent
@@ -31,6 +33,7 @@ describe 'Rooms', ->
   beforeEach ->
     clock = sinon.useFakeTimers()
     spy = sinon.spy()
+    config_callbacks[0]()
     rooms = new Rooms()
 
   afterEach ->

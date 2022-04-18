@@ -16,7 +16,7 @@ class User extends PubsubModule
 
 
 Authorize = null
-config_callback( ->
+config_callback ->
   config.db = config_get('db')
   config.cordova = config_get('cordova')
   config.android = config_get('android')
@@ -53,7 +53,6 @@ config_callback( ->
           'set_product', { transaction: Object.assign { value }, transaction }
         ]
       ).concat( [ => complete() ])
-)()
 
 _pick = (ob, params)->
   Object.keys(ob).reduce (result, key)->
