@@ -5,10 +5,10 @@ email = null
 config = {}
 module.exports.config = (c)->
   config = c
-  email = new SMTPClient {
-    user: config.email,
-    password: config.pass,
-    host: 'smtp.gmail.com',
+  email = new SMTPClient if config.server_config then config.server_config else {
+    user: config.email
+    password: config.pass
+    host: 'smtp.gmail.com'
     ssl: true
   }
 
