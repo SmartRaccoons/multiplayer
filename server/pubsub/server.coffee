@@ -78,6 +78,17 @@ module.exports.Pubsub = class Pubsub
         @emit_server_exec.apply @, [module, i, method].concat Array::slice.call(arguments, 2)
 
 
+_log_save = []
+module.exports.PubsubLog = class PubsubLog extends Pubsub
+  emit: (event, params)->
+    _log_save.push "--------emit #{event} #{JSON.stringify(params)} #{@options.server_id}"
+    if _log_save.length > 500
+      _log_save.shift()
+    super ...arguments
+
+  log_get: -> _log_save
+
+
 module.exports.PubsubDev = class PubsubDev extends Pubsub
   on: (event)->
     console.info "--------on #{event} #{@options.server_id}"
