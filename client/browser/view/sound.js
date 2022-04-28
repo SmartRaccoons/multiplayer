@@ -231,8 +231,12 @@
     }
 
     disable() {
-      this.clear();
+      this._clear();
       return __enable = false;
+    }
+
+    enable() {
+      return __enable = true;
     }
 
     _clear() {

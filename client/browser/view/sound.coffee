@@ -162,8 +162,11 @@ __iteraction = false
   is_enable: -> __enable
 
   disable: ->
-    @clear()
+    @_clear()
     __enable = false
+
+  enable: ->
+    __enable = true
 
   _clear: ->
     @__medias.map (m)-> m.id
