@@ -113,6 +113,12 @@ __iteraction = false
     if cordova()
       setTimeout =>
         enable()
+        document.addEventListener("pause", =>
+          @disable()
+        , false)
+        document.addEventListener("resume", =>
+          @enable()
+        , false)
       , 100
     else
       fn = =>
@@ -124,9 +130,9 @@ __iteraction = false
       document.body.addEventListener('touchstart', fn)
       document.addEventListener 'visibilitychange', =>
         if document.hidden
-          @_mute_medias()
+          @disable()
         else
-          @_unmute_medias()
+          @enable()
     @
 
   _media_create: (params)->

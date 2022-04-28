@@ -158,7 +158,13 @@
       };
       if (cordova()) {
         setTimeout(() => {
-          return enable();
+          enable();
+          document.addEventListener("pause", () => {
+            return this.disable();
+          }, false);
+          return document.addEventListener("resume", () => {
+            return this.enable();
+          }, false);
         }, 100);
       } else {
         fn = () => {
@@ -171,9 +177,9 @@
         document.body.addEventListener('touchstart', fn);
         document.addEventListener('visibilitychange', () => {
           if (document.hidden) {
-            return this._mute_medias();
+            return this.disable();
           } else {
-            return this._unmute_medias();
+            return this.enable();
           }
         });
       }
