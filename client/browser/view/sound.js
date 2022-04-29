@@ -160,10 +160,10 @@
         setTimeout(() => {
           enable();
           document.addEventListener("pause", () => {
-            return this.disable();
+            return this._mute_medias();
           }, false);
           return document.addEventListener("resume", () => {
-            return this.enable();
+            return this._unmute_medias();
           }, false);
         }, 100);
       } else {
@@ -177,9 +177,9 @@
         document.body.addEventListener('touchstart', fn);
         document.addEventListener('visibilitychange', () => {
           if (document.hidden) {
-            return this.disable();
+            return this._mute_medias();
           } else {
-            return this.enable();
+            return this._unmute_medias();
           }
         });
       }

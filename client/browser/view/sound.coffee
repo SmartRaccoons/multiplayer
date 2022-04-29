@@ -114,10 +114,10 @@ __iteraction = false
       setTimeout =>
         enable()
         document.addEventListener("pause", =>
-          @disable()
+          @_mute_medias()
         , false)
         document.addEventListener("resume", =>
-          @enable()
+          @_unmute_medias()
         , false)
       , 100
     else
@@ -130,9 +130,9 @@ __iteraction = false
       document.body.addEventListener('touchstart', fn)
       document.addEventListener 'visibilitychange', =>
         if document.hidden
-          @disable()
+          @_mute_medias()
         else
-          @enable()
+          @_unmute_medias()
     @
 
   _media_create: (params)->
