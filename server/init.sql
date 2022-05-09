@@ -214,7 +214,7 @@ CREATE TABLE `auth_user_cordova_params` (
 
 CREATE TABLE `deletion_facebook` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
   `code` text DEFAULT NULL,
   `status` text DEFAULT NULL,
   `initiated` datetime NOT NULL,
