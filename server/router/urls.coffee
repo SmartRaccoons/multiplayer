@@ -74,7 +74,7 @@ module.exports.authorize = (app)->
     do =>
       if !( platform is 'facebook' and config_get(platform).deletion_callback )
         return
-      template = do =>
+      template_deletion = do =>
         deletion = template_local('deletion')
         (params)=> deletion Object.assign({message: '', error: ''}, params)
       deletion_url = config_get(platform).deletion_url
@@ -89,10 +89,10 @@ module.exports.authorize = (app)->
       app.get "#{deletion_url}/:code", (req, res)->
         new (Authorize[platform])().deletion_status req.params.code, (result)=>
           if !result
-            return res.send template({
+            return res.send template_deletion({
               error: 'Something is wrong'
             })
-          res.send template({
+          res.send template_deletion({
             message: "Deletion request status: #{result.status}"
           })
 
@@ -263,9 +263,9 @@ module.exports.payments = (app)->
     }
     do =>
       transaction_url = config_get('inbox').transaction_completed
-      template = template_local('inbox-callback')
+      template_inbox_callback = template_local('inbox-callback')
       ['en', 'ru', 'lv'].forEach (language)=>
-        template_generated = template { text: locale._( 'Inbox transaction completed', language ) }
+        template_generated = template_inbox_callback { text: locale._( 'Inbox transaction completed', language ) }
         app.get "#{transaction_url}#{language}.html", (req, res)->
           res.send template_generated
 
