@@ -3,9 +3,9 @@ window.o.Router = class Router extends window.o.View
   template: """
   """
 
-  _get: (param)->
-    for v in ['search', 'hash']
-      result =  window.location[v].match(
+  _get: (param, string = '')->
+    for v in (if string then [string] else ['search', 'hash'].map( (v)-> window.location[v] ) )
+      result =  v.match(
         new RegExp("(\\?|&|#)" + param + "(\\[\\])?=([^&]*)")
       )
       if result

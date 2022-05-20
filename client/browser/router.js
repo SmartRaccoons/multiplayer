@@ -4,12 +4,14 @@
 
   window.o.Router = Router = (function() {
     class Router extends window.o.View {
-      _get(param) {
+      _get(param, string = '') {
         var i, len, ref, result, v;
-        ref = ['search', 'hash'];
+        ref = (string ? [string] : ['search', 'hash'].map(function(v) {
+          return window.location[v];
+        }));
         for (i = 0, len = ref.length; i < len; i++) {
           v = ref[i];
-          result = window.location[v].match(new RegExp("(\\?|&|#)" + param + "(\\[\\])?=([^&]*)"));
+          result = v.match(new RegExp("(\\?|&|#)" + param + "(\\[\\])?=([^&]*)"));
           if (result) {
             return decodeURIComponent(result[3]);
           }
