@@ -15,11 +15,12 @@
       if (!window._locales_default) {
         return callback();
       }
-      return this.router.subview_append(new window.o.ViewPopupLanguage()).bind('language', (language) => {
+      this.router.subview_append(new window.o.ViewPopupLanguage()).bind('language', (language) => {
         return this._language_update(language);
       }).bind('remove', () => {
         return callback();
       }).render().$el.appendTo(this.router.$el);
+      return this.router.trigger('platform:language');
     }
 
     _auto_login() {
@@ -37,7 +38,8 @@
     }
 
     connect(params) {
-      return window.o.Connector(Object.assign({
+      var params_merge;
+      params_merge = Object.assign({
         router: this.router,
         address: App.config.server,
         version: App.version,
@@ -51,7 +53,14 @@
             ]
           });
         }
-      }, params));
+      }, params);
+      window.o.Connector(Object.assign({}, params_merge, {
+        version_callback: () => {
+          params_merge.version_callback();
+          return this.router.trigger('platform:version_error');
+        }
+      }));
+      return this.router.trigger('platform:connect');
     }
 
     _language_update(language) {

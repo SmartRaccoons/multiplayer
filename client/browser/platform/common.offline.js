@@ -96,7 +96,6 @@
             if (version_diff < 0 && is_prev()) {
               return redirect('index.html');
             }
-            this._version_error();
             return this.router.message({
               body: _l('Authorize.version error offline'),
               actions: [
@@ -113,12 +112,6 @@
               return this.router.trigger('anonymous');
             });
           }
-        });
-      }
-
-      _version_error() {
-        return this.router.message({
-          body: _l('Authorize.version error offline')
         });
       }
 
@@ -153,6 +146,7 @@
         this.router.subview_append(popup_code).bind('remove', () => {
           return this.auth_popup();
         }).render().$el.appendTo(this.router.$el);
+        this.router.trigger('platform:auth_popup_device', {platform});
         return link;
       }
 
@@ -169,7 +163,7 @@
           platforms: Object.keys(App.config.login),
           parent: this.router.$el
         }));
-        return authorize.bind('authorize', (platform) => {
+        authorize.bind('authorize', (platform) => {
           if (platform === 'email') {
             return this.auth_email();
           }
@@ -183,6 +177,7 @@
         }).bind('close', () => {
           return this.router.trigger('anonymous');
         }).render();
+        return this.router.trigger('platform:auth_popup');
       }
 
       _auth_clear() {

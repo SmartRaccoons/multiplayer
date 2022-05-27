@@ -40,9 +40,11 @@ window.o.PlatformStandalone = class Standalone extends window.o.PlatformCommon
       if platform is 'email'
         return @auth_email()
       window.location.href = App.config.login[platform] + '?language=' + App.lang
+      @router.trigger 'platform:auth_popup_redirect', {platform}
     .bind 'close', =>
       @router.trigger 'anonymous'
     .render()
+    @router.trigger 'platform:auth_popup'
 
   _auth_clear: -> Object.keys(App.config.login).forEach (c)-> Cookies.set(c, '')
 

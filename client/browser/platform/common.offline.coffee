@@ -64,7 +64,6 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
           return redirect('prev.html')
         if version_diff < 0 and is_prev()
           return redirect('index.html')
-        @_version_error()
         @router
         .message
           body: _l('Authorize.version error offline')
@@ -77,11 +76,6 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
         .bind 'close', =>
           @router.trigger 'anonymous'
     })
-
-  _version_error: ->
-    @router
-    .message
-      body: _l('Authorize.version error offline')
 
   _queue_success: (fn)->
     if @_success_login_user
@@ -104,6 +98,7 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
     @router.subview_append(popup_code)
     .bind 'remove', => @auth_popup()
     .render().$el.appendTo @router.$el
+    @router.trigger 'platform:auth_popup_device', {platform}
     return link
 
   _auto_login: ->
@@ -123,6 +118,7 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
     .bind 'close', =>
       @router.trigger 'anonymous'
     .render()
+    @router.trigger 'platform:auth_popup'
 
   _auth_clear: -> Object.keys(App.config.login).forEach (c)-> Cookies.set(c, '')
 

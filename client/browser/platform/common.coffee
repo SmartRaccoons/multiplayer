@@ -12,6 +12,7 @@ window.o.PlatformCommon = class Common
     .bind 'remove', => callback()
     .render()
     .$el.appendTo(@router.$el)
+    @router.trigger 'platform:language'
 
   _auto_login: ->
     if !@auth()
@@ -22,7 +23,7 @@ window.o.PlatformCommon = class Common
       @language_check => @auth_popup()
 
   connect: (params)->
-    window.o.Connector Object.assign({
+    params_merge =  Object.assign({
       router: @router
       address: App.config.server
       version: App.version
@@ -31,6 +32,12 @@ window.o.PlatformCommon = class Common
           body: _l('Authorize.version error')
           actions: [ {'reload': _l('Authorize.button.reload')} ]
     }, params)
+    window.o.Connector Object.assign {}, params_merge, {
+      version_callback: =>
+        params_merge.version_callback()
+        @router.trigger 'platform:version_error'
+    }
+    @router.trigger 'platform:connect'
 
   _language_update: (language)->
     App.lang = language

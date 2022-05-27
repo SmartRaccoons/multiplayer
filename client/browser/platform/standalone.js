@@ -55,14 +55,16 @@
           platforms: Object.keys(App.config.login),
           parent: this.router.$el
         }));
-        return authorize.bind('authorize', (platform) => {
+        authorize.bind('authorize', (platform) => {
           if (platform === 'email') {
             return this.auth_email();
           }
-          return window.location.href = App.config.login[platform] + '?language=' + App.lang;
+          window.location.href = App.config.login[platform] + '?language=' + App.lang;
+          return this.router.trigger('platform:auth_popup_redirect', {platform});
         }).bind('close', () => {
           return this.router.trigger('anonymous');
         }).render();
+        return this.router.trigger('platform:auth_popup');
       }
 
       _auth_clear() {
