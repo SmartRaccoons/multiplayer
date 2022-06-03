@@ -82,7 +82,7 @@ _log_save = []
 module.exports.PubsubLog = class PubsubLog extends Pubsub
   emit: (event, params)->
     _log_save.push "--------emit #{event} #{JSON.stringify(params)} #{@options.server_id}"
-    if _log_save.length > 50
+    if _log_save.length > 10000
       _log_save.shift()
     super ...arguments
 
