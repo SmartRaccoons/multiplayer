@@ -5,7 +5,12 @@
   Popup = window.o.ViewPopup;
 
   window.o.ViewPopupAuthorize = PopupAuthorize = (function() {
-    class PopupAuthorize extends Popup {};
+    class PopupAuthorize extends Popup {
+      _button_prefix() {
+        return '';
+      }
+
+    };
 
     PopupAuthorize.prototype.className = Popup.prototype.className + '-authorize';
 
@@ -21,7 +26,7 @@
 <div class='&-buttons' data-lang='<%= App.lang %>'>
   <% self.options.platforms.forEach(function (platform) { %>
 
-    <button data-click='authorize' data-click-attr='<%= platform %>'></button>
+    <button data-prefix='<%= self._button_prefix() %>' data-click='authorize' data-click-attr='<%= platform %>'></button>
   <% }) %>
 </div>
 <p>
