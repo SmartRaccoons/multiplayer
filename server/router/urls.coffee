@@ -28,7 +28,7 @@ config_callback( ->
 
 module.exports.authorize = (app)->
   language_validate = (language)->
-    if ['lv', 'en', 'ru', 'de', 'lg'].indexOf(language) >= 0 then language else 'en'
+    if ['lv', 'en', 'ru', 'de', 'lg', 'fil', 'vi', 'id'].indexOf(language) >= 0 then language else 'en'
   code_url = config_get('code_url')
   code_template = do =>
     a_code_id = template_local('a-code-id')
