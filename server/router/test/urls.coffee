@@ -7,6 +7,7 @@ proxyquire = require('proxyquire')
 class Facebook
 class Odnoklassniki
 class User
+class Login
 
 helpers_email = {}
 
@@ -17,7 +18,7 @@ urls = proxyquire('../urls', {
     module_get: (plugin)->
       if plugin is 'server.helpers.email'
         return helpers_email
-      { facebook: Facebook, odnoklassniki: Odnoklassniki, User }
+      { facebook: Facebook, odnoklassniki: Odnoklassniki, Login, User }
     config_get: (p)-> config[p]
 })
 
@@ -41,6 +42,37 @@ describe 'Urls', ->
       post: sinon.spy()
 
   afterEach ->
+
+
+  describe 'delete request', ->
+    body = null
+    deletion_status = null
+    beforeEach ->
+      Login::deletion_status = deletion_status = sinon.spy()
+      config.deletion_url = '/fb_del'
+      urls.authorize(app)
+
+    it 'default', ->
+      assert.equal '/fb_del/:code', app.get.getCall(2).args[0]
+      app.get.getCall(2).args[1] { params: {code: 'cd2'} }, res
+      assert.equal 1, deletion_status.callCount
+      assert.equal 'cd2', deletion_status.getCall(0).args[0]
+      deletion_status.getCall(0).args[1]({status: 'Init'})
+      assert.equal 1, res.send.callCount
+      assert.equal true, res.send.getCall(0).args[0].indexOf('Init') >= 0
+
+    it 'url is missing', ->
+      config.deletion_url = null
+      app.get = sinon.spy()
+      urls.authorize(app)
+      assert.equal 2, app.get.callCount
+
+    it 'error', ->
+      app.get.getCall(2).args[1] { params: {code: 'cd2'} }, res
+      deletion_status.getCall(0).args[1]()
+      assert.equal 1, res.send.callCount
+      assert.equal false, res.send.getCall(0).args[0].indexOf('Init') >= 0
+      assert.equal true, res.send.getCall(0).args[0].indexOf('Something is wrong') >= 0
 
 
   describe 'delete facebook request', ->

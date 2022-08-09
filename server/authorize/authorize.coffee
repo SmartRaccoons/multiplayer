@@ -10,6 +10,7 @@ ApiYandex = require('../api/yandex').ApiYandex
 ApiDraugiem = require('../api/draugiem').ApiDraugiem
 ApiFacebook = require('../api/facebook').ApiFacebook
 
+module_get = require('../../config').module_get
 config_get = require('../../config').config_get
 config_callback = require('../../config').config_callback
 _pick = require('lodash').pick
@@ -24,7 +25,9 @@ yandex = null
 google = null
 apple = null
 facebook = null
+helpers_email = null
 config_callback ->
+  helpers_email = module_get('server.helpers.email')
   config.db = config_get('db')
   config.buy = config_get('buy')
   if config_get('facebook')
@@ -95,6 +98,7 @@ module.exports.Login = class Login
     'last_login': {db: true, default: -> new Date()}
 
   _table: 'auth_user'
+  _table_deletion: 'auth_user_deletion'
 
   _parse: ->
     Object.keys(@_opt)
@@ -229,6 +233,38 @@ module.exports.Login = class Login
           id: data.id
           service: data.service
         user_id: data.user_id
+
+  deletion_check: ({user_id}, callback)->
+    config.db.select_one
+      select: ['status', 'code']
+      table: @_table_deletion
+      where: {user_id}
+    , (result)=> callback(result)
+
+  deletion_init: ({user_id}, callback)->
+    @deletion_check {user_id}, (result)=>
+      if result
+        return callback result
+      code = uuidv4()
+      status = 'Initiated'
+      config.db.insert
+        table: @_table_deletion
+        data:
+          initiated: new Date()
+          user_id: user_id
+          status: status
+          code: code
+        , (id)=>
+          callback({status, code})
+          helpers_email.send_admin {subject: 'Deletion request', text: ''}
+
+  deletion_status: (code, callback)->
+    config.db.select_one
+      select: ['status']
+      table: @_table_deletion
+      where: {code}
+    , (result)->
+      callback if result then {status: result.status} else null
 
 
 module.exports.cordova = class LoginCordova extends Login
