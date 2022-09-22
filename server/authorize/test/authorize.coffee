@@ -754,7 +754,7 @@ describe 'Athorize', ->
     it 'default', ->
       assert.equal('auth_user_session_facebook', login._table_session)
       assert.equal('transaction_facebook', login._table_transaction)
-      assert.equal('deletion_facebook', login._table_deletion)
+      # assert.equal('deletion_facebook', login._table_deletion)
       assert.equal('facebook', login._name)
 
     it 'authorize (facebook instant)', ->
@@ -938,6 +938,7 @@ describe 'Athorize', ->
         }
         login._user_get = sinon.spy()
         uuid_v4 = sinon.fake.returns 'rnd'
+        login._table_deletion = 'deletion_facebook'
 
       it 'default', ->
         login.deletion_request('req', spy)
@@ -1004,6 +1005,7 @@ describe 'Athorize', ->
 
 
     it 'deletion_status', ->
+      login._table_deletion = 'deletion_facebook'
       login.deletion_status('cd', spy)
       assert.equal 1, db.select_one.callCount
       assert.equal 'deletion_facebook', db.select_one.getCall(0).args[0].table
