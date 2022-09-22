@@ -282,7 +282,7 @@ module.exports.facebook = class LoginFacebook extends Login
   _name: 'facebook'
   _table_session: 'auth_user_session_facebook'
   _table_transaction: 'transaction_facebook'
-  _table_deletion: 'deletion_facebook'
+  # _table_deletion: 'deletion_facebook'
   _api_call: ({code, language}, callback)->
     facebook._authorize_facebook code, (user)->
       if !user
