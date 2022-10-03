@@ -14,5 +14,5 @@ module.exports.Log =
     _messages
 
   colorize: (msgs)->
-    msgs.map (msg, i)->
+    (if Array.isArray(msgs) then msgs else [msgs] ).map (msg, i)->
       chalk[_colorize[i]](msg)
