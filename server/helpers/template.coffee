@@ -37,7 +37,7 @@ _template_include_js = (params)->
       return "<script>#{js}</script>"
     .join "\n"
   files = []
-  if params.platform is 'cordova'
+  if params.platform.substr(0, 7) is 'cordova'
     files.push 'cordova.js'
   files.push "#{params.path_www}d/j-#{params.platform}.js?#{params.version}-#{new Date().getTime()}"
   return """
