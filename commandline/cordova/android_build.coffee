@@ -15,7 +15,7 @@ exports.android_build = (op, done)->
       password: ''
       minApi: ''
   }, op
-  exec_promise "cd cordova && #{op.bin} build android --release -- --keystore=#{op.android.keystore} --storePassword=#{op.android.storePassword} --alias=#{op.android.alias} --password=#{op.android.password} --gradleArg=-PcdvMinSdkVersion=#{op.android.minApi}"
+  exec_promise "cd #{op.path} && #{op.bin} build android --release -- --keystore=#{op.android.keystore} --storePassword=#{op.android.storePassword} --alias=#{op.android.alias} --password=#{op.android.password} --gradleArg=-PcdvMinSdkVersion=#{op.android.minApi}"
   .then (res)=>
     console.info 'out: ', res.stdout
     console.info 'error: ', res.stderr
