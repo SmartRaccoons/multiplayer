@@ -12,6 +12,7 @@ exports.mediagen = (op, done)->
     screen: 'design/screen.png'
     screen_background: 'design/screen_background.png'
     directory_clear: true
+    params: {}
   }, op
   path_res = "#{op.path}/res"
   if op.directory_clear
@@ -32,7 +33,15 @@ exports.mediagen = (op, done)->
           height = if !img.height then metadata.height else img.height
           sharp(op.icon_background)
           .resize(width, height, {fit: 'fill'})
-          .composite([{ input: screen }])
+          .composite(
+            [{ input: screen } ]
+            .concat if img.icon_rounded then [ {
+              input: new Buffer.from(
+                """<svg><rect x="0" y="0" width="#{width}" height="#{height}" rx="#{Math.round(width * 0.17578125)}" ry="#{Math.round(height * 0.17578125)}"/></svg>"""
+              )
+              blend: 'dest-in'
+            } ] else []
+          )
           .toFile(img.dest)
 
     screen: (img)->
@@ -67,7 +76,8 @@ exports.mediagen = (op, done)->
           fnc[media](Object.assign({
             dest: "#{path_res}/#{media}/#{platform}/#{img.src}"
             padding: op.screen_padding
-          }, img))
+            platform: platform
+          }, img, op.params[media], op.params[media] and op.params[media][platform]))
         .concat fnc[media]({dest: "#{path_res}/#{media}.png"})
       )
   .then => done()
