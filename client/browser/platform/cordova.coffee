@@ -5,7 +5,7 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformOffline
   PopupCode: class PopupCodeCordova extends PopupCode
     events: Object.assign {}, PopupCode::events, {
       'click [data-authorize]': (e)->
-        @parent._popup_open $(e.target).attr('href'), (success)->
+        @parent._popup_open @parent.__local_link( $(e.target).attr('href') ), (success)->
           if success
             e.preventDefault()
     }
@@ -48,9 +48,12 @@ window.o.PlatformCordova = class Cordova extends window.o.PlatformOffline
     if window.SafariViewController
       window.SafariViewController.hide()
 
+  __local_link: (link)->
+    link + (if @options.app_protocol then "?re=#{@options.app_protocol}" else '' )
+
   auth_popup_device: ->
     link = super ...arguments
-    @_popup_open(link)
+    @_popup_open @__local_link(link)
     link
 
   success_login: ->

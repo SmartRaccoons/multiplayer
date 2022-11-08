@@ -34,5 +34,8 @@
     <span class='error'><%= error %></span>
   <%}%>
   <span><%= message %></span>
+  <% if (redirect){ %>
+    <script> window.location.href = '<%= redirect %>'; </script>
+  <% } %>
 </div></body>
 </html>

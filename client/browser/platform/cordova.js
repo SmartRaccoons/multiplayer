@@ -62,10 +62,14 @@
         }
       }
 
+      __local_link(link) {
+        return link + (this.options.app_protocol ? `?re=${this.options.app_protocol}` : '');
+      }
+
       auth_popup_device() {
         var link;
         link = super.auth_popup_device(...arguments);
-        this._popup_open(link);
+        this._popup_open(this.__local_link(link));
         return link;
       }
 
@@ -81,7 +85,7 @@
 
       PopupCodeCordova.prototype.events = Object.assign({}, PopupCode.prototype.events, {
         'click [data-authorize]': function(e) {
-          return this.parent._popup_open($(e.target).attr('href'), function(success) {
+          return this.parent._popup_open(this.parent.__local_link($(e.target).attr('href')), function(success) {
             if (success) {
               return e.preventDefault();
             }
