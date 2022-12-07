@@ -48,6 +48,7 @@ medias =
 
   screen:
     ios: [
+      ['@1x~universal~anyany', 2048, 2048, 400]
       ['@2x~universal~anyany', 2732, 2732, 1000]
       ['@2x~universal~comany', 1278, 2732]
       ['@2x~universal~comcom', 1334, 750]

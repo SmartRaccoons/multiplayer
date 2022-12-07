@@ -75,9 +75,7 @@ exports.mediagen = (op, done)->
         medias[media][platform].map (img)->
           fnc[media](Object.assign({
             dest: "#{path_res}/#{media}/#{platform}/#{img.src}"
-            padding: op.screen_padding
-            platform: platform
           }, img, op.params[media], op.params[media] and op.params[media][platform]))
-        .concat fnc[media]({dest: "#{path_res}/#{media}.png"})
+        .concat fnc[media](Object.assign({dest: "#{path_res}/#{media}.png", width: 2048, height: 2048}, op.params[media] ))
       )
   .then => done()
