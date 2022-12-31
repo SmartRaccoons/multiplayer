@@ -182,7 +182,9 @@ module.exports.User = class User extends User
     bonus = @_coins_bonus_params[type]
     publish = (params_additional={})=>
       @__coins_bonus_check type, (params)=>
-        @publish mt, Object.assign {}, params, params_additional
+        _params = Object.assign {}, params, params_additional
+        @parent.emit_immediate_exec 'emit', 'delayed',  {user_id: @id, event: mt, params: _params}
+        @publish mt, _params
     @options.socket.on mt, =>
       @__coins_bonus_check type, ({left, coins})=>
         if left is 0

@@ -1146,6 +1146,8 @@ describe 'User', ->
         user.set_coins = sinon.spy()
         socket.on = sinon.spy()
         user._coins_bonus('daily')
+        user.parent =
+          emit_immediate_exec: sinon.spy()
 
       it 'bind', ->
         assert.equal(1, socket.on.callCount)
@@ -1163,6 +1165,10 @@ describe 'User', ->
         user.__coins_bonus_check.getCall(1).args[1]({left: 10})
         user.set_coins.getCall(0).args[0]
         assert.deepEqual {reset: true, left: 10}, user.publish.getCall(0).args[1]
+        assert.equal 1, user.parent.emit_immediate_exec.callCount
+        assert.equal 'emit', user.parent.emit_immediate_exec.getCall(0).args[0]
+        assert.equal 'delayed', user.parent.emit_immediate_exec.getCall(0).args[1]
+        assert.deepEqual {user_id: 5, event: 'coins:bonus:daily', params: {left: 10, reset: true}}, user.parent.emit_immediate_exec.getCall(0).args[2]
 
       it 'bind (left not zero)', ->
         user.__coins_bonus_check = sinon.spy()

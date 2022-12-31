@@ -77,6 +77,7 @@ describe 'models', ->
       models._remove(2)
       assert.deepEqual([{id: 1}, {id: 3}], models._all)
       assert.equal(1, spy.callCount)
+      assert.deepEqual {id: 2}, spy.getCall(0).args[0]
 
     it '_update', ->
       models.bind 'update', spy
