@@ -7,7 +7,7 @@ window.o.PlatformCordovaNotification = class CordovaNotification extends window.
     FirebasePlugin.onMessageReceived (message)=>
       if 'notification' is message.messageType
         if message.tap
-          @trigger 'tap'
+          @trigger 'tap', message
 
   available: -> !!window.FirebasePlugin
 

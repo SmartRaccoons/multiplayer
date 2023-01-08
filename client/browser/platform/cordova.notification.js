@@ -12,7 +12,7 @@
       FirebasePlugin.onMessageReceived((message) => {
         if ('notification' === message.messageType) {
           if (message.tap) {
-            return this.trigger('tap');
+            return this.trigger('tap', message);
           }
         }
       });

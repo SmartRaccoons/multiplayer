@@ -8,12 +8,13 @@ exports.CordovaNotify = class Notify
       databaseURL: options.databaseURL
     })
 
-  notification: ({token, title, body, timeout, sound}, callback = ->)->
+  notification: ({token, title, body, timeout, sound, data}, callback = ->)->
     firebase_admin.messaging().send({
       token
       notification:
         title: title
         body: body
+      data: data or {}
       android:
         priority: 'HIGH'
         ttl: timeout
