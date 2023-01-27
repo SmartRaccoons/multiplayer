@@ -53,8 +53,7 @@
              event = Object.keys(button)[0];
              body = button[event];
            }
-
-           %><button data-click='<%= event || button.event %>'<%= button.attr ? ' data-click-attr="' + button.attr + '"' : ''%><%= button.stay ? ' data-stay' : '' %>><%= body || button.body %></button><%
+           %><button<% if(button.close_delay){%> disabled='&=close_delay' data-close_delay='&=close_delay' <% } %> data-click='<%= event || button.event %>'<%= button.attr ? ' data-click-attr="' + button.attr + '"' : ''%><%= button.stay ? ' data-stay' : '' %>><%= body || button.body %></button><%
          }); %>
 
       </div>
