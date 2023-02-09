@@ -61,6 +61,8 @@ module.exports.Mysql = class Mysql
       default: (field, value)->
         if value is null
           return ["s.`#{field}` IS NULL "]
+        if value is true
+          return ["s.`#{field}` IS NOT NULL "]
         ["s.`#{field}` = ? ", value]
       sign: (field, value)-> ["s.`#{field}` #{value.sign[0]} ?", value.sign[1]]
       date: (field, value)->
