@@ -86,6 +86,7 @@ describe 'User', ->
       id: 777
       send: sinon.spy()
       on: sinon.spy()
+      off: sinon.spy()
     spy = sinon.spy()
     _pubsub =
       emit_server_master_exec: sinon.spy()
@@ -148,16 +149,18 @@ describe 'User', ->
       assert.equal('authenticate:success', spy.getCall(0).args[0])
       assert.equal('d', spy.getCall(0).args[1])
 
-    it 'bonuses', ->
-      class UserBonus extends User
-        _coins_bonus_params:
-          'daily': {}
-          'share': {}
-        _coins_bonus: -> spy.apply(@, arguments)
-      new UserBonus({id: 3, socket})
-      assert.equal 2, spy.callCount
-      assert.equal 'daily', spy.getCall(0).args[0]
-      assert.equal 'share', spy.getCall(1).args[0]
+    # it 'bonuses', ->
+    #   class UserBonus extends User
+    #     _coins_bonus_params:
+    #       'daily': {da: 'ily'}
+    #       'share': {sh: 'are'}
+    #     _coins_bonus: -> spy.apply(@, arguments)
+    #   new UserBonus({id: 3, socket})
+    #   assert.equal 2, spy.callCount
+    #   assert.equal 'daily', spy.getCall(0).args[0]
+    #   assert.deepEqual {da: 'ily'}, spy.getCall(0).args[1]
+    #   assert.equal 'share', spy.getCall(1).args[0]
+    #   assert.deepEqual {sh: 'are'}, spy.getCall(1).args[1]
 
     it 'publish', ->
       socket.send = sinon.spy()
@@ -997,7 +1000,7 @@ describe 'User', ->
       user.id = 5
 
     it '__coins_bonus_check', ->
-      user.__coins_bonus_check 'daily', spy
+      user.__coins_bonus_check 'daily', user._coins_bonus_params.daily, spy
       assert.equal 1, db.select_one.callCount
       assert.deepEqual ['action', 'coins'], db.select_one.getCall(0).args[0].select
       assert.equal 'coins_history', db.select_one.getCall(0).args[0].table
@@ -1010,7 +1013,7 @@ describe 'User', ->
       assert.deepEqual {left: 60 * 60 * 7, coins: 150}, spy.getCall(0).args[0]
 
     it '__coins_bonus_check (share)', ->
-      user.__coins_bonus_check 'share', spy
+      user.__coins_bonus_check 'share', user._coins_bonus_params.share, spy
       assert.equal 3, db.select_one.getCall(0).args[0].where.type
       d = new Date()
       d.setSeconds(d.getMinutes() - 60 * 60)
@@ -1018,7 +1021,7 @@ describe 'User', ->
       assert.equal 60 * 60 * 9, spy.getCall(0).args[0].left
 
     it '__coins_bonus_check (passed)', ->
-      user.__coins_bonus_check 'daily', spy
+      user.__coins_bonus_check 'daily', user._coins_bonus_params.daily, spy
       d = new Date()
       d.setSeconds(d.getMinutes() - 60 * 60 * 10)
       config.db.select_one.getCall(0).args[1]({action: d})
@@ -1026,13 +1029,13 @@ describe 'User', ->
 
     it '__coins_bonus_check (no entries)', ->
       clock.tick 30 * 24 * 60 * 60 * 1000
-      user.__coins_bonus_check 'daily', spy
+      user.__coins_bonus_check 'daily', user._coins_bonus_params.daily, spy
       config.db.select_one.getCall(0).args[1](null)
       assert.equal 0, spy.getCall(0).args[0].left
 
     it '__coins_bonus_check (coins fn)', ->
       user._coins_bonus_params['daily'].coins = coins = sinon.fake -> {coins: 6, 'p': 'a'}
-      user.__coins_bonus_check 'daily', spy
+      user.__coins_bonus_check 'daily', user._coins_bonus_params.daily, spy
       d = new Date()
       d.setSeconds(d.getMinutes() - 60 * 60 * 10)
       config.db.select_one.getCall(0).args[1]({action: d, coins: 5})
@@ -1042,7 +1045,7 @@ describe 'User', ->
 
     it '__coins_bonus_check (coins fn no entries)', ->
       user._coins_bonus_params['daily'].coins = coins = sinon.fake -> {coins: 6, 'p': 'a'}
-      user.__coins_bonus_check 'daily', spy
+      user.__coins_bonus_check 'daily', user._coins_bonus_params.daily, spy
       config.db.select_one.getCall(0).args[1](null)
       assert.deepEqual {left: 60 * 60 * 8}, coins.getCall(0).args[0]
 
@@ -1053,38 +1056,42 @@ describe 'User', ->
         user.publish = sinon.spy()
         user.set_coins = sinon.spy()
         socket.on = sinon.spy()
-        user._coins_bonus('daily')
+        user._coins_bonus('daily', user._coins_bonus_params.daily)
 
       it 'bind', ->
+        assert.equal(1, socket.off.callCount)
+        assert.equal('coins:bonus:daily', socket.off.getCall(0).args[0])
         assert.equal(1, socket.on.callCount)
         assert.equal('coins:bonus:daily', socket.on.getCall(0).args[0])
         user.__coins_bonus_check = sinon.spy()
         socket.on.getCall(0).args[1]()
         assert.equal 1, user.__coins_bonus_check.callCount
         assert.equal 'daily', user.__coins_bonus_check.getCall(0).args[0]
-        user.__coins_bonus_check.getCall(0).args[1]({left: 0, coins: 3})
+        assert.deepEqual user._coins_bonus_params.daily, user.__coins_bonus_check.getCall(0).args[1]
+        user.__coins_bonus_check.getCall(0).args[2]({left: 0, coins: 3})
         assert.equal 1, user.set_coins.callCount
         assert.deepEqual {type: 1, coins: 3}, user.set_coins.getCall(0).args[0]
         user.set_coins.getCall(0).args[1]()
         assert.equal 2, user.__coins_bonus_check.callCount
         user.publish = sinon.spy()
-        user.__coins_bonus_check.getCall(1).args[1]({left: 10})
+        assert.deepEqual user._coins_bonus_params.daily, user.__coins_bonus_check.getCall(1).args[1]
+        user.__coins_bonus_check.getCall(1).args[2]({left: 10})
         user.set_coins.getCall(0).args[0]
         assert.deepEqual {reset: true, left: 10}, user.publish.getCall(0).args[1]
 
       it 'bind (left not zero)', ->
         user.__coins_bonus_check = sinon.spy()
         socket.on.getCall(0).args[1]()
-        user.__coins_bonus_check.getCall(0).args[1]({left: 1, coins: 3})
+        user.__coins_bonus_check.getCall(0).args[2]({left: 1, coins: 3})
         assert.equal 0, user.set_coins.callCount
         user.publish = sinon.spy()
-        user.__coins_bonus_check.getCall(1).args[1]({left: 10})
+        user.__coins_bonus_check.getCall(1).args[2]({left: 10})
         assert.deepEqual {left: 10}, user.publish.getCall(0).args[1]
 
       it 'publish', ->
         assert.equal 1, user.__coins_bonus_check.callCount
         assert.equal 'daily', user.__coins_bonus_check.getCall(0).args[0]
-        user.__coins_bonus_check.getCall(0).args[1]({p: 'ar'})
+        user.__coins_bonus_check.getCall(0).args[2]({p: 'ar'})
         assert.equal 1, user.publish.callCount
         assert.equal 'coins:bonus:daily', user.publish.getCall(0).args[0]
         assert.deepEqual {p: 'ar'}, user.publish.getCall(0).args[1]

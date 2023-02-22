@@ -88,7 +88,7 @@ module.exports.User = class User extends User
     @options = Object.assign({alive: new Date()}, options)
     @_bind_socket()
     @publish 'authenticate:success', @data()
-    Object.keys(@_coins_bonus_params).forEach (bonus)=> @_coins_bonus(bonus)
+    # Object.keys(@_coins_bonus_params).forEach (bonus)=> @_coins_bonus(bonus, @_coins_bonus_params[bonus])
     @
 
   _message_check: ->
@@ -159,8 +159,7 @@ module.exports.User = class User extends User
             user_id: @options.id
             added: new Date()
 
-  __coins_bonus_check: (type, callback)->
-    bonus = @_coins_bonus_params[type]
+  __coins_bonus_check: (type, bonus, callback)->
     config.db.select_one
       select: ['action', 'coins']
       table: @_coins_history_params.table
@@ -175,14 +174,14 @@ module.exports.User = class User extends User
         left = 0
       callback Object.assign { left }, params
 
-  _coins_bonus: (type)->
+  _coins_bonus: (type, bonus)->
     mt = "coins:bonus:#{type}"
-    bonus = @_coins_bonus_params[type]
     publish = (params_additional={})=>
-      @__coins_bonus_check type, (params)=>
+      @__coins_bonus_check type, bonus, (params)=>
         @publish mt, Object.assign {}, params, params_additional
+    @options.socket.off mt
     @options.socket.on mt, =>
-      @__coins_bonus_check type, ({left, coins})=>
+      @__coins_bonus_check type, bonus, ({left, coins})=>
         if left is 0
           return @set_coins {type: bonus.type, coins}, => publish({reset: true})
         publish()
