@@ -111,6 +111,7 @@ describe 'User', ->
           '3': 100
         subscription:
           '11': 'vip'
+          '12': 'vipyear'
     cordova_constructor = sinon.spy()
     config_callbacks[0]()
     db.select_one = sinon.spy()
@@ -298,7 +299,7 @@ describe 'User', ->
           coins:
             type: 8
             service: ['1', '2']
-          subscription: {'vip': 'limit'}
+          subscription: {'vip': 'limit', 'vipyear': {field: 'limit', expire: 370}}
         config_callbacks[0]()
         User::emit_self_exec = spy = sinon.spy()
         complete = sinon.spy()
@@ -334,6 +335,12 @@ describe 'User', ->
         User::_buy_callback(params)
         assert.equal 'set_subscription', spy.getCall(0).args[1]
         assert.equal 5, spy.getCall(0).args[2].expire
+
+      it 'subscription (with fields)', ->
+        params.transaction.service = '12'
+        User::_buy_callback(params)
+        assert.equal 'set_subscription', spy.getCall(0).args[1]
+        assert.deepEqual {field: 'limit', expire: 370}, spy.getCall(0).args[2]
 
 
     describe 'rooms_master', ->

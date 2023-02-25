@@ -46,7 +46,10 @@ config_callback( ->
       value = config.buy[if subscription then 'subscription' else 'product'][transaction.service]
       User2::emit_self_exec.apply User2::, [ user_id ].concat(
         if subscription then [
-          'set_subscription', { field:  User2::_buy_params.subscription[value], expire: if !transaction.expire? then 32 else transaction.expire }
+          'set_subscription', {
+            field: User2::_buy_params.subscription[value].field or User2::_buy_params.subscription[value]
+            expire: if !transaction.expire? then User2::_buy_params.subscription[value].expire or 32 else transaction.expire
+          }
         ] else if transaction.service in User2::_buy_params.coins.service then [
           'set_coins', { coins: value, type: User2::_buy_params.coins.type }
         ] else [

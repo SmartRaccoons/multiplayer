@@ -88,6 +88,7 @@ module.exports.facebook_payment = (template = 'facebook-payment')->
       desc: locale._("Facebook.buy desc #{_str}", lang, {value})
       price: [ Math.floor(price / 100), price % 100 ].join('.')
       facebook_id
+      value
     }
 
 module.exports.generate_local = (template)->
