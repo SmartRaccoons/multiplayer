@@ -22,6 +22,8 @@ config_callback( ->
   config.android = config_get('android')
   config.ios = config_get('ios')
   config.buy = config_get('buy')
+  config.server = config_get('server')
+  config.deletion_url = config_get('deletion_url')
   if config.cordova
     cordova = new Cordova {
       android:
@@ -91,6 +93,7 @@ module.exports.User = class User extends User
     @options = Object.assign({alive: new Date()}, options)
     @_bind_socket()
     @publish 'authenticate:success', @data()
+    @_bind_socket_deletion()
     # Object.keys(@_coins_bonus_params).forEach (bonus)=> @_coins_bonus(bonus, @_coins_bonus_params[bonus])
     @
 
@@ -212,6 +215,18 @@ module.exports.User = class User extends User
         return
       @room_exec_game event, params_new
     @options.socket.on 'remove', => @remove()
+
+  _bind_socket_deletion: ->
+    if !config.deletion_url
+      return
+    publish = (result)=>
+      @publish 'user:deletion:status', { status: result.status, url: "#{config.server}#{config.deletion_url}/#{result.code}" }
+    @options.api.deletion_check {user_id: @options.id}, (result)=>
+      if !result
+        return
+      publish(result)
+    @options.socket.on 'user:deletion:init', =>
+      @options.api.deletion_init {user_id: @options.id}, (result)=> publish(result)
 
   _bind_socket_cordova: ->
    @options.socket.on 'user:update:cordova', (params)=>

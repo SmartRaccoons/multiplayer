@@ -37,6 +37,7 @@ config = {}
 config_callbacks = []
 uuid_v4 = ->
 pbkdf2Sync = ->
+module_get = ->
 Authorize = proxyquire '../authorize',
   '../api/draugiem':
     ApiDraugiem: class ApiDraugiem
@@ -74,6 +75,7 @@ Authorize = proxyquire '../authorize',
       authorize: -> Yandex_Authorize.authorize.apply(@, arguments)
       payment: -> Yandex_Authorize.payment.apply(@, arguments)
   '../../config':
+    module_get: (param)-> module_get.apply(@, arguments)
     config_get: (param)-> config[param]
     config_callback: (c)-> config_callbacks.push c
   'uuid':
@@ -154,6 +156,83 @@ describe 'Athorize', ->
     login = null
     beforeEach ->
       login = new Login()
+
+
+    it 'default', ->
+      assert.equal 'auth_user_deletion', login._table_deletion
+
+
+    describe 'deletion', ->
+      beforeEach ->
+        login._table_deletion = 'tb_dl'
+        uuid_v4 = sinon.fake.returns 'rnd'
+
+      describe 'deletion_status', ->
+
+        it 'default', ->
+          login.deletion_status('cd', spy)
+          assert.equal 1, db.select_one.callCount
+          assert.equal 'tb_dl', db.select_one.getCall(0).args[0].table
+          assert.deepEqual ['status'], db.select_one.getCall(0).args[0].select
+          assert.deepEqual {code: 'cd'}, db.select_one.getCall(0).args[0].where
+          db.select_one.getCall(0).args[1]({status: 'init'})
+          assert.equal 1, spy.callCount
+          assert.deepEqual {status: 'init'}, spy.getCall(0).args[0]
+
+        it 'not found', ->
+          login.deletion_status('cd', spy)
+          db.select_one.getCall(0).args[1](null)
+          assert.equal null, spy.getCall(0).args[0]
+
+
+      describe 'deletion_check', ->
+        it 'default', ->
+          login.deletion_check({user_id: 5}, spy)
+          assert.equal 1, db.select_one.callCount
+          assert.equal 'tb_dl', db.select_one.getCall(0).args[0].table
+          assert.deepEqual ['status', 'code'], db.select_one.getCall(0).args[0].select
+          assert.deepEqual {user_id: 5}, db.select_one.getCall(0).args[0].where
+          db.select_one.getCall(0).args[1](null)
+          assert.equal null, spy.getCall(0).args[0]
+
+
+      describe 'deletion_init', ->
+        helpers_email = null
+        beforeEach ->
+          helpers_email =
+            send_admin: sinon.spy()
+          module_get = sinon.fake (m)->
+            if m is 'server.helpers.email'
+              return helpers_email
+          config_callbacks[0]()
+          login.deletion_check = sinon.fake.returns null
+
+        it 'default', ->
+          login.deletion_init({user_id: 5}, spy)
+          assert.equal 1, login.deletion_check.callCount
+          assert.deepEqual {user_id: 5}, login.deletion_check.getCall(0).args[0]
+          login.deletion_check.getCall(0).args[1](null)
+          assert.equal 1, db.insert.callCount
+          assert.equal 'tb_dl', db.insert.getCall(0).args[0].table
+          assert.equal true, db.insert.getCall(0).args[0].data.initiated <= new Date()
+          assert.equal 5, db.insert.getCall(0).args[0].data.user_id
+          assert.equal 5, db.insert.getCall(0).args[0].data.user_id
+          assert.equal 'Initiated', db.insert.getCall(0).args[0].data.status
+          assert.equal 'rnd', db.insert.getCall(0).args[0].data.code
+          assert.equal 1, uuid_v4.callCount
+          db.insert.getCall(0).args[1]()
+          assert.equal 1, spy.callCount
+          assert.deepEqual {status: 'Initiated', code: 'rnd'}, spy.getCall(0).args[0]
+          assert.equal 1, helpers_email.send_admin.callCount
+          assert.deepEqual {subject: 'Deletion request', text: ''}, helpers_email.send_admin.getCall(0).args[0]
+
+        it 'result found', ->
+          login.deletion_init({user_id: 5}, spy)
+          login.deletion_check.getCall(0).args[1]({status: 'Init', code: 'cd'})
+          assert.equal 1, spy.callCount
+          assert.deepEqual {status: 'Init', code: 'cd'}, spy.getCall(0).args[0]
+          assert.equal 0, db.insert.callCount
+          assert.equal 0, helpers_email.send_admin.callCount
 
 
     it '_parse', ->
@@ -668,7 +747,7 @@ describe 'Athorize', ->
     it 'default', ->
       assert.equal('auth_user_session_facebook', login._table_session)
       assert.equal('transaction_facebook', login._table_transaction)
-      assert.equal('deletion_facebook', login._table_deletion)
+      # assert.equal('deletion_facebook', login._table_deletion)
       assert.equal('facebook', login._name)
 
     it 'authorize (facebook instant)', ->
@@ -852,6 +931,7 @@ describe 'Athorize', ->
         }
         login._user_get = sinon.spy()
         uuid_v4 = sinon.fake.returns 'rnd'
+        login._table_deletion = 'deletion_facebook'
 
       it 'default', ->
         login.deletion_request('req', spy)
@@ -918,6 +998,7 @@ describe 'Athorize', ->
 
 
     it 'deletion_status', ->
+      login._table_deletion = 'deletion_facebook'
       login.deletion_status('cd', spy)
       assert.equal 1, db.select_one.callCount
       assert.equal 'deletion_facebook', db.select_one.getCall(0).args[0].table

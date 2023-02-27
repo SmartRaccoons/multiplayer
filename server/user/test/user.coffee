@@ -93,6 +93,7 @@ describe 'User', ->
       emit_all_exec: sinon.spy()
     config =
       db: db
+      server: 'server'
       cordova:
         id: 'cid'
       ios:
@@ -989,6 +990,62 @@ describe 'User', ->
             assert.equal 1, user.publish.callCount
             assert.equal 'buy:yandex:validate', user.publish.getCall(0).args[0]
             assert.deepEqual {signature: 'sig', id_local: 2}, user.publish.getCall(0).args[1]
+
+
+  describe 'deletion account', ->
+    user = null
+    api = null
+    beforeEach ->
+      api =
+        deletion_check: sinon.spy()
+        deletion_init: sinon.spy()
+      config.deletion_url = '/del'
+      config_callbacks[0]()
+      user = new User({id: 5, socket: socket, api})
+      api.deletion_check = sinon.spy()
+      api.deletion_init = sinon.spy()
+      user.publish = sinon.spy()
+      socket.on = sinon.spy()
+
+    it 'constructor', ->
+      class UserC extends User
+        _bind_socket_deletion: -> spy()
+
+      new UserC({id: 1, socket})
+      assert.equal 1, spy.callCount
+
+    it 'default', ->
+      user._bind_socket_deletion()
+      assert.equal 1, api.deletion_check.callCount
+      assert.deepEqual {user_id: 5}, api.deletion_check.getCall(0).args[0]
+      api.deletion_check.getCall(0).args[1]({status: 'Initiated', code: 'cd'})
+      assert.equal 1, user.publish.callCount
+      assert.equal 'user:deletion:status', user.publish.getCall(0).args[0]
+      assert.deepEqual {status: 'Initiated', url: 'server/del/cd'}, user.publish.getCall(0).args[1]
+
+    it 'no status', ->
+      user._bind_socket_deletion()
+      api.deletion_check.getCall(0).args[1](null)
+      assert.equal 0, user.publish.callCount
+
+    it 'init', ->
+      user._bind_socket_deletion()
+      assert.equal 1, socket.on.callCount
+      assert.equal 'user:deletion:init', socket.on.getCall(0).args[0]
+      socket.on.getCall(0).args[1]()
+      assert.equal 1, api.deletion_init.callCount
+      assert.deepEqual {user_id: 5}, api.deletion_init.getCall(0).args[0]
+      api.deletion_init.getCall(0).args[1]({status: 'Initiated', code: 'cd2'})
+      assert.equal 1, user.publish.callCount
+      assert.equal 'user:deletion:status', user.publish.getCall(0).args[0]
+      assert.deepEqual {status: 'Initiated', url: 'server/del/cd2'}, user.publish.getCall(0).args[1]
+
+    it 'no deletion url', ->
+      config.deletion_url = null
+      config_callbacks[0]()
+      user._bind_socket_deletion()
+      assert.equal 0, api.deletion_check.callCount
+      assert.equal 0, socket.on.callCount
 
 
   describe 'bonuses', ->

@@ -30,6 +30,9 @@ module.exports.authorize = (app)->
   language_validate = (language)->
     if ['lv', 'en', 'ru', 'de', 'lg'].indexOf(language) >= 0 then language else 'en'
   code_url = config_get('code_url')
+  template_deletion = do =>
+    deletion = template_local('deletion')
+    (params)=> deletion Object.assign({message: '', error: ''}, params)
   code_template = do =>
     a_code_id = template_local('a-code-id')
     (params)=> a_code_id Object.assign({message: '', error: ''}, params)
@@ -74,9 +77,6 @@ module.exports.authorize = (app)->
     do =>
       if !( platform is 'facebook' and config_get(platform).deletion_callback )
         return
-      template_deletion = do =>
-        deletion = template_local('deletion')
-        (params)=> deletion Object.assign({message: '', error: ''}, params)
       deletion_url = config_get(platform).deletion_url
       app.post config_get(platform).deletion_callback, (req, res)->
         new (Authorize[platform])().deletion_request req.body.signed_request, (result, error)->
@@ -163,6 +163,20 @@ module.exports.authorize = (app)->
         res.send template_email_recovery({
           password: _l('UserNotify.Forget email password')
           button: _l('UserNotify.Forget email button')
+        })
+
+  do =>
+    deletion_url = config_get('deletion_url')
+    if !deletion_url
+      return
+    app.get "#{deletion_url}/:code", (req, res)->
+      new (Authorize.Login)().deletion_status req.params.code, (result)=>
+        if !result
+          return res.send template_deletion({
+            error: 'Something is wrong'
+          })
+        res.send template_deletion({
+          message: "Deletion request status: #{result.status}"
         })
 
 module.exports.index = (app, locales, template_file = 'index', url = '')->
