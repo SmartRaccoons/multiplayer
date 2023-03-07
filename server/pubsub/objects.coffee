@@ -14,7 +14,7 @@ module.exports.PubsubServerObjects = class PubsubServerObjects extends PubsubSer
   _remove: (id)->
     index = @_all.findIndex (ob)-> ob.id is id
     @_all.splice(index, 1)
-    @trigger 'remove'
+    @trigger 'remove', {id}
 
   _update: (params)->
     index = @_all.findIndex (ob)-> ob.id is params.id

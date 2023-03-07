@@ -184,7 +184,9 @@ module.exports.User = class User extends User
     mt = "coins:bonus:#{type}"
     publish = (params_additional={})=>
       @__coins_bonus_check type, bonus, (params)=>
-        @publish mt, Object.assign {}, params, params_additional
+        _params = Object.assign {}, params, params_additional
+        @publish mt, _params
+        @parent.emit_immediate_exec 'emit', 'delayed',  {user_id: @id, event: mt, params: _params}
     @options.socket.off mt
     @options.socket.on mt, =>
       @__coins_bonus_check type, bonus, ({left, coins})=>
