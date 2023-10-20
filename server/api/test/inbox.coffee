@@ -116,6 +116,7 @@ describe 'api', ->
       a.transaction_check('5', spy, spy_error)
       assert.equal(0, spy.callCount)
       assert.equal(1, spy_error.callCount)
+      assert.equal('incompleted', spy_error.getCall(0).args[0])
 
     it 'request', ->
       sinon.spy(a, '_get_data')

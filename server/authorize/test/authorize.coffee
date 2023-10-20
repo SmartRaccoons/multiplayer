@@ -25,6 +25,7 @@ Inbox_Authorize =
   constructor: ->
   authorize: null
   transaction_create: null
+  transaction_check: null
 Odnoklassniki_Authorize =
   constructor: ->
   buy_params: ->
@@ -65,6 +66,7 @@ Authorize = proxyquire '../authorize',
       constructor: -> Inbox_Authorize.constructor.apply(@, arguments)
       authorize: -> Inbox_Authorize.authorize.apply(@, arguments)
       transaction_create: -> Inbox_Authorize.transaction_create.apply(@, arguments)
+      transaction_check: -> Inbox_Authorize.transaction_check.apply(@, arguments)
   '../api/odnoklassniki':
     ApiOdnoklassniki: class ApiOdnoklassniki
       constructor: -> Odnoklassniki_Authorize.constructor.apply(@, arguments)
@@ -1099,6 +1101,7 @@ describe 'Athorize', ->
       login._transaction_get = sinon.spy()
       Inbox_Authorize.authorize = sinon.spy()
       Inbox_Authorize.transaction_create = sinon.spy()
+      Inbox_Authorize.transaction_check = sinon.spy()
 
     it 'default', ->
       assert.equal('transaction_inbox', login._table_transaction)
@@ -1152,6 +1155,11 @@ describe 'Athorize', ->
 
     it 'buy_complete', ->
       login.buy_complete('22', 'a', 'b')
+      assert.equal(1, Inbox_Authorize.transaction_check.callCount)
+      assert.equal('22', Inbox_Authorize.transaction_check.getCall(0).args[0])
+      assert.equal('b', Inbox_Authorize.transaction_check.getCall(0).args[2])
+      assert.equal(0, login._transaction_get.callCount)
+      Inbox_Authorize.transaction_check.getCall(0).args[1]()
       assert.equal(1, login._transaction_get.callCount)
       assert.deepEqual({transaction_id: '22'}, login._transaction_get.getCall(0).args[0])
       assert.equal('a', login._transaction_get.getCall(0).args[1])

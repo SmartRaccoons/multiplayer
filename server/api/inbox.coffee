@@ -55,7 +55,7 @@ module.exports.ApiInbox = class ApiInbox
       if data.status is 'COMPLETED'
         callback()
       else
-        callback_error('status is ' + data.status)
+        callback_error('incompleted', data.status)
     , callback_error
 
   _get_data: (payment, data, callback, callback_error)->

@@ -453,7 +453,9 @@ module.exports.inbox = class LoginInbox extends Login
       , ( => callback({link: transaction.link}) )
 
   buy_complete: (transaction_id, callback_save, callback_end)->
-    @_transaction_get {transaction_id}, callback_save, callback_end
+    inbox.transaction_check transaction_id, =>
+      @_transaction_get {transaction_id}, callback_save, callback_end
+    , callback_end
 
 
 module.exports.vkontakte = class LoginVkontakte extends Login

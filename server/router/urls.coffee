@@ -258,7 +258,7 @@ module.exports.payments = (app)->
             console.info 'transaction inbox request error', req.query
             return
           transaction.callback req.query.transaction_uuid, platform, (error)->
-            if error
+            if error and error isnt 'incompleted'
               console.info 'transaction inbox', error, req.query
               res.send('ERROR')
               return
