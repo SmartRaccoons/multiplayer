@@ -50,6 +50,7 @@ module.exports.ApiInbox = class ApiInbox
     @_get_data true, {
       action: 'transactions/check'
       dev: @config.inbox.dev_id
+      apiKey: @config.inbox.application_id
       id: transaction_id
     }, (data)->
       if data.status is 'COMPLETED'
@@ -73,7 +74,7 @@ module.exports.ApiInbox = class ApiInbox
         catch e
         if response and response.code is '200 OK'
           return callback(response)
-        callback_error('response error' + JSON.stringify(response))
+        callback_error('response error' + JSON.stringify(response) + " output: " + output)
     req.on 'error', (e)->
       callback_error('request error' + e)
     req.write JSON.stringify(data)
