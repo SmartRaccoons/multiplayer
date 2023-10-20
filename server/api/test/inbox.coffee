@@ -126,5 +126,6 @@ describe 'api', ->
       assert.deepEqual({
         action: 'transactions/check',
         dev: 'dev id',
+        apiKey: 'app id',
         id: '52dc100a1d'
       }, a._get_data.getCall(0).args[1])
