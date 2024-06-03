@@ -343,6 +343,9 @@ module.exports.facebook = class LoginFacebook extends Login
       if err
         return callback_end(err)
       if !subscription
+        if !res.actions or !res.actions[0]
+          console.info 'facebook big bug', res, id
+          return
         if res.actions[0].status isnt 'completed'
           return callback_end "incompleted"
         @_transaction_get {id: res.request_id}, callback_save, callback_end
@@ -350,7 +353,7 @@ module.exports.facebook = class LoginFacebook extends Login
       if res.status isnt 'active'
         return callback_end "status not active"
       if !res.user
-        console.info res
+        console.info res, id
         return callback_end "user is missing"
       @_user_get {facebook_uid: res.user.id}, (user)=>
         if !user
