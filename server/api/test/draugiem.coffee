@@ -14,6 +14,8 @@ class ApiDraugiem extends require('../draugiem').ApiDraugiem
     #ok
     if 'https://api.draugiem.lv/json/?&code=dr-auth-code&app=bena&action=authorize' is url
       callback('{"apikey":"2af","uid":"91638","language":"lv","users":{"91638":{"uid":91638,"name":"Nikolajs","surname":"Mediks","nick":"","place":"","img":"http:\/\/i8.ifrype.com\/profile\/091\/638\/v1\/sm_91638.jpg","imgi":"http:\/\/i8.ifrype.com\/profile\/091\/638\/v1\/i_91638.jpg","imgm":"http:\/\/i8.ifrype.com\/profile\/091\/638\/v1\/nm_91638.jpg","imgl":"http:\/\/i8.ifrype.com\/profile\/091\/638\/v1\/l_91638.jpg","sex":"M","birthday":"1983-11-09","age":28,"adult":1,"type":"User_Default","created":"08.11.2004 14:30:52","deleted":false}}}')
+    if 'https://api.draugiem.lv/json/?&code=dr-auth-code2&app=bena&action=authorize' is url
+      callback('{"apikey":"2af","uid":"91638","language":"lv","users":{"91638":{"uid":91638,"name":"Nikolajs 🖤N2","surname":"Mediks🖤 M2","nick":"","place":"","img":"http:\/\/i8.ifrype.com\/profile\/091\/638\/v1\/sm_91638.jpg","imgi":"http:\/\/i8.ifrype.com\/profile\/091\/638\/v1\/i_91638.jpg","imgm":"http:\/\/i8.ifrype.com\/profile\/091\/638\/v1\/nm_91638.jpg","imgl":"http:\/\/i8.ifrype.com\/profile\/091\/638\/v1\/l_91638.jpg","sex":"M","birthday":"1983-11-09","age":28,"adult":1,"type":"User_Default","created":"08.11.2004 14:30:52","deleted":false}}}')
     #next request after authorize
     if 'https://api.draugiem.lv/json/?&app=bena&action=apikey&apikey=2af' is url
       callback('{"check": "true"}')
@@ -49,6 +51,13 @@ describe 'draugiem api', ->
         a.apiGet 'apikey', {}, (res)=>
           assert.equal 'true', res['check']
           done()
+
+    it 'success utf8 name', (done)->
+      a = new ApiDraugiem()
+      a.authorize 'dr-auth-code2', (user)=>
+        assert.equal('Nikolajs N2', user.name)
+        assert.equal('Mediks M2', user.surname)
+        done()
 
     it 'success with inviter', ->
       a = new ApiDraugiem()

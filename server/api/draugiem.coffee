@@ -9,6 +9,8 @@ module.exports.ApiDraugiem = class ApiDraugiem
     @apiGet('authorize', {'code': code}, (res)=>
       @app_key = res['apikey']
       user = res['users'][res['uid']]
+      user['name'] = user['name'].replace(/[\u0800-\uFFFF]/g, '')
+      user['surname'] = user['surname'].replace(/[\u0800-\uFFFF]/g, '')
       user['inviter'] = if res['inviter'] then parseInt(res['inviter']) else null
       user['language'] = res['language']
       callback(user)
