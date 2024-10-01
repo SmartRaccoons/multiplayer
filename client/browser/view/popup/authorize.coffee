@@ -16,10 +16,15 @@ window.o.ViewPopupAuthorize = class PopupAuthorize extends Popup
       <div class='&-buttons' data-lang='<%= App.lang %>'>
         <% self.options.platforms.forEach(function (platform) { %>
 
-          <button data-click='authorize' data-click-attr='<%= platform %>'></button>
+          <button data-click='authorize' <%= (['google', 'apple'].indexOf(platform) >= 0 ? '' : ' data-hidden' ) %> data-click-attr='<%= platform %>'></button>
         <% }) %>
+        <button data-more></button>
       </div>
       <p>
         <%= _l('Authorize.desc') %>
       </p>
     """
+  events: Object.assign {}, Popup::events,
+    'click button[data-more]': ->
+      @$('[data-click="authorize"][data-hidden]').removeAttr('data-hidden')
+      @$('button[data-more]').attr('data-hidden', '')
