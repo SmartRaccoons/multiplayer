@@ -1,4 +1,4 @@
-mysql = require('mysql')
+mysql = require('mysql2')
 
 
 module.exports.Mysql = class Mysql
