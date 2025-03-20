@@ -240,13 +240,13 @@ module.exports.payments = (app)->
               console.info rawData
               req.body = JSON.parse rawData, (key, value, context) ->
                 if key is 'id'
-                  if typeof value is 'number' and !Number.isSafeInteger(value) and context?.source
+                  if typeof value is 'number' and !Number.isSafeInteger(value)
                     return context.source
                 return value
               next()
             catch e
+              console.info e
               res.sendStatus(400)
-              throw e
         app.all url, bigIntParser, (req, res)->
           if req.method is 'GET'
             return res.send(req.query['hub.challenge'])

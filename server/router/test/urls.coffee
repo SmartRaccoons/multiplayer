@@ -176,8 +176,7 @@ describe 'Urls', ->
         it 'json parse error', ->
           fn req, res, spy
           req.on.getCall(0).args[1] '{"object":"payments","entry":[{"id":1234567890'
-          assert.throws ->
-            req.on.getCall(1).args[1]()
+          req.on.getCall(1).args[1]()
           assert.equal 1, res.sendStatus.callCount
           assert.equal 0, spy.callCount
 
