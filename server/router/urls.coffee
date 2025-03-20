@@ -230,7 +230,23 @@ module.exports.payments = (app)->
                   true
               </callbacks_payment_response>"""
       facebook: (platform, url)->
-        app.all url, (req, res)->
+        bigIntParser = (req, res, next)->
+          rawData = ''
+          req.on 'data', (chunk) ->
+            rawData += chunk
+          req.on 'end', ->
+            try
+              req.rawData = rawData
+              req.body = JSON.parse rawData, (key, value, context) ->
+                if key is 'id'
+                  if typeof value is 'number' and !Number.isSafeInteger(value)
+                    return context.source
+                return value
+              next()
+            catch e
+              res.sendStatus(400)
+              throw e
+        app.all url, bigIntParser, (req, res)->
           if req.method is 'GET'
             return res.send(req.query['hub.challenge'])
           params = do =>
@@ -238,7 +254,7 @@ module.exports.payments = (app)->
               return null
             if req.body.object is 'payments'
               if req.body.entry.length isnt 1
-                console.info 'facebook payment', req.body.entry
+                console.info 'facebook payment length isnt 1', req.body.entry, req.rawData
                 return null
               return {id: req.body.entry[0].id}
             if req.body.object is 'payment_subscriptions'
@@ -248,7 +264,7 @@ module.exports.payments = (app)->
             return res.sendStatus(404)
           transaction.callback params, platform, (err)->
             if err
-              console.info 'facebook payment', err, JSON.stringify(req.body)
+              console.info 'facebook payment', err, JSON.stringify(req.body), req.rawData
               if err isnt 'incompleted'
                 return res.sendStatus(404)
             res.send('OK')
