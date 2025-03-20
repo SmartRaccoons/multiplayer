@@ -238,11 +238,7 @@ module.exports.payments = (app)->
             try
               req.rawData = rawData
               console.info rawData
-              req.body = JSON.parse rawData, (key, value, context) ->
-                if key is 'id'
-                  if typeof value is 'number' and !Number.isSafeInteger(value)
-                    return context.source
-                return value
+              req.body = JSON.parse rawData.replace(/"id":(?!")(\d+)(?!")/g, '"id":"$1"')
               next()
             catch e
               console.info e

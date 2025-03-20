@@ -167,11 +167,13 @@ describe 'Urls', ->
           req.on.getCall(1).args[1]()
           assert.equal 'number', typeof req.body.entry[0].ids
 
-        it 'save integer', ->
+        it 'more ids', ->
           fn req, res, spy
-          req.on.getCall(0).args[1] '{"object":"payments","entry":[{"id":1234567890}]}'
+          req.on.getCall(0).args[1] '{"object":"payments","entry":[{"id":123456789012345678901234567890},{"id":"4567890"},{"id":19012345}]}'
           req.on.getCall(1).args[1]()
-          assert.equal 1234567890, req.body.entry[0].id
+          assert.equal '123456789012345678901234567890', req.body.entry[0].id
+          assert.equal '4567890', req.body.entry[1].id
+          assert.equal '19012345', req.body.entry[2].id
 
         it 'json parse error', ->
           fn req, res, spy
