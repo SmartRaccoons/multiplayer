@@ -237,9 +237,10 @@ module.exports.payments = (app)->
           req.on 'end', ->
             try
               req.rawData = rawData
+              console.info rawData
               req.body = JSON.parse rawData, (key, value, context) ->
                 if key is 'id'
-                  if typeof value is 'number' and !Number.isSafeInteger(value)
+                  if typeof value is 'number' and !Number.isSafeInteger(value) and context?.source
                     return context.source
                 return value
               next()
