@@ -260,6 +260,7 @@ module.exports.payments = (app)->
             if req.body.object is 'payment_subscriptions'
               return {id: req.body.entry[0].id, subscription: true}
             return null
+          console.info 'FACEBOOK PAYMENT', req.rawData
           if !params
             return res.sendStatus(404)
           transaction.callback params, platform, (err)->
