@@ -256,7 +256,7 @@ module.exports.Login = class Login
           code: code
         , (id)=>
           callback({status, code})
-          helpers_email.send_admin {subject: 'Deletion request', text: ''}
+          # helpers_email.send_admin {subject: 'Deletion request', text: ''}
 
   deletion_status: (code, callback)->
     config.db.select_one

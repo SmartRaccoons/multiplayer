@@ -224,8 +224,8 @@ describe 'Athorize', ->
           db.insert.getCall(0).args[1]()
           assert.equal 1, spy.callCount
           assert.deepEqual {status: 'Initiated', code: 'rnd'}, spy.getCall(0).args[0]
-          assert.equal 1, helpers_email.send_admin.callCount
-          assert.deepEqual {subject: 'Deletion request', text: ''}, helpers_email.send_admin.getCall(0).args[0]
+          # assert.equal 1, helpers_email.send_admin.callCount
+          # assert.deepEqual {subject: 'Deletion request', text: ''}, helpers_email.send_admin.getCall(0).args[0]
 
         it 'result found', ->
           login.deletion_init({user_id: 5}, spy)
