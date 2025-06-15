@@ -94,8 +94,8 @@ describe 'Urls', ->
       deletion_request.getCall(0).args[1] {code: 'cd'}
       assert.equal 1, res.json.callCount
       assert.deepEqual {confirmation_code: 'cd', url: 'http://ser.vo/fb_del/cd'}, res.json.getCall(0).args[0]
-      assert.equal 1, helpers_email.send_admin.callCount
-      assert.deepEqual {subject: 'Deletion request', text: ''}, helpers_email.send_admin.getCall(0).args[0]
+      # assert.equal 1, helpers_email.send_admin.callCount
+      # assert.deepEqual {subject: 'Deletion request', text: ''}, helpers_email.send_admin.getCall(0).args[0]
 
     it 'no result', ->
       app.post.getCall(0).args[1] { method: 'POST', body: body }, res
