@@ -503,6 +503,13 @@ describe 'Athorize', ->
       assert.equal(1, spy2.callCount)
       assert.equal(null, spy2.getCall(0).args[0])
 
+    it '_transaction_get (additional params)', ->
+      login._table_transaction = 's_trans'
+      login._transaction_get({id: 'pr'}, spy, spy2, {transaction_id: 'boom'})
+      db.select_one.getCall(0).args[1]({id: 'z', fulfill: 0, user_id: 2, service: '1'})
+      spy.getCall(0).args[0].complete()
+      assert.deepEqual({fulfill: 1, fulfilled: new Date(), transaction_id: 'boom'}, db.update.getCall(0).args[0].data)
+
     it '_transaction_get (fulfilled subscription)', ->
       login._transaction_get({id: 'pr'}, spy, spy2)
       db.select_one.getCall(0).args[1]({id: 'z', fulfill: 1, user_id: 2, service: '11'})
@@ -680,7 +687,7 @@ describe 'Athorize', ->
         "items": [
           {
             "type": "IN_APP_PURCHASE",
-            "product": "https://mancala.raccoons.lv/d/og/coins2en.html",
+            "product": "https://zole.raccoons.lv/d/og/service-1-lv.html",
             "quantity": 1
           }
         ],
@@ -822,6 +829,7 @@ describe 'Athorize', ->
       assert.deepEqual({id: '3'}, login._transaction_get.getCall(0).args[0])
       assert.equal('a', login._transaction_get.getCall(0).args[1])
       assert.equal('b', login._transaction_get.getCall(0).args[2])
+      assert.deepEqual {transaction_id: '1197009377095918'}, login._transaction_get.getCall(0).args[3]
 
     it 'buy_complete (err)', ->
       login.buy_complete {id: '33'}, 'a', spy
@@ -836,6 +844,61 @@ describe 'Athorize', ->
       assert.equal(0, login._transaction_get.callCount)
       assert.equal(1, spy.callCount)
       assert.equal('incompleted', spy.getCall(0).args[0])
+
+    it 'buy_complete (missing request_id)', ->
+      delete payment_success['request_id']
+      login.buy_complete {id: '33'}, 'a', 'b'
+      TestFacebook.get.getCall(0).args[1](null, payment_success)
+      assert.equal(0, login._transaction_get.callCount)
+      assert.equal 1, db.select_one.callCount
+      assert.deepEqual {table: 'transaction_facebook', where: {transaction_id: "1197009377095918"}}, db.select_one.getCall(0).args[0]
+      db.select_one.getCall(0).args[1]()
+      assert.equal 1, login._user_get.callCount
+      assert.equal '10212914925362552', login._user_get.getCall(0).args[0].facebook_uid
+      login._user_get.getCall(0).args[1]({id: 10, language: 'lv'})
+      assert.equal 1, login._transaction_create.callCount
+      assert.deepEqual {service: '1', transaction_id: "1197009377095918", user_id: 10, language: 'lv'}, login._transaction_create.getCall(0).args[0]
+      login._transaction_create.getCall(0).args[1]({id: 111})
+      assert.equal(1, login._transaction_get.callCount)
+      assert.deepEqual({id: '111'}, login._transaction_get.getCall(0).args[0])
+
+    it 'buy_complete (missing request_id, select_one found)', ->
+      delete payment_success['request_id']
+      login.buy_complete {id: '33'}, 'a', 'b'
+      TestFacebook.get.getCall(0).args[1](null, payment_success)
+      db.select_one.getCall(0).args[1]({id: 555})
+      assert.equal 0, login._user_get.callCount
+      assert.equal(1, login._transaction_get.callCount)
+      assert.deepEqual({id: 555}, login._transaction_get.getCall(0).args[0])
+
+    it 'buy_complete (missing request_id, service error)', ->
+      delete payment_success['request_id']
+      payment_success['items'][0]['product'] = 'https://zole.raccoons.lv/d/og/service--lv.html'
+      login.buy_complete {id: '33'}, 'a', spy
+      TestFacebook.get.getCall(0).args[1](null, payment_success)
+      db.select_one.getCall(0).args[1]()
+      assert.equal 0, login._user_get.callCount
+      assert.equal 1, spy.callCount
+      assert.equal 'service error', spy.getCall(0).args[0]
+
+    it 'buy_complete (missing request_id, service error missing product)', ->
+      delete payment_success['request_id']
+      delete payment_success['items']
+      login.buy_complete {id: '33'}, 'a', spy
+      TestFacebook.get.getCall(0).args[1](null, payment_success)
+      db.select_one.getCall(0).args[1]()
+      assert.equal 0, login._user_get.callCount
+      assert.equal 1, spy.callCount
+      assert.equal 'service error', spy.getCall(0).args[0]
+
+    it 'buy_complete (missing request_id, user missing)', ->
+      delete payment_success['request_id']
+      login.buy_complete {id: '33'}, 'a', spy
+      TestFacebook.get.getCall(0).args[1](null, payment_success)
+      db.select_one.getCall(0).args[1]()
+      login._user_get.getCall(0).args[1]()
+      assert.equal 0, login._transaction_create.callCount
+      assert.equal 'user not found', spy.getCall(0).args[0]
 
     it 'buy_complete (subscription)', ->
       clock.tick new Date('2020-04-20').getTime()

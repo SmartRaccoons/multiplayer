@@ -100,6 +100,7 @@ CREATE TABLE `transaction_draugiem` (
 
 CREATE TABLE `transaction_facebook` (
   `id` int NOT NULL AUTO_INCREMENT,
+  `transaction_id` VARCHAR(255) NULL AFTER `id`,
   `service` varchar(10) NOT NULL,
   `user_id` int NOT NULL,
   `language` varchar(12) NOT NULL,

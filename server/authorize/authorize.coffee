@@ -211,7 +211,7 @@ module.exports.Login = class Login
       data: Object.assign {created: new Date()}, params
     , (id)=> callback({id})
 
-  _transaction_get: (where, callback_save, callback_end)->
+  _transaction_get: (where, callback_save, callback_end, data_update = {})->
     config.db.select_one
       table: @_table_transaction
       where: where
@@ -226,7 +226,7 @@ module.exports.Login = class Login
           config.db.update
             table: @_table_transaction
             where: {id: data.id}
-            data: {fulfill: data.fulfill + 1, fulfilled: new Date()}
+            data: Object.assign {}, data_update, {fulfill: data.fulfill + 1, fulfilled: new Date()}
           , -> callback_end()
         transaction:
           id: data.id
@@ -348,7 +348,35 @@ module.exports.facebook = class LoginFacebook extends Login
           return
         if res.actions[0].status isnt 'completed'
           return callback_end "incompleted"
-        @_transaction_get {id: res.request_id}, callback_save, callback_end
+        do =>
+          transaction_complete = =>
+            @_transaction_get {id: res.request_id}, callback_save, callback_end, {transaction_id: res.id}
+          if !res.request_id
+            config.db.select_one
+              table: @_table_transaction
+              where: {transaction_id: res.id}
+            , (data)=>
+              if data
+                res.request_id = data.id
+                transaction_complete()
+                return
+              match = res.items?[0].product.match /service-([0-9]+)-/
+              if !match
+                return callback_end "service error"
+              service = match[1]
+              @_user_get {facebook_uid: res.user.id}, (user)=>
+                if !user
+                  return callback_end("user not found")
+                @_transaction_create {
+                  language: user.language
+                  service: service
+                  transaction_id: res.id
+                  user_id: user.id
+                }, ({id})->
+                  res.request_id = id
+                  transaction_complete()
+            return
+          transaction_complete()
         return
       if res.status isnt 'active'
         return callback_end "status not active"
