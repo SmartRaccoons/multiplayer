@@ -174,7 +174,7 @@ module.exports.Login = class Login
     config.db.select_one
       table: @_table_session
       where:
-        code: code
+        code: String(code)
         last_updated:
           date: -30
     , (session)=>

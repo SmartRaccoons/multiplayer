@@ -441,6 +441,11 @@ describe 'Athorize', ->
       assert.equal(null, spy.getCall(0).args[0])
       assert.equal(0, login._user_get.callCount)
 
+    it 'db check (not string)', ->
+      login._user_get = sinon.spy()
+      login._user_session_check({}, spy)
+      assert.equal '[object Object]', db.select_one.getCall(0).args[0].where.code
+
     it 'db check', ->
       login._user_get = sinon.spy()
       login._user_session_check('cd', spy)
