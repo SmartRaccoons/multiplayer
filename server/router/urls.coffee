@@ -106,6 +106,9 @@ module.exports.authorize = (app)->
             error: locale._('UserNotify.Link error', language)
             message: locale._('UserNotify.Link error desc', language)
           })
+        if req.query.re and req.query.re.length < 30
+          params['redirect'] = req.query.re
+          config_get('dbmemory').random_up Anonymous::_module(), code, params
         res.redirect links[platform](code_url, req.params.id, language)
   do =>
     a_code = template_local('a-code')({code_url})
@@ -128,7 +131,7 @@ module.exports.authorize = (app)->
             params.authenticate = { [platform]: decodeURIComponent(req.query[param_url]), language, params: {code_url: true}}
             config_get('dbmemory').random_up Anonymous::_module(), code, params
             Anonymous::emit_self_exec.apply Anonymous::, [params.id, 'authenticate', params.authenticate ]
-            res.send code_template({message: locale._('UserNotify.A code ok', language)})
+            res.send code_template({message: locale._('UserNotify.A code ok', language), redirect: if params.redirect then "#{params.redirect}://login" else null})
             return
         return res.send code_template({error: locale._('UserNotify.Error', language)})
 
