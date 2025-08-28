@@ -35,7 +35,7 @@ module.exports.authorize = (app)->
     (params)=> deletion Object.assign({message: '', error: ''}, params)
   code_template = do =>
     a_code_id = template_local('a-code-id')
-    (params)=> a_code_id Object.assign({message: '', error: ''}, params)
+    (params)=> a_code_id Object.assign({message: '', error: '', redirect: ''}, params)
   code_parse = (code)-> [ locale.lang_long(code.substr(0, 1)), code.substr(1) ]
 
   links =
