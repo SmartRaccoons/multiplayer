@@ -81,11 +81,12 @@ module.exports.authorize = (app)->
       app.post config_get(platform).deletion_callback, (req, res)->
         new (Authorize[platform])().deletion_request req.body.signed_request, (result, error)->
           if !result
+            console.info error, req.body
             return res.sendStatus(404)
           res.json
             confirmation_code: result.code
             url: "#{config_get('server')}#{deletion_url}/#{result.code}"
-          helpers_email.send_admin {subject: 'Deletion request', text: ''}
+          # helpers_email.send_admin {subject: 'Deletion request', text: ''}
       app.get "#{deletion_url}/:code", (req, res)->
         new (Authorize[platform])().deletion_status req.params.code, (result)=>
           if !result
