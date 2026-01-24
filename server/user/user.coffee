@@ -355,7 +355,7 @@ module.exports.User = class User extends User
     @_rooms_master_exe 'lobby_remove', @lobby.module
 
   rooms_reconnect: (room = 'rooms', callback = ->)->
-    PubsubServer::_pubsub()['emit_all_exec'](room, '_objects_exec', {user_reconnect: @id}, callback)
+    PubsubServer::_pubsub()['emit_all_exec'](room, '_objects_exec', {user_reconnect: {user_id: @id}}, callback)
 
   _lobby_add: (params)->
     @lobby = params

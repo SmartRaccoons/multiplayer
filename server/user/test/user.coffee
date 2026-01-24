@@ -369,7 +369,7 @@ describe 'User', ->
       assert.equal(1, _pubsub.emit_all_exec.callCount)
       assert.equal('rooms', _pubsub.emit_all_exec.getCall(0).args[0])
       assert.equal('_objects_exec', _pubsub.emit_all_exec.getCall(0).args[1])
-      assert.deepEqual({user_reconnect: 5}, _pubsub.emit_all_exec.getCall(0).args[2])
+      assert.deepEqual({user_reconnect: {user_id: 5}}, _pubsub.emit_all_exec.getCall(0).args[2])
 
     it 'rooms_reconnect (params)', ->
       user.rooms_reconnect('tours', 'fn')

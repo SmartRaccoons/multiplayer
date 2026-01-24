@@ -143,7 +143,7 @@ describe 'Room', ->
       room._disconnected_remove = sinon.spy()
       room.emit_user_exec = spy = sinon.spy()
       room.user_exist = sinon.fake.returns(true)
-      assert.equal(true, room.user_reconnect(5))
+      assert.equal(true, room.user_reconnect({user_id: 5}))
       assert.equal 1, room._disconnected_remove.callCount
       assert.equal 5, room._disconnected_remove.getCall(0).args[0]
       assert.equal(1, room.user_exist.callCount)
@@ -158,7 +158,7 @@ describe 'Room', ->
       room.emit_user_exec = spy = sinon.spy()
       room.user_exist = sinon.fake.returns(false)
       room.spectator_exist = sinon.fake.returns(true)
-      assert.equal(true, room.user_reconnect(5))
+      assert.equal(true, room.user_reconnect({user_id: 5}))
       assert.equal(1, room.spectator_exist.callCount)
       assert.equal(5, room.spectator_exist.getCall(0).args[0])
       assert.equal(1, spy.callCount)
@@ -169,7 +169,7 @@ describe 'Room', ->
       room.emit_user_exec = sinon.spy()
       room.user_exist = sinon.fake.returns(false)
       room.spectator_exist = sinon.fake.returns(false)
-      assert.equal(false, room.user_reconnect({id: 5}))
+      assert.equal(false, room.user_reconnect({user_id: 5}))
       assert.equal 0, room._disconnected_remove.callCount
       assert.equal(0, room.emit_user_exec.callCount)
 

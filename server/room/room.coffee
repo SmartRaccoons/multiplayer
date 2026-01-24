@@ -109,16 +109,16 @@ exports.Room = class Room extends PubsubModule
 
   user_get: (id, index = false)-> @users[if index then 'findIndex' else 'find']( (u)-> u.id is id )
 
-  user_reconnect: (id)->
+  user_reconnect: ({user_id})->
     type = null
-    if @user_exist(id)
+    if @user_exist(user_id)
       type = 'user'
-    else if @spectator_exist(id)
+    else if @spectator_exist(user_id)
       type = 'spectator'
     else
       return false
-    @_disconnected_remove(id)
-    @emit_user_exec(id, '_room_add', {id: @id, module: @_module(), type})
+    @_disconnected_remove(user_id)
+    @emit_user_exec(user_id, '_room_add', {id: @id, module: @_module(), type})
     return true
 
   user_remove: ({id, disconnect})->
