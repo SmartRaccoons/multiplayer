@@ -62,7 +62,7 @@ module.exports.client = ->
 module.exports.validate = (lang)->
   if lang
     for l in locales_available
-      if l is lang.substr(0, l.length)
+      if l is String(lang).substr(0, l.length)
         return l
   return locales_available[0]
 
