@@ -138,7 +138,7 @@ describe 'User', ->
     it 'cordova options', ->
       assert.equal 1, cordova_constructor.callCount
       assert.deepEqual {email: 'aemail', key: 'appkey', packageName: 'cid'}, cordova_constructor.getCall(0).args[0].android
-      assert.deepEqual {shared_secret: 'shas'}, cordova_constructor.getCall(0).args[0].ios
+      assert.deepEqual {shared_secret: 'shas', buy_transaction: {2: '200m'}}, cordova_constructor.getCall(0).args[0].ios
 
     it 'publish user data on constructor', ->
       spy = sinon.spy()

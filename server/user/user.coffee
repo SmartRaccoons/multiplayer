@@ -30,8 +30,7 @@ config_callback ->
         email: config.android.email
         key: config.android.key
         packageName: config.cordova.id
-      ios:
-        shared_secret: config.ios.shared_secret
+      ios: config.ios
     }
   Authorize = module_get('server.authorize')
   RoomModule = module_get('server.room')
