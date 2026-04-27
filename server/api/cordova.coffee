@@ -1,11 +1,41 @@
+fs = require('fs')
 iap = require('iap')
 ValidatorAndroid = require('./cordova.google')
+{ AppStoreServerAPIClient, Environment, SignedDataVerifier } = require "@apple/app-store-server-library"
 
 
 module.exports = class Cordova
   constructor: ({android, ios})->
     @options = {ios}
     @_android_validate = new ValidatorAndroid(android)
+    @_ios_validate = do ->
+      environment = if ios.environmentSandbox then Environment.SANDBOX else Environment.PRODUCTION
+      client = new AppStoreServerAPIClient(
+        ios.privateKey
+        ios.keyId
+        ios.issuerId
+        ios.bundleId
+        environment
+      )
+      verifier = new SignedDataVerifier(
+        [
+          fs.readFileSync __dirname + '/AppleRootCA-G3.cer'
+          fs.readFileSync __dirname + '/AppleRootCA-G2.cer'
+          fs.readFileSync __dirname + '/AppleIncRootCertificate.cer'
+        ]
+        true
+        environment
+        ios.bundleId
+        Number ios.id
+      )
+      (jwsRepresentation)->
+        decoded = await verifier.verifyAndDecodeTransaction jwsRepresentation
+        throw new Error 'Wrong bundleId' if ios.bundleId isnt decoded.bundleId
+        throw new Error 'Missing productId' unless decoded.productId?
+        throw new Error 'Missing transactionId' unless decoded.transactionId?
+        appleResponse = await client.getTransactionInfo decoded.transactionId
+        appleDecoded = await verifier.verifyAndDecodeTransaction appleResponse.signedTransactionInfo
+        appleDecoded
 
   payment_validate: (params, callback)->
     if params.platform is 'ios' and params.transaction.type is 'apple-sk2'

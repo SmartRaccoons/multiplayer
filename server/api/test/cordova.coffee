@@ -5,6 +5,9 @@ proxyquire = require('proxyquire')
 verifyPayment = ->
 ValidatorGoogle_constructor = ->
 ValidatorGoogle_verify = ->
+AppStoreServerAPIClient_constructor = ->
+SignedDataVerifier_constructor = ->
+readFileSync = ->
 Cordova = proxyquire('../cordova', {
   'iap': {
     verifyPayment: -> verifyPayment.apply(@, arguments)
@@ -12,7 +15,105 @@ Cordova = proxyquire('../cordova', {
   './cordova.google': class ValidatorGoogle
     constructor: -> ValidatorGoogle_constructor.apply(@, arguments)
     verify: -> ValidatorGoogle_verify.apply(@, arguments)
+  '@apple/app-store-server-library': {
+    AppStoreServerAPIClient: -> AppStoreServerAPIClient_constructor.apply(@, arguments)
+    SignedDataVerifier: -> SignedDataVerifier_constructor.apply(@, arguments)
+    Environment:
+      SANDBOX: 'sandbox'
+      PRODUCTION: 'production'
+  }
+  'fs':
+    readFileSync: -> readFileSync.apply(@, arguments)
 })
+
+describe '_ios_validate', ->
+  iosParams = null
+  o = null
+  verifierStub = null
+  clientStub = null
+  decodedObj = null
+  appleDecodedObj = null
+  beforeEach ->
+    decodedObj = { bundleId: 'bid', productId: 'pid', transactionId: 'tid' }
+    appleDecodedObj = { foo: 'bar' }
+    verifierStub =
+      verifyAndDecodeTransaction: sinon.stub()
+    clientStub =
+      getTransactionInfo: sinon.stub()
+    iosParams =
+      privateKey: 'priv'
+      keyId: 'kid'
+      issuerId: 'iss'
+      bundleId: 'bid'
+      environmentSandbox: true
+      id: 123
+    AppStoreServerAPIClient_constructor = sinon.stub().returns(clientStub)
+    SignedDataVerifier_constructor = sinon.stub().returns(verifierStub)
+    readFileSync = sinon.stub().returns('cert')
+    o = new Cordova({android: {}, ios: iosParams})
+
+  it 'configures apple client and verifier for sandbox', ->
+    assert.equal 3, readFileSync.callCount
+    assert.match readFileSync.getCall(0).args[0], /AppleRootCA-G3\.cer$/
+    assert.match readFileSync.getCall(1).args[0], /AppleRootCA-G2\.cer$/
+    assert.match readFileSync.getCall(2).args[0], /AppleIncRootCertificate\.cer$/
+    assert.deepEqual ['priv', 'kid', 'iss', 'bid', 'sandbox'], AppStoreServerAPIClient_constructor.getCall(0).args
+    assert.deepEqual [['cert', 'cert', 'cert'], true, 'sandbox', 'bid', 123], SignedDataVerifier_constructor.getCall(0).args
+
+  it 'configures apple client and verifier for production', ->
+    new Cordova({
+      android: {}
+      ios:
+        privateKey: 'priv-prod'
+        keyId: 'kid-prod'
+        issuerId: 'iss-prod'
+        bundleId: 'bid-prod'
+        environmentSandbox: false
+        id: '456'
+    })
+    assert.deepEqual ['priv-prod', 'kid-prod', 'iss-prod', 'bid-prod', 'production'], AppStoreServerAPIClient_constructor.getCall(1).args
+    assert.deepEqual [['cert', 'cert', 'cert'], true, 'production', 'bid-prod', 456], SignedDataVerifier_constructor.getCall(1).args
+
+  it 'configures apple client and verifier for sandbox', ->
+    new Cordova({
+      android: {}
+      ios:
+        privateKey: 'priv-prod'
+        keyId: 'kid-prod'
+        issuerId: 'iss-prod'
+        bundleId: 'bid-prod'
+        environmentSandbox: true
+        id: '456'
+    })
+    assert.equal 'sandbox', SignedDataVerifier_constructor.getCall(1).args[2]
+
+  it 'returns appleDecoded on valid input', ->
+    verifierStub.verifyAndDecodeTransaction.onFirstCall().resolves(decodedObj)
+    clientStub.getTransactionInfo.resolves({ signedTransactionInfo: 'signed' })
+    verifierStub.verifyAndDecodeTransaction.onSecondCall().resolves(appleDecodedObj)
+    o._ios_validate('jws').then (result) ->
+      assert.equal(result, appleDecodedObj)
+      assert.deepEqual ['jws'], verifierStub.verifyAndDecodeTransaction.getCall(0).args
+      assert.deepEqual ['tid'], clientStub.getTransactionInfo.getCall(0).args
+      assert.deepEqual ['signed'], verifierStub.verifyAndDecodeTransaction.getCall(1).args
+
+  it 'throws error for wrong bundleId', ->
+    verifierStub.verifyAndDecodeTransaction.onFirstCall().resolves({ bundleId: 'wrong', productId: 'pid', transactionId: 'tid' })
+    o._ios_validate('jws').catch (err) ->
+      assert.ok(err)
+      assert.match(err.message, /Wrong bundleId/)
+
+  it 'throws error for missing productId', ->
+    verifierStub.verifyAndDecodeTransaction.onFirstCall().resolves({ bundleId: 'bid', transactionId: 'tid' })
+    o._ios_validate('jws').catch (err) ->
+      assert.ok(err)
+      assert.match(err.message, /Missing productId/)
+
+  it 'throws error for missing transactionId', ->
+    verifierStub.verifyAndDecodeTransaction.onFirstCall().resolves({ bundleId: 'bid', productId: 'pid' })
+    o._ios_validate('jws').catch (err) ->
+      assert.ok(err)
+      assert.match(err.message, /Missing transactionId/)
 
 
 describe 'cordova', ->
