@@ -30,6 +30,7 @@ describe '_ios_validate', ->
   iosParams = null
   o = null
   verifierStub = null
+  verifierSandboxStub = null
   clientStub = null
   decodedObj = null
   appleDecodedObj = null
@@ -37,6 +38,8 @@ describe '_ios_validate', ->
     decodedObj = { bundleId: 'bid', productId: 'pid', transactionId: 'tid' }
     appleDecodedObj = { foo: 'bar' }
     verifierStub =
+      verifyAndDecodeTransaction: sinon.stub()
+    verifierSandboxStub =
       verifyAndDecodeTransaction: sinon.stub()
     clientStub =
       getTransactionInfo: sinon.stub()
@@ -48,44 +51,23 @@ describe '_ios_validate', ->
       environmentSandbox: true
       id: 123
     AppStoreServerAPIClient_constructor = sinon.stub().returns(clientStub)
-    SignedDataVerifier_constructor = sinon.stub().returns(verifierStub)
+    SignedDataVerifier_constructor = sinon.stub()
+    SignedDataVerifier_constructor.onFirstCall().returns(verifierStub)
+    SignedDataVerifier_constructor.onSecondCall().returns(verifierSandboxStub)
     readFileSync = sinon.stub().returns('cert')
     o = new Cordova({android: {}, ios: iosParams})
 
-  it 'configures apple client and verifier for sandbox', ->
-    assert.equal 3, readFileSync.callCount
+  it 'configures apple client and both verifiers', ->
+    assert.equal 6, readFileSync.callCount
     assert.match readFileSync.getCall(0).args[0], /AppleRootCA-G3\.cer$/
     assert.match readFileSync.getCall(1).args[0], /AppleRootCA-G2\.cer$/
     assert.match readFileSync.getCall(2).args[0], /AppleIncRootCertificate\.cer$/
-    assert.deepEqual ['priv', 'kid', 'iss', 'bid', 'sandbox'], AppStoreServerAPIClient_constructor.getCall(0).args
-    assert.deepEqual [['cert', 'cert', 'cert'], true, 'sandbox', 'bid', 123], SignedDataVerifier_constructor.getCall(0).args
-
-  it 'configures apple client and verifier for production', ->
-    new Cordova({
-      android: {}
-      ios:
-        privateKey: 'priv-prod'
-        keyId: 'kid-prod'
-        issuerId: 'iss-prod'
-        bundleId: 'bid-prod'
-        environmentSandbox: false
-        id: '456'
-    })
-    assert.deepEqual ['priv-prod', 'kid-prod', 'iss-prod', 'bid-prod', 'production'], AppStoreServerAPIClient_constructor.getCall(1).args
-    assert.deepEqual [['cert', 'cert', 'cert'], true, 'production', 'bid-prod', 456], SignedDataVerifier_constructor.getCall(1).args
-
-  it 'configures apple client and verifier for sandbox', ->
-    new Cordova({
-      android: {}
-      ios:
-        privateKey: 'priv-prod'
-        keyId: 'kid-prod'
-        issuerId: 'iss-prod'
-        bundleId: 'bid-prod'
-        environmentSandbox: true
-        id: '456'
-    })
-    assert.equal 'sandbox', SignedDataVerifier_constructor.getCall(1).args[2]
+    assert.match readFileSync.getCall(3).args[0], /AppleRootCA-G3\.cer$/
+    assert.match readFileSync.getCall(4).args[0], /AppleRootCA-G2\.cer$/
+    assert.match readFileSync.getCall(5).args[0], /AppleIncRootCertificate\.cer$/
+    assert.deepEqual ['priv', 'kid', 'iss', 'bid', 'production'], AppStoreServerAPIClient_constructor.getCall(0).args
+    assert.deepEqual [['cert', 'cert', 'cert'], true, 'production', 'bid', 123], SignedDataVerifier_constructor.getCall(0).args
+    assert.deepEqual [['cert', 'cert', 'cert'], true, 'sandbox', 'bid', 123], SignedDataVerifier_constructor.getCall(1).args
 
   it 'returns appleDecoded on valid input', ->
     verifierStub.verifyAndDecodeTransaction.onFirstCall().resolves(decodedObj)
@@ -96,6 +78,16 @@ describe '_ios_validate', ->
       assert.deepEqual ['jws'], verifierStub.verifyAndDecodeTransaction.getCall(0).args
       assert.deepEqual ['tid'], clientStub.getTransactionInfo.getCall(0).args
       assert.deepEqual ['signed'], verifierStub.verifyAndDecodeTransaction.getCall(1).args
+      assert.equal 0, verifierSandboxStub.verifyAndDecodeTransaction.callCount
+
+  it 'falls back to sandbox verifier on production verify error', ->
+    verifierStub.verifyAndDecodeTransaction.onFirstCall().rejects(new Error('prod fail'))
+    verifierSandboxStub.verifyAndDecodeTransaction.resolves(decodedObj)
+    o._ios_validate('jws').then (result) ->
+      assert.deepEqual ['jws'], verifierStub.verifyAndDecodeTransaction.getCall(0).args
+      assert.deepEqual ['jws'], verifierSandboxStub.verifyAndDecodeTransaction.getCall(0).args
+      assert.equal true, result.sandbox
+      assert.equal 0, clientStub.getTransactionInfo.callCount
 
   it 'throws error for wrong bundleId', ->
     verifierStub.verifyAndDecodeTransaction.onFirstCall().resolves({ bundleId: 'wrong', productId: 'pid', transactionId: 'tid' })
@@ -264,6 +256,25 @@ describe 'cordova', ->
                 transaction_id: 'tid'
                 transaction_date: new Date(1234567890)
                 expire: 1234567990 - new Date().getTime()
+              resolve()
+            catch e
+              reject(e)
+
+      it 'success (sandbox)', ->
+        letValidate.resolves({
+          productId: 'pid',
+          transactionId: 'tid',
+          purchaseDate: '1234567890',
+          sandbox: true
+        })
+        new Promise (resolve, reject) ->
+          o.payment_validate {
+            platform: 'ios',
+            transaction: {type: 'apple-sk2', jwsRepresentation: 'jws'}
+          }, (err, result) ->
+            try
+              assert.equal err, null
+              assert.equal result.transaction_id, 'tid-sandbox'
               resolve()
             catch e
               reject(e)

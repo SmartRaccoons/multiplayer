@@ -9,27 +9,35 @@ module.exports = class Cordova
     @options = {ios}
     @_android_validate = new ValidatorAndroid(android)
     @_ios_validate = do ->
-      environment = if ios.environmentSandbox then Environment.SANDBOX else Environment.PRODUCTION
       client = new AppStoreServerAPIClient(
         ios.privateKey
         ios.keyId
         ios.issuerId
         ios.bundleId
-        environment
+        Environment.PRODUCTION
       )
-      verifier = new SignedDataVerifier(
-        [
-          fs.readFileSync __dirname + '/AppleRootCA-G3.cer'
-          fs.readFileSync __dirname + '/AppleRootCA-G2.cer'
-          fs.readFileSync __dirname + '/AppleIncRootCertificate.cer'
-        ]
-        true
-        environment
-        ios.bundleId
-        Number ios.id
-      )
+      verifierInit = (production)->
+        new SignedDataVerifier(
+          [
+            fs.readFileSync __dirname + '/AppleRootCA-G3.cer'
+            fs.readFileSync __dirname + '/AppleRootCA-G2.cer'
+            fs.readFileSync __dirname + '/AppleIncRootCertificate.cer'
+          ]
+          true
+          if production then Environment.PRODUCTION else Environment.SANDBOX
+          ios.bundleId
+          Number ios.id
+        )
+
+      verifier = verifierInit true
+      verifierSandbox = verifierInit false
       (jwsRepresentation)->
-        decoded = await verifier.verifyAndDecodeTransaction jwsRepresentation
+        try
+          decoded = await verifier.verifyAndDecodeTransaction jwsRepresentation
+        catch prodError
+          decoded = await verifierSandbox.verifyAndDecodeTransaction jwsRepresentation
+          decoded.sandbox = true
+          return decoded
         throw new Error 'Wrong bundleId' if ios.bundleId isnt decoded.bundleId
         throw new Error 'Missing productId' unless decoded.productId?
         throw new Error 'Missing transactionId' unless decoded.transactionId?
@@ -43,7 +51,7 @@ module.exports = class Cordova
         success = await @_ios_validate params.transaction.jwsRepresentation
         callback null,
           product_id: success.productId
-          transaction_id: success.transactionId
+          transaction_id: "#{success.transactionId}#{if success.sandbox then '-sandbox' else ''}"
           transaction_date: new Date(parseInt(success.purchaseDate))
           expire: if success.expirationDate? then parseInt(success.expirationDate) - new Date().getTime() else null
       catch err
