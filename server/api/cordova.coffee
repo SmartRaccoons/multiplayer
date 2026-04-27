@@ -8,6 +8,16 @@ module.exports = class Cordova
     @_android_validate = new ValidatorAndroid(android)
 
   payment_validate: (params, callback)->
+    if params.platform is 'ios' and params.transaction.type is 'apple-sk2'
+      try
+        success = await @_ios_validate params.transaction.jwsRepresentation
+        callback null,
+          product_id: success.productId
+          transaction_id: success.transactionId
+          transaction_date: new Date(parseInt(success.purchaseDate))
+          expire: if success.expirationDate? then parseInt(success.expirationDate) - new Date().getTime() else null
+      catch err
+        return callback err
     if params.platform is 'ios' and params.transaction.type is 'ios-appstore'
       return iap.verifyPayment 'apple', {secret: @options.ios.shared_secret, receipt: params.transaction.appStoreReceipt}, (err, success)=>
         if err

@@ -137,6 +137,68 @@ describe 'cordova', ->
       verifyPayment = sinon.spy()
       ValidatorGoogle_verify = sinon.spy()
 
+
+    describe 'apple-sk2', ->
+      letValidate = null
+      beforeEach ->
+        letValidate = sinon.stub()
+        o._ios_validate = letValidate
+
+      it 'success', ->
+        letValidate.resolves({
+          productId: 'pid',
+          transactionId: 'tid',
+          purchaseDate: '1234567890',
+          expirationDate: '1234567990'
+        })
+        new Promise (resolve, reject) ->
+          o.payment_validate {
+            platform: 'ios',
+            transaction: {type: 'apple-sk2', jwsRepresentation: 'jws'}
+          }, (err, result) ->
+            try
+              assert.equal err, null
+              assert.deepEqual result,
+                product_id: 'pid'
+                transaction_id: 'tid'
+                transaction_date: new Date(1234567890)
+                expire: 1234567990 - new Date().getTime()
+              resolve()
+            catch e
+              reject(e)
+
+      it 'success (expire missing)', ->
+        letValidate.resolves({
+          productId: 'pid'
+          transactionId: 'tid'
+          purchaseDate: '1234567890'
+        })
+        new Promise (resolve, reject) ->
+          o.payment_validate {
+            platform: 'ios',
+            transaction: {type: 'apple-sk2', jwsRepresentation: 'jws'}
+          }, (err, result) ->
+            try
+              assert.equal err, null
+              assert.deepEqual result.expire, null
+              resolve()
+            catch e
+              reject(e)
+
+      it 'error thrown', ->
+        letValidate.rejects(new Error('fail sk2'))
+        new Promise (resolve, reject) ->
+          o.payment_validate {
+            platform: 'ios',
+            transaction: {type: 'apple-sk2', jwsRepresentation: 'jws'}
+          }, (err, result) ->
+            try
+              assert.ok err
+              assert.match err.message, /fail sk2/
+              resolve()
+            catch e
+              reject(e)
+
     it 'ios', ->
       o.payment_validate {platform: 'ios', transaction: {type: 'ios-appstore', subscription: true, appStoreReceipt: 'rece'}}, spy
       assert.equal 1, verifyPayment.callCount
