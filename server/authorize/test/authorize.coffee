@@ -435,7 +435,7 @@ describe 'Athorize', ->
       assert.equal(1, db.select_one.callCount)
       assert.deepEqual({
         table: 's_table'
-        where: {code: 'cd', last_updated: {date: -30} }
+        where: {code: 'cd', last_updated: {date: -1000} }
       }, db.select_one.getCall(0).args[0])
       db.select_one.getCall(0).args[1](null)
       assert.equal(1, spy.callCount)
