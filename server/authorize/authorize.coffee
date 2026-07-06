@@ -176,7 +176,7 @@ module.exports.Login = class Login
       where:
         code: String(code)
         last_updated:
-          date: -30
+          date: -1000
     , (session)=>
       if !session
         return callback()
