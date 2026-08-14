@@ -1,4 +1,4 @@
-window.o.PlatformFacebookInstant = class FacebookInstant extends window.o.PlatformCommon
+window.o.PlatformFbinstant = class Fbinstant extends window.o.PlatformCommon
   _name: 'facebook'
   constructor: (@options)->
     super ...arguments
@@ -9,9 +9,9 @@ window.o.PlatformFacebookInstant = class FacebookInstant extends window.o.Platfo
         @router.unbind 'request', fn
     @router.bind 'request', fn
     @router.bind 'connect', =>
-      FBInstant.player.getSignedPlayerInfoAsync( [ FBInstant.getLocale(), FBInstant.player.getName() or '', FBInstant.player.getPhoto() or '' ].join(';') )
+      FBInstant.player.getSignedPlayerInfoAsync()
       .then (result)=>
-        @auth_send { 'facebook': 'fbinstant:' + result.getSignature()}
+        @auth_send { 'facebook': 'fbinstant:' + result.getSignature(), language: FBInstant.getLocale() }
     # @router.bind "request:buy:#{@_name}", ({service, id})=>
       # subscription = App.config.buy.subscription and service in Object.keys(App.config.buy.subscription)
       # window.FB.ui {
@@ -31,17 +31,17 @@ window.o.PlatformFacebookInstant = class FacebookInstant extends window.o.Platfo
     #   subscription_id
     # }, ->
 
-  notification_enable: (callback)->
-    FBInstant.player.canSubscribeBotAsync().then (can_subscribe)=>
-      callback can_subscribe
-    .catch =>
-      callback false
+  # notification_enable: (callback)->
+  #   FBInstant.player.canSubscribeBotAsync().then (can_subscribe)=>
+  #     callback can_subscribe
+  #   .catch =>
+  #     callback false
 
-  notification_ask: (callback)->
-    FBInstant.player.subscribeBotAsync().then =>
-      callback true
-    .catch =>
-      callback false
+  # notification_ask: (callback)->
+  #   FBInstant.player.subscribeBotAsync().then =>
+  #     callback true
+  #   .catch =>
+  #     callback false
 
   init: (assets, callback)->
     loaded = 0
@@ -51,24 +51,31 @@ window.o.PlatformFacebookInstant = class FacebookInstant extends window.o.Platfo
         return
       FBInstant.startGameAsync().then => callback()
 
-    FBInstant.initializeAsync().then =>
-      assets.forEach (src)->
-        i = new Image()
-        i.onload = ->
-          loaded++
+    $('<script>').attr
+      'src': 'https://connect.facebook.net/en_US/fbinstant.8.0.js'
+      'id': 'facebook-jssdk'
+    .on 'load', =>
+      FBInstant.initializeAsync().then =>
+        if assets.length is 0
+          return start()
+        assets.forEach (src)->
+          i = new Image()
+          i.onload = ->
+            loaded++
+            start()
+          i.src = src
           start()
-        i.src = src
-        start()
+    .appendTo document.body
 
-  invite: (params = {}, callback=->)->
-    FBInstant.shareAsync Object.assign( {intent: 'INVITE', image: '', text: ''}, params )
-    .then =>
-      callback()
+  # invite: (params = {}, callback=->)->
+  #   FBInstant.shareAsync Object.assign( {intent: 'INVITE', image: '', text: ''}, params )
+  #   .then =>
+  #     callback()
 
-  share: (params = {}, callback=->)->
-    FBInstant.shareAsync Object.assign( {intent: 'SHARE', image: '', text: ''}, params )
-    .then =>
-      callback()
+  # share: (params = {}, callback=->)->
+  #   FBInstant.shareAsync Object.assign( {intent: 'SHARE', image: '', text: ''}, params )
+  #   .then =>
+  #     callback()
 
   auth_error: ->
     @router

@@ -5,10 +5,11 @@ module.exports.ApiFacebook = class ApiFacebook
   constructor: (options)->
     @options =
       key: options.key
+      id: options.id
 
   authorize: (code, callback)->
-    if @_instant_validate(code)
-      return callback @_instant_get_encoded_data(code)
+    if @_fbinstant_validate(code)
+      return callback @_fbinstant_get_encoded_data(code)
     return @_authorize_facebook(code, callback)
 
   _authorize_facebook: (code, callback)->
@@ -37,23 +38,28 @@ module.exports.ApiFacebook = class ApiFacebook
     catch e
       return null
 
-  _instant_validate: (code)->
+  _fbinstant_validate: (code)->
     try
       return @_signed_request_validate code.split('fbinstant:')[1]
     catch e
       return false
 
-  _instant_get_encoded_data: (code)->
+  _fbinstant_get_encoded_data: (code)->
     try
       encoded_data = @_signed_request_parse code.split('fbinstant:')[1]
-      player_data = encoded_data.request_payload.split(';')
       if !encoded_data.player_id
         return null
-      return {
-        facebook_uid: encoded_data.player_id
-        language: player_data[0]
-        name: player_data[1].substr(0, 30)
-        img: if !player_data[2] then null else player_data[2].substr(0, 300)
-      }
+      return {facebook_uid: encoded_data.player_id}
     catch e
       return null
+
+  _fbinstant_profile: ({facebook_uid}, callback)->
+    # locale isn't obtainable via an app access token even for real users - client-supplied locale is used instead
+    fbgraph.get "/#{facebook_uid}?fields=name,picture.width(100)&access_token=#{@options.id}|#{@options.key}", (err, res)=>
+      if err or !res or !res.name
+        console.info 'fbinstant profile', facebook_uid, err
+        return callback null
+      callback {
+        name: res.name
+        img: if res.picture and res.picture.data then res.picture.data.url else null
+      }

@@ -28,24 +28,24 @@ describe 'ApiFacebook', ->
 
   describe '_authorize', ->
     beforeEach ->
-      o._instant_validate = sinon.fake.returns true
-      o._instant_get_encoded_data = sinon.fake.returns {facebook_uid: 'more'}
+      o._fbinstant_validate = sinon.fake.returns true
+      o._fbinstant_get_encoded_data = sinon.fake.returns {facebook_uid: 'more'}
       o._authorize_facebook = sinon.spy()
 
     it 'instant', ->
       o.authorize 'code', spy
-      assert.equal 1, o._instant_validate.callCount
-      assert.equal 'code', o._instant_validate.getCall(0).args[0]
-      assert.equal 1, o._instant_get_encoded_data.callCount
-      assert.equal 'code', o._instant_get_encoded_data.getCall(0).args[0]
+      assert.equal 1, o._fbinstant_validate.callCount
+      assert.equal 'code', o._fbinstant_validate.getCall(0).args[0]
+      assert.equal 1, o._fbinstant_get_encoded_data.callCount
+      assert.equal 'code', o._fbinstant_get_encoded_data.getCall(0).args[0]
       assert.equal 1, spy.callCount
       assert.deepEqual {facebook_uid: 'more'}, spy.getCall(0).args[0]
       assert.equal 0, o._authorize_facebook.callCount
 
     it 'instant invalid', ->
-      o._instant_validate = sinon.fake.returns false
+      o._fbinstant_validate = sinon.fake.returns false
       o.authorize 'code', spy
-      assert.equal 0, o._instant_get_encoded_data.callCount
+      assert.equal 0, o._fbinstant_get_encoded_data.callCount
       assert.equal 1, o._authorize_facebook.callCount
       assert.equal 'code', o._authorize_facebook.getCall(0).args[0]
       o._authorize_facebook.getCall(0).args[1]('d')
@@ -99,41 +99,66 @@ describe 'ApiFacebook', ->
       assert.equal(null, spy.getCall(0).args[0])
 
 
-  describe '_instant_validate', ->
+  describe '_fbinstant_validate', ->
     beforeEach ->
       o._signed_request_validate = sinon.fake.returns true
 
     it 'default', ->
-      assert.equal true, o._instant_validate 'fbinstant:tr'
+      assert.equal true, o._fbinstant_validate 'fbinstant:tr'
       assert.equal 1, o._signed_request_validate.callCount
       assert.equal 'tr', o._signed_request_validate.getCall(0).args[0]
 
     it 'validate false', ->
       o._signed_request_validate = -> false
-      assert.equal false, o._instant_validate 'fbinstant:tr'
+      assert.equal false, o._fbinstant_validate 'fbinstant:tr'
 
     it 'not string', ->
-      assert.equal false, o._instant_validate {}
+      assert.equal false, o._fbinstant_validate {}
 
 
-  describe '_instant_get_encoded_data', ->
+  describe '_fbinstant_profile', ->
+    beforeEach ->
+      fbgraph.get = sinon.spy()
+
+    it 'success', ->
+      o._fbinstant_profile {facebook_uid: '56'}, spy
+      assert.equal 1, fbgraph.get.callCount
+      assert.equal "/56?fields=name,picture.width(100)&access_token=undefined|#{key}", fbgraph.get.getCall(0).args[0]
+      fbgraph.get.getCall(0).args[1](null, {name: 'n', picture: {data: {url: 'im'}}})
+      assert.equal 1, spy.callCount
+      assert.deepEqual {name: 'n', img: 'im'}, spy.getCall(0).args[0]
+
+    it 'success no img', ->
+      o._fbinstant_profile {facebook_uid: '56'}, spy
+      fbgraph.get.getCall(0).args[1](null, {name: 'n', picture: null})
+      assert.deepEqual {name: 'n', img: null}, spy.getCall(0).args[0]
+
+    it 'error', ->
+      o._fbinstant_profile {facebook_uid: '56'}, spy
+      fbgraph.get.getCall(0).args[1]('err', null)
+      assert.equal 1, spy.callCount
+      assert.equal null, spy.getCall(0).args[0]
+
+    it 'not found (no name)', ->
+      o._fbinstant_profile {facebook_uid: '56'}, spy
+      fbgraph.get.getCall(0).args[1](null, {})
+      assert.equal null, spy.getCall(0).args[0]
+
+
+  describe '_fbinstant_get_encoded_data', ->
     data = null
     beforeEach ->
-      data = {player_id: 5, request_payload: "en_US;Nāme;UltraPhoto"}
+      data = {player_id: 5}
       o._signed_request_parse = sinon.fake -> data
 
     it 'default', ->
-      assert.deepEqual {facebook_uid: 5, language: 'en_US', name: 'Nāme', img: 'UltraPhoto'}, o._instant_get_encoded_data('fbinstant:da')
+      assert.deepEqual {facebook_uid: 5}, o._fbinstant_get_encoded_data('fbinstant:da')
       assert.equal 1, o._signed_request_parse.callCount
       assert.equal 'da', o._signed_request_parse.getCall(0).args[0]
 
-    it 'no image', ->
-      data.request_payload = "en_US;Nāme"
-      assert.equal null, o._instant_get_encoded_data('fbinstant:da').img
-
     it 'return null', ->
       o._signed_request_parse = -> null
-      assert.equal null, o._instant_get_encoded_data({})
+      assert.equal null, o._fbinstant_get_encoded_data({})
 
     it 'not string', ->
-      assert.equal null, o._instant_get_encoded_data({})
+      assert.equal null, o._fbinstant_get_encoded_data({})

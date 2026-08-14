@@ -12,8 +12,9 @@ TestDraugiem_authrorize = null
 Facebook_Authorize =
   constructor: ->
   _authorize_facebook: null
-  _instant_validate: null
-  _instant_get_encoded_data: null
+  _fbinstant_validate: null
+  _fbinstant_get_encoded_data: null
+  _fbinstant_profile: null
   _signed_request_validate: null
   _signed_request_parse: null
 Google_Authorize =
@@ -50,8 +51,9 @@ Authorize = proxyquire '../authorize',
     ApiFacebook: class ApiFacebook
       constructor: -> Facebook_Authorize.constructor.apply(@, arguments)
       _authorize_facebook: -> Facebook_Authorize._authorize_facebook.apply(@, arguments)
-      _instant_validate: -> Facebook_Authorize._instant_validate.apply(@, arguments)
-      _instant_get_encoded_data: -> Facebook_Authorize._instant_get_encoded_data.apply(@, arguments)
+      _fbinstant_validate: -> Facebook_Authorize._fbinstant_validate.apply(@, arguments)
+      _fbinstant_get_encoded_data: -> Facebook_Authorize._fbinstant_get_encoded_data.apply(@, arguments)
+      _fbinstant_profile: -> Facebook_Authorize._fbinstant_profile.apply(@, arguments)
       _signed_request_validate: -> Facebook_Authorize._signed_request_validate.apply(@, arguments)
       _signed_request_parse: -> Facebook_Authorize._signed_request_parse.apply(@, arguments)
   '../api/google':
@@ -747,8 +749,9 @@ describe 'Athorize', ->
       login._user_get = sinon.spy()
       login._user_update = sinon.spy()
       Facebook_Authorize._authorize_facebook = sinon.spy()
-      Facebook_Authorize._instant_validate = sinon.fake.returns true
-      Facebook_Authorize._instant_get_encoded_data = sinon.fake.returns {facebook_uid: '5', name: 'n', img: 'i', language: 'ru'}
+      Facebook_Authorize._fbinstant_validate = sinon.fake.returns true
+      Facebook_Authorize._fbinstant_get_encoded_data = sinon.fake.returns {facebook_uid: '5'}
+      Facebook_Authorize._fbinstant_profile = sinon.fake (player, callback)-> callback {name: 'n', img: 'i', language: 'ru'}
       spy2 = sinon.spy()
       Login::authorize = -> spy2.apply(@, arguments)
       login._user_create_or_update = sinon.spy()
@@ -762,10 +765,10 @@ describe 'Athorize', ->
     it 'authorize (facebook instant)', ->
       login.authorize({code: 'code'}, spy)
       assert.equal 0, spy2.callCount
-      assert.equal 1, Facebook_Authorize._instant_validate.callCount
-      assert.equal 'code', Facebook_Authorize._instant_validate.getCall(0).args[0]
-      assert.equal 1, Facebook_Authorize._instant_get_encoded_data.callCount
-      assert.equal 'code', Facebook_Authorize._instant_get_encoded_data.getCall(0).args[0]
+      assert.equal 1, Facebook_Authorize._fbinstant_validate.callCount
+      assert.equal 'code', Facebook_Authorize._fbinstant_validate.getCall(0).args[0]
+      assert.equal 1, Facebook_Authorize._fbinstant_get_encoded_data.callCount
+      assert.equal 'code', Facebook_Authorize._fbinstant_get_encoded_data.getCall(0).args[0]
       assert.equal 1, login._user_create_or_update.callCount
       assert.deepEqual {facebook_uid: '5'}, login._user_create_or_update.getCall(0).args[0]
       assert.deepEqual {name: 'n', img: 'i', language: 'ru'}, login._user_create_or_update.getCall(0).args[1]
@@ -774,16 +777,27 @@ describe 'Athorize', ->
       assert.deepEqual {u: 'ser'}, spy.getCall(0).args[0]
 
     it 'authorize (facebook instant invalid)', ->
-      Facebook_Authorize._instant_get_encoded_data = sinon.fake.returns null
+      Facebook_Authorize._fbinstant_get_encoded_data = sinon.fake.returns null
       login.authorize({code: 'code'}, spy)
       assert.equal 0, login._user_create_or_update.callCount
       assert.equal 1, spy.callCount
       assert.equal null, spy.getCall(0).args[0]
 
-    it 'authorize (facebook not instant)', ->
-      Facebook_Authorize._instant_validate = sinon.fake.returns false
+    it 'authorize (facebook instant, profile not found)', ->
+      Facebook_Authorize._fbinstant_profile = sinon.fake (player, callback)-> callback null
       login.authorize({code: 'code'}, spy)
-      assert.equal 0, Facebook_Authorize._instant_get_encoded_data.callCount
+      assert.equal 0, login._user_create_or_update.callCount
+      assert.equal 1, spy.callCount
+      assert.equal null, spy.getCall(0).args[0]
+
+    it 'authorize (facebook instant, client language overrides profile)', ->
+      login.authorize({code: 'code', language: 'lv'}, spy)
+      assert.deepEqual {name: 'n', img: 'i', language: 'lv'}, login._user_create_or_update.getCall(0).args[1]
+
+    it 'authorize (facebook not instant)', ->
+      Facebook_Authorize._fbinstant_validate = sinon.fake.returns false
+      login.authorize({code: 'code'}, spy)
+      assert.equal 0, Facebook_Authorize._fbinstant_get_encoded_data.callCount
       assert.equal 1, spy2.callCount
       assert.deepEqual {code: 'code'}, spy2.getCall(0).args[0]
       assert.deepEqual spy, spy2.getCall(0).args[1]

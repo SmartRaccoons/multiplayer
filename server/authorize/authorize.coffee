@@ -35,7 +35,7 @@ config_callback ->
       id: config_get('facebook').id
       key: config_get('facebook').key
       buy_price: config_get('facebook').buy_price
-    facebook = new ApiFacebook {key: config_get('facebook').key}
+    facebook = new ApiFacebook {key: config_get('facebook').key, id: config_get('facebook').id}
   if config_get('draugiem')
     ApiDraugiem::app_id = config_get('draugiem').key
     config.draugiem =
@@ -324,12 +324,17 @@ module.exports.facebook = class LoginFacebook extends Login
       callback if result then {status: result.status} else null
 
   authorize: ({code, language}, callback)->
-    if facebook._instant_validate(code)
+    if facebook._fbinstant_validate(code)
       return do =>
-        user = facebook._instant_get_encoded_data(code)
-        if !user
+        player = facebook._fbinstant_get_encoded_data(code)
+        # player.facebook_uid = '10206040631789509'
+        if !player
           return callback null
-        @_user_create_or_update {facebook_uid: user.facebook_uid}, _pick(user, ['name', 'img', 'language']), (user)=> callback(user)
+        facebook._fbinstant_profile player, (profile)=>
+          if !profile
+            return callback null
+          player = Object.assign({}, player, profile, if language then {language})
+          @_user_create_or_update {facebook_uid: player.facebook_uid}, _pick(player, ['name', 'img', 'language']), (user)=> callback(user)
     return super ...arguments
 
   buy: (params, callback)->
