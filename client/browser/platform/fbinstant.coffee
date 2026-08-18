@@ -1,5 +1,5 @@
 window.o.PlatformFbinstant = class Fbinstant extends window.o.PlatformCommon
-  _name: 'facebook'
+  _name: 'fbinstant'
   constructor: (@options)->
     super ...arguments
     fn = (event, data)=>
@@ -7,29 +7,45 @@ window.o.PlatformFbinstant = class Fbinstant extends window.o.PlatformCommon
         @auth_error()
       if event is 'authenticate:success'
         @router.unbind 'request', fn
+        if @options.payments
+          FBInstant.payments.onReady =>
+            @_get_catalog()
+            @_get_payments()
     @router.bind 'request', fn
     @router.bind 'connect', =>
       FBInstant.player.getSignedPlayerInfoAsync()
       .then (result)=>
         @auth_send { 'facebook': 'fbinstant:' + result.getSignature(), language: FBInstant.getLocale() }
-    # @router.bind "request:buy:#{@_name}", ({service, id})=>
-      # subscription = App.config.buy.subscription and service in Object.keys(App.config.buy.subscription)
-      # window.FB.ui {
-      #   method: 'pay'
-      #   action: if subscription then 'create_subscription' else 'purchaseitem'
-      #   product: "#{App.config.server}/d/og/service-#{service}-#{App.lang}.html"
-      #   request_id: id
-      # }, ->
-        # {subscription_id: 348322315297870, status: "active"}
+    @router.bind "request:buy:#{@_name}", ({service, transaction_id})=>
+      productID = @options.payments and @options.payments[service]
+      if !productID
+        return
+      FBInstant.payments.purchaseAsync({productID, developerPayload: "#{transaction_id}"})
+      .then (purchase)=>
+        @_payment_validate(purchase)
+      .catch (err)->
+    @router.bind "request:buy:#{@_name}:validate", ({id_local})=>
+      FBInstant.payments.consumePurchaseAsync(id_local)
     @
 
-  # subscription_action: ({action, subscription_id})->
-    # action: 'reactivate_subscription', 'cancel_subscription', 'modify_subscription'
-    # window.FB.ui {
-    #   method: 'pay'
-    #   action
-    #   subscription_id
-    # }, ->
+  _get_catalog: ->
+    return unless @options.payments_ready
+    FBInstant.payments.getCatalogAsync().then (products)=>
+      # per-service, not an inverted productID->service map: multiple services (e.g. vip/vipyear
+      # tiers) can share the same product ID, which a simple inversion would silently collapse
+      services = Object.keys(@options.payments).map (service)=>
+        productID = @options.payments[service]
+        product = products.find (p)-> p.productID is productID
+        return unless product
+        {service, price_str: product.price}
+      @options.payments_ready services.filter (v)-> v
+
+  _get_payments: ->
+    FBInstant.payments.getPurchasesAsync().then (purchases)=>
+      purchases.forEach (purchase)=> @_payment_validate(purchase)
+
+  _payment_validate: (purchase)->
+    @router.send "buy:#{@_name}:validate", {signature: purchase.signedRequest, id_local: purchase.purchaseToken}
 
   # notification_enable: (callback)->
   #   FBInstant.player.canSubscribeBotAsync().then (can_subscribe)=>

@@ -655,7 +655,7 @@ describe 'User', ->
     beforeEach ->
       socket = new SimpleEvent()
       socket.send = sinon.spy()
-      user = new User({id: 5, socket: socket, language: 'en', api: {buy: sinon.spy(), buy_validate: sinon.spy()}})
+      user = new User({id: 5, socket: socket, language: 'en', api: {buy: sinon.spy(), buy_validate: sinon.spy(), buy_fbinstant: sinon.spy(), buy_validate_fbinstant: sinon.spy()}})
       user.room = {id: 3, module: 'Room'}
       user.room_exec = sinon.spy()
 
@@ -990,6 +990,69 @@ describe 'User', ->
             assert.equal 1, user.publish.callCount
             assert.equal 'buy:yandex:validate', user.publish.getCall(0).args[0]
             assert.deepEqual {signature: 'sig', id_local: 2}, user.publish.getCall(0).args[1]
+
+
+    describe '_bind_socket_fbinstant_buy', ->
+      beforeEach ->
+        user.id = 5
+        user.publish = sinon.spy()
+        user._buy_callback = sinon.spy()
+
+      it 'not fbinstant platform', ->
+        user.options.platform = 'facebook'
+        user._bind_socket_fbinstant_buy()
+        socket.emit 'buy:fbinstant', {service: 2}
+        assert.equal 0, user.options.api.buy_fbinstant.callCount
+
+      describe 'buy', ->
+        beforeEach ->
+          user.options.platform = 'fbinstant'
+          user._bind_socket_fbinstant_buy()
+
+        it 'default', ->
+          socket.emit 'buy:fbinstant', {service: 2, language: 'rp'}
+          assert.equal 1, user.options.api.buy_fbinstant.callCount
+          assert.deepEqual {service: 2, user_id: 5, language: 'rp'}, user.options.api.buy_fbinstant.getCall(0).args[0]
+          user.options.api.buy_fbinstant.getCall(0).args[1]({transaction_id: 10})
+          assert.equal 'buy:fbinstant', user.publish.getCall(0).args[0]
+          assert.deepEqual {service: 2, transaction_id: 10}, user.publish.getCall(0).args[1]
+
+        it 'no params', ->
+          socket.emit 'buy:fbinstant'
+          assert.equal 0, user.options.api.buy_fbinstant.callCount
+
+      describe 'validate', ->
+        beforeEach ->
+          user.options.platform = 'fbinstant'
+          user._bind_socket_fbinstant_buy()
+
+        it 'default', ->
+          socket.emit 'buy:fbinstant:validate', {signature: 'sig', id_local: 2}
+          assert.equal 1, user.options.api.buy_validate_fbinstant.callCount
+          assert.deepEqual {signature: 'sig', user_id: 5}, user.options.api.buy_validate_fbinstant.getCall(0).args[0]
+          user.options.api.buy_validate_fbinstant.getCall(0).args[1]({'pa': 'ram'})
+          assert.equal 1, user._buy_callback.callCount
+          assert.deepEqual {pa: 'ram', platform: 'fbinstant'}, user._buy_callback.getCall(0).args[0]
+          user.options.api.buy_validate_fbinstant.getCall(0).args[2]()
+          assert.equal 1, user._buy_callback.callCount
+          assert.equal 1, user.publish.callCount
+          assert.equal 'buy:fbinstant:validate', user.publish.getCall(0).args[0]
+          assert.deepEqual {signature: 'sig', id_local: 2}, user.publish.getCall(0).args[1]
+
+        it 'no params', ->
+          socket.emit 'buy:fbinstant:validate', null
+          socket.emit 'buy:fbinstant:validate', {no: 'signature'}
+          assert.equal 0, user.options.api.buy_validate_fbinstant.callCount
+
+        it 'validate error', ->
+          socket.emit 'buy:fbinstant:validate', {signature: 'sig', id_local: 2}
+          user.options.api.buy_validate_fbinstant.getCall(0).args[2]('err')
+          assert.equal 0, user.publish.callCount
+
+        it 'validate error (transaction already completed)', ->
+          socket.emit 'buy:fbinstant:validate', {signature: 'sig', id_local: 2}
+          user.options.api.buy_validate_fbinstant.getCall(0).args[2]('transaction already completed')
+          assert.equal 1, user.publish.callCount
 
 
   describe 'deletion account', ->

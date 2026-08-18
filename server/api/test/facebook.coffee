@@ -162,3 +162,31 @@ describe 'ApiFacebook', ->
 
     it 'not string', ->
       assert.equal null, o._fbinstant_get_encoded_data({})
+
+
+  describe '_fbinstant_payment', ->
+    data = null
+    beforeEach ->
+      data = {payment_id: 'pid', product_id: 'prodid', purchase_token: 'tok', developer_payload: '12'}
+      o._signed_request_validate = sinon.fake.returns true
+      o._signed_request_parse = sinon.fake -> data
+
+    it 'default', ->
+      o._fbinstant_payment 'sig', spy
+      assert.equal 1, o._signed_request_validate.callCount
+      assert.equal 'sig', o._signed_request_validate.getCall(0).args[0]
+      assert.equal 1, o._signed_request_parse.callCount
+      assert.equal 'sig', o._signed_request_parse.getCall(0).args[0]
+      assert.equal 1, spy.callCount
+      assert.deepEqual {transaction_id: 12, payment_id: 'pid', product_id: 'prodid', purchase_token: 'tok'}, spy.getCall(0).args[0]
+
+    it 'invalid signature', ->
+      o._signed_request_validate = sinon.fake.returns false
+      o._fbinstant_payment 'sig', spy
+      assert.equal 1, spy.callCount
+      assert.equal null, spy.getCall(0).args[0]
+
+    it 'no developer_payload', ->
+      data.developer_payload = null
+      o._fbinstant_payment 'sig', spy
+      assert.equal null, spy.getCall(0).args[0]

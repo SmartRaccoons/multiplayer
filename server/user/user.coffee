@@ -320,6 +320,29 @@ module.exports.User = class User extends User
                 return
             cordova_finish()
 
+
+  _bind_socket_fbinstant_buy: ->
+    return unless @options.platform is 'fbinstant'
+    @options.socket.on 'buy:fbinstant', (args)=>
+      return unless args
+      {service, language} = args
+      @options.api.buy_fbinstant {service, user_id: @id, language}, (params)=>
+        @publish 'buy:fbinstant', Object.assign({service}, params)
+    @options.socket.on 'buy:fbinstant:validate', (params_client)=>
+      return unless params_client and params_client.signature
+      @options.api.buy_validate_fbinstant {user_id: @id, signature: params_client.signature}, (params_transaction)=>
+        @_buy_callback Object.assign({}, params_transaction, {platform: 'fbinstant'})
+      , (error)=>
+        if error
+          console.info "fbinstant finished error #{@id}:", error
+          # 'transaction already completed' still finishes (consumes) the purchase - it means
+          # crediting already happened server-side, so this is the loop-prevention case (e.g. a prior
+          # interruption before the client could consume). Any other error leaves it unconsumed on
+          # purpose, so it retries on the next reconnect instead of being silently discarded.
+          if error isnt 'transaction already completed'
+            return
+        @publish 'buy:fbinstant:validate', params_client
+
   _bind_socket_coins_history: ->
     mt = 'coins:history'
     cb = => @publish mt, @options.coins_history.map (v)->

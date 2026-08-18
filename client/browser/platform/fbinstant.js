@@ -13,7 +13,10 @@
             this.auth_error();
           }
           if (event === 'authenticate:success') {
-            return this.router.unbind('request', fn);
+            this.router.unbind('request', fn);
+            if (this.options.payments) {
+              return this.__init_payments();
+            }
           }
         };
         this.router.bind('request', fn);
@@ -25,27 +28,78 @@
             });
           });
         });
-        // @router.bind "request:buy:#{@_name}", ({service, id})=>
-        // subscription = App.config.buy.subscription and service in Object.keys(App.config.buy.subscription)
-        // window.FB.ui {
-        //   method: 'pay'
-        //   action: if subscription then 'create_subscription' else 'purchaseitem'
-        //   product: "#{App.config.server}/d/og/service-#{service}-#{App.lang}.html"
-        //   request_id: id
-        // }, ->
-        // {subscription_id: 348322315297870, status: "active"}
+        this.router.bind(`request:buy:${this._name}`, ({service, transaction_id}) => {
+          var productID;
+          productID = this.options.payments && this.options.payments[service];
+          if (!productID) {
+            return;
+          }
+          return FBInstant.payments.purchaseAsync({
+            productID,
+            developerPayload: `${transaction_id}`
+          }).then((purchase) => {
+            return this._payment_validate(purchase);
+          }).catch(function(err) {});
+        });
+        this.router.bind(`request:buy:${this._name}:validate`, ({id_local}) => {
+          return FBInstant.payments.consumePurchaseAsync(id_local);
+        });
         this;
       }
 
-      // subscription_action: ({action, subscription_id})->
-      // action: 'reactivate_subscription', 'cancel_subscription', 'modify_subscription'
-      // window.FB.ui {
-      //   method: 'pay'
-      //   action
-      //   subscription_id
-      // }, ->
+      __init_payments() {
+        // onReady is callback-style, not promise-based, unlike every other payments.*Async method
+        return FBInstant.payments.onReady(() => {
+          this._get_catalog();
+          return this._get_payments();
+        });
+      }
 
-        // notification_enable: (callback)->
+      _get_catalog() {
+        if (!this.options.payments_ready) {
+          return;
+        }
+        return FBInstant.payments.getCatalogAsync().then((products) => {
+          var services;
+          // per-service, not an inverted productID->service map: multiple services (e.g. vip/vipyear
+          // tiers) can share the same product ID, which a simple inversion would silently collapse
+          services = Object.keys(this.options.payments).map((service) => {
+            var product, productID;
+            productID = this.options.payments[service];
+            product = products.find(function(p) {
+              return p.productID === productID;
+            });
+            if (!product) {
+              return;
+            }
+            return {
+              service,
+              price_str: product.price
+            };
+          });
+          return this.options.payments_ready(services.filter(function(v) {
+            return v;
+          }));
+        });
+      }
+
+      _get_payments() {
+        return FBInstant.payments.getPurchasesAsync().then((purchases) => {
+          console.info(purchases);
+          return purchases.forEach((purchase) => {
+            return this._payment_validate(purchase);
+          });
+        });
+      }
+
+      _payment_validate(purchase) {
+        return this.router.send(`buy:${this._name}:validate`, {
+          signature: purchase.signedRequest,
+          id_local: purchase.purchaseToken
+        });
+      }
+
+      // notification_enable: (callback)->
       //   FBInstant.player.canSubscribeBotAsync().then (can_subscribe)=>
       //     callback can_subscribe
       //   .catch =>
@@ -112,7 +166,10 @@
 
     };
 
-    Fbinstant.prototype._name = 'facebook';
+    // own name (not 'facebook') so buy events don't collide with the Canvas platform's
+    // buy:facebook/request:buy:facebook wiring - auth still goes through LoginFacebook server-side,
+    // since that's keyed by the signed payload's `facebook` property, not by this _name
+    Fbinstant.prototype._name = 'fbinstant';
 
     return Fbinstant;
 

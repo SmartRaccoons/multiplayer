@@ -15,6 +15,7 @@ Facebook_Authorize =
   _fbinstant_validate: null
   _fbinstant_get_encoded_data: null
   _fbinstant_profile: null
+  _fbinstant_payment: null
   _signed_request_validate: null
   _signed_request_parse: null
 Google_Authorize =
@@ -54,6 +55,7 @@ Authorize = proxyquire '../authorize',
       _fbinstant_validate: -> Facebook_Authorize._fbinstant_validate.apply(@, arguments)
       _fbinstant_get_encoded_data: -> Facebook_Authorize._fbinstant_get_encoded_data.apply(@, arguments)
       _fbinstant_profile: -> Facebook_Authorize._fbinstant_profile.apply(@, arguments)
+      _fbinstant_payment: -> Facebook_Authorize._fbinstant_payment.apply(@, arguments)
       _signed_request_validate: -> Facebook_Authorize._signed_request_validate.apply(@, arguments)
       _signed_request_parse: -> Facebook_Authorize._signed_request_parse.apply(@, arguments)
   '../api/google':
@@ -131,6 +133,9 @@ describe 'Athorize', ->
         key: 'fkey'
         buy_price:
           2: 70
+      fbinstant:
+        buy_transaction:
+          2: 'coins50'
       email:
         salt: 'salt1'
         sha: 'sh'
@@ -751,6 +756,7 @@ describe 'Athorize', ->
       Facebook_Authorize._authorize_facebook = sinon.spy()
       Facebook_Authorize._fbinstant_validate = sinon.fake.returns true
       Facebook_Authorize._fbinstant_get_encoded_data = sinon.fake.returns {facebook_uid: '5'}
+      Facebook_Authorize._fbinstant_payment = sinon.spy()
       Facebook_Authorize._fbinstant_profile = sinon.fake (player, callback)-> callback {name: 'n', img: 'i', language: 'ru'}
       spy2 = sinon.spy()
       Login::authorize = -> spy2.apply(@, arguments)
@@ -801,6 +807,35 @@ describe 'Athorize', ->
       assert.equal 1, spy2.callCount
       assert.deepEqual {code: 'code'}, spy2.getCall(0).args[0]
       assert.deepEqual spy, spy2.getCall(0).args[1]
+
+    it 'buy_fbinstant', ->
+      login.buy_fbinstant {service: 2, user_id: 5, language: 'lv'}, spy
+      assert.equal 1, login._transaction_create.callCount
+      assert.deepEqual {service: 2, user_id: 5, language: 'lv'}, login._transaction_create.getCall(0).args[0]
+      login._transaction_create.getCall(0).args[1]({id: 12})
+      assert.equal 1, spy.callCount
+      assert.deepEqual {transaction_id: 12}, spy.getCall(0).args[0]
+
+    it 'buy_fbinstant (no service)', ->
+      login.buy_fbinstant {service: 3, user_id: 5}, spy
+      assert.equal 0, login._transaction_create.callCount
+
+    it 'buy_validate_fbinstant', ->
+      login.buy_validate_fbinstant {user_id: 5, signature: 'sig'}, 'fn1', 'fn2'
+      assert.equal 1, Facebook_Authorize._fbinstant_payment.callCount
+      assert.equal 'sig', Facebook_Authorize._fbinstant_payment.getCall(0).args[0]
+      Facebook_Authorize._fbinstant_payment.getCall(0).args[1] {transaction_id: 5}
+      assert.equal 1, login._transaction_get.callCount
+      assert.deepEqual {id: 5}, login._transaction_get.getCall(0).args[0]
+      assert.equal 'fn1', login._transaction_get.getCall(0).args[1]
+      assert.equal 'fn2', login._transaction_get.getCall(0).args[2]
+
+    it 'buy_validate_fbinstant (payment error)', ->
+      login.buy_validate_fbinstant {user_id: 5, signature: 'sig'}, 'fn1', spy
+      Facebook_Authorize._fbinstant_payment.getCall(0).args[1](null)
+      assert.equal 0, login._transaction_get.callCount
+      assert.equal 1, spy.callCount
+      assert.equal 'signature error', spy.getCall(0).args[0]
 
     it 'success', ->
       login._api_call({code: 'code'}, spy)

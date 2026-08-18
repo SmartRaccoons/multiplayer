@@ -36,6 +36,9 @@ config_callback ->
       key: config_get('facebook').key
       buy_price: config_get('facebook').buy_price
     facebook = new ApiFacebook {key: config_get('facebook').key, id: config_get('facebook').id}
+  if config_get('fbinstant')
+    config.fbinstant =
+      buy_transaction: config_get('fbinstant').buy_transaction
   if config_get('draugiem')
     ApiDraugiem::app_id = config_get('draugiem').key
     config.draugiem =
@@ -341,6 +344,19 @@ module.exports.facebook = class LoginFacebook extends Login
     if !(params.service of config.facebook.buy_price)
       return
     @_transaction_create params, callback
+
+  # distinct from buy/buy_complete (Canvas OG-page + webhook model) - Instant Games payments
+  # use FBInstant.payments (client-driven purchase + signed verification), same shape as LoginYandex
+  buy_fbinstant: ({service, user_id, language}, callback)->
+    if !(service of config.fbinstant.buy_transaction)
+      return
+    @_transaction_create {service, user_id, language}, ({id})=> callback({transaction_id: id})
+
+  buy_validate_fbinstant: ({user_id, signature}, callback_save, callback_end)->
+    facebook._fbinstant_payment signature, (payment)=>
+      if !payment
+        return callback_end('signature error')
+      @_transaction_get {id: payment.transaction_id}, callback_save, callback_end
 
   buy_complete: ({ id, subscription }, callback_save, callback_end)->
     # move this crap to ApiFacebook

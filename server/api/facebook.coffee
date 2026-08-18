@@ -63,3 +63,18 @@ module.exports.ApiFacebook = class ApiFacebook
         name: res.name
         img: if res.picture and res.picture.data then res.picture.data.url else null
       }
+
+  # decoded payment signedRequest uses snake_case keys (payment_id, product_id, purchase_token,
+  # developer_payload) per the SDK's own client-side decoding logic - verified against fbinstant.8.0.js
+  _fbinstant_payment: (signed_request, callback)->
+    if !@_signed_request_validate(signed_request)
+      return callback null
+    data = @_signed_request_parse(signed_request)
+    if !(data and data.developer_payload)
+      return callback null
+    callback {
+      transaction_id: parseInt(data.developer_payload)
+      payment_id: data.payment_id
+      product_id: data.product_id
+      purchase_token: data.purchase_token
+    }
