@@ -11,7 +11,6 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
 
   constructor: ->
     super ...arguments
-    @_queue_success_login = []
     @_login_code_params = {}
     fn = (event, data)=>
       if event is 'authenticate:error'
@@ -28,7 +27,6 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
       if event is 'authenticate:code_error'
         return @_auto_login()
       if event is 'authenticate:success'
-        @success_login(data)
         @router.unbind 'request', fn
       if event is 'authenticate:code'
         @_login_code_params.random = data.random
@@ -82,16 +80,6 @@ window.o.PlatformOffline = class PlatformOffline extends window.o.PlatformCommon
     @router
     .message
       body: _l('Authorize.version error offline')
-
-  _queue_success: (fn)->
-    if @_success_login_user
-      return fn.bind(@)()
-    @_queue_success_login.push fn
-
-  success_login: (user)->
-    @_success_login_user = user
-    while fn = @_queue_success_login.shift()
-      fn.bind(@)()
 
   auth_popup_device: ({random, platform})->
     link = [App.config.server, App.config.login[platform], '/', random].join('')

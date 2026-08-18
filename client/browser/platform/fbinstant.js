@@ -15,17 +15,18 @@
           if (event === 'authenticate:success') {
             this.router.unbind('request', fn);
             if (this.options.payments) {
-              return this.__init_payments();
+              return FBInstant.payments.onReady(() => {
+                this._get_catalog();
+                return this._get_payments();
+              });
             }
           }
         };
         this.router.bind('request', fn);
         this.router.bind('connect', () => {
-          return FBInstant.player.getSignedPlayerInfoAsync().then((result) => {
-            return this.auth_send({
-              'facebook': 'fbinstant:' + result.getSignature(),
-              language: FBInstant.getLocale()
-            });
+          return this.auth_send({
+            'facebook': 'fbinstant:' + this._fbinstant_signature,
+            language: FBInstant.getLocale()
           });
         });
         this.router.bind(`request:buy:${this._name}`, ({service, transaction_id}) => {
@@ -39,20 +40,14 @@
             developerPayload: `${transaction_id}`
           }).then((purchase) => {
             return this._payment_validate(purchase);
-          }).catch(function(err) {});
+          }).catch(function(err) {
+            return console.error('FBInstant.payments.purchaseAsync error', err);
+          });
         });
         this.router.bind(`request:buy:${this._name}:validate`, ({id_local}) => {
           return FBInstant.payments.consumePurchaseAsync(id_local);
         });
         this;
-      }
-
-      __init_payments() {
-        // onReady is callback-style, not promise-based, unlike every other payments.*Async method
-        return FBInstant.payments.onReady(() => {
-          this._get_catalog();
-          return this._get_payments();
-        });
       }
 
       _get_catalog() {
@@ -85,7 +80,6 @@
 
       _get_payments() {
         return FBInstant.payments.getPurchasesAsync().then((purchases) => {
-          console.info(purchases);
           return purchases.forEach((purchase) => {
             return this._payment_validate(purchase);
           });
@@ -93,9 +87,11 @@
       }
 
       _payment_validate(purchase) {
-        return this.router.send(`buy:${this._name}:validate`, {
-          signature: purchase.signedRequest,
-          id_local: purchase.purchaseToken
+        return this._queue_success(() => {
+          return this.router.send(`buy:${this._name}:validate`, {
+            signature: purchase.signedRequest,
+            id_local: purchase.purchaseToken
+          });
         });
       }
 
@@ -119,7 +115,10 @@
             return;
           }
           return FBInstant.startGameAsync().then(() => {
-            return callback();
+            return FBInstant.player.getSignedPlayerInfoAsync().then((result) => {
+              this._fbinstant_signature = result.getSignature();
+              return callback();
+            });
           });
         };
         return $('<script>').attr({
@@ -166,9 +165,6 @@
 
     };
 
-    // own name (not 'facebook') so buy events don't collide with the Canvas platform's
-    // buy:facebook/request:buy:facebook wiring - auth still goes through LoginFacebook server-side,
-    // since that's keyed by the signed payload's `facebook` property, not by this _name
     Fbinstant.prototype._name = 'fbinstant';
 
     return Fbinstant;

@@ -34,6 +34,7 @@
       }
 
       disconnect() {
+        this.trigger('disconnect');
         return this.message({
           body: _l('Authorize.Disconnect'),
           actions: [

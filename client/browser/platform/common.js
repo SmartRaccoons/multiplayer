@@ -4,11 +4,44 @@
 
   window.o.PlatformCommon = Common = class Common {
     constructor(options) {
+      var fn;
       this.options = options;
       this.router = new window.o.Router(Object.assign({
         platform: this.options.platform
       }, this.options.router));
       this.router.$el.appendTo('body');
+      this._queue_success_login = [];
+      fn = (event, data) => {
+        if (event === 'authenticate:error') {
+          this._success_login_user = null;
+        }
+        if (event === 'authenticate:success') {
+          return this.success_login(data);
+        }
+      };
+      this.router.bind('request', fn);
+      ['connect', 'disconnect'].forEach((ev) => {
+        return this.router.bind(ev, () => {
+          return this._success_login_user = null;
+        });
+      });
+    }
+
+    _queue_success(fn) {
+      if (this._success_login_user) {
+        return fn.bind(this)();
+      }
+      return this._queue_success_login.push(fn);
+    }
+
+    success_login(user) {
+      var fn, results;
+      this._success_login_user = user;
+      results = [];
+      while (fn = this._queue_success_login.shift()) {
+        results.push(fn.bind(this)());
+      }
+      return results;
     }
 
     language_check(callback) {

@@ -3,6 +3,26 @@ window.o.PlatformCommon = class Common
   constructor: (@options)->
     @router = new window.o.Router Object.assign( {platform: @options.platform}, @options.router )
     @router.$el.appendTo('body')
+    @_queue_success_login = []
+    fn = (event, data)=>
+      if event is 'authenticate:error'
+        @_success_login_user = null
+      if event is 'authenticate:success'
+        @success_login(data)
+    @router.bind 'request', fn
+    ['connect', 'disconnect'].forEach (ev)=>
+      @router.bind ev, =>
+        @_success_login_user = null
+
+  _queue_success: (fn)->
+    if @_success_login_user
+      return fn.bind(@)()
+    @_queue_success_login.push fn
+
+  success_login: (user)->
+    @_success_login_user = user
+    while fn = @_queue_success_login.shift()
+      fn.bind(@)()
 
   language_check: (callback)->
     if !window._locales_default

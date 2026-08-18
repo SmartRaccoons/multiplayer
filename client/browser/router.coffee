@@ -25,6 +25,7 @@ window.o.Router = class Router extends window.o.View
   connecting: -> @message(_l('Authorize.Connecting'))
 
   disconnect: ->
+    @trigger 'disconnect'
     @message
       body:_l('Authorize.Disconnect')
       actions: [ {'reload': _l('Authorize.button.reload')} ]

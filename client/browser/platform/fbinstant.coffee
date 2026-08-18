@@ -13,9 +13,7 @@ window.o.PlatformFbinstant = class Fbinstant extends window.o.PlatformCommon
             @_get_payments()
     @router.bind 'request', fn
     @router.bind 'connect', =>
-      FBInstant.player.getSignedPlayerInfoAsync()
-      .then (result)=>
-        @auth_send { 'facebook': 'fbinstant:' + result.getSignature(), language: FBInstant.getLocale() }
+      @auth_send { 'facebook': 'fbinstant:' + @_fbinstant_signature, language: FBInstant.getLocale() }
     @router.bind "request:buy:#{@_name}", ({service, transaction_id})=>
       productID = @options.payments and @options.payments[service]
       if !productID
@@ -24,6 +22,7 @@ window.o.PlatformFbinstant = class Fbinstant extends window.o.PlatformCommon
       .then (purchase)=>
         @_payment_validate(purchase)
       .catch (err)->
+        console.error 'FBInstant.payments.purchaseAsync error', err
     @router.bind "request:buy:#{@_name}:validate", ({id_local})=>
       FBInstant.payments.consumePurchaseAsync(id_local)
     @
@@ -45,7 +44,8 @@ window.o.PlatformFbinstant = class Fbinstant extends window.o.PlatformCommon
       purchases.forEach (purchase)=> @_payment_validate(purchase)
 
   _payment_validate: (purchase)->
-    @router.send "buy:#{@_name}:validate", {signature: purchase.signedRequest, id_local: purchase.purchaseToken}
+    @_queue_success =>
+      @router.send "buy:#{@_name}:validate", {signature: purchase.signedRequest, id_local: purchase.purchaseToken}
 
   # notification_enable: (callback)->
   #   FBInstant.player.canSubscribeBotAsync().then (can_subscribe)=>
@@ -65,7 +65,11 @@ window.o.PlatformFbinstant = class Fbinstant extends window.o.PlatformCommon
       if loaded < assets.length
         FBInstant.setLoadingProgress(loaded * 100 / assets.length)
         return
-      FBInstant.startGameAsync().then => callback()
+      FBInstant.startGameAsync().then =>
+        FBInstant.player.getSignedPlayerInfoAsync()
+        .then (result)=>
+          @_fbinstant_signature = result.getSignature()
+          callback()
 
     $('<script>').attr
       'src': 'https://connect.facebook.net/en_US/fbinstant.8.0.js'

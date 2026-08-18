@@ -9,7 +9,6 @@
       constructor() {
         var fn;
         super(...arguments);
-        this._queue_success_login = [];
         this._login_code_params = {};
         fn = (event, data) => {
           var platform, results, value;
@@ -33,7 +32,6 @@
             return this._auto_login();
           }
           if (event === 'authenticate:success') {
-            this.success_login(data);
             this.router.unbind('request', fn);
           }
           if (event === 'authenticate:code') {
@@ -120,23 +118,6 @@
         return this.router.message({
           body: _l('Authorize.version error offline')
         });
-      }
-
-      _queue_success(fn) {
-        if (this._success_login_user) {
-          return fn.bind(this)();
-        }
-        return this._queue_success_login.push(fn);
-      }
-
-      success_login(user) {
-        var fn, results;
-        this._success_login_user = user;
-        results = [];
-        while (fn = this._queue_success_login.shift()) {
-          results.push(fn.bind(this)());
-        }
-        return results;
       }
 
       auth_popup_device({random, platform}) {
