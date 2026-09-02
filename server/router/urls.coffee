@@ -27,8 +27,7 @@ config_callback( ->
 
 
 module.exports.authorize = (app)->
-  language_validate = (language)->
-    if ['lv', 'en', 'ru', 'de', 'lg', 'fil', 'vi', 'id'].indexOf(language) >= 0 then language else 'en'
+  language_validate = (language)-> locale.validate(language)
   code_url = config_get('code_url')
   template_deletion = do =>
     deletion = template_local('deletion')
