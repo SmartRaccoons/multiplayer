@@ -452,6 +452,8 @@ module.exports.inbox = class LoginInbox extends Login
         service: service
         user_id: user_id
       , ( => callback({link: transaction.link}) )
+    , (error)=>
+      console.info "inbox transaction create error #{user_id}:", error
 
   buy_complete: (transaction_id, callback_save, callback_end)->
     @_transaction_get {transaction_id}, callback_save, callback_end
