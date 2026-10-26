@@ -24,12 +24,15 @@
       }
 
       _resize() {
-        var height, scale, width;
+        var el, height, scale, style, width;
         if (!this.options.min_width && !this.options.min_height) {
           return;
         }
-        width = this.$iframe_parent.width();
-        height = this.$iframe_parent.height();
+        el = this.$iframe_parent[0];
+        style = window.getComputedStyle(el);
+        // content box: client* ignores transforms (popup appear animation) and scrollbars
+        width = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        height = el.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
         if (!(width >= 50) || !(height >= 50)) {
           return;
         }
@@ -40,7 +43,7 @@
         if (this.options.min_height && height < this.options.min_height) {
           scale = Math.max(scale, this.options.min_height / height);
         }
-        scale = Math.round(scale * 100) / 100;
+        scale = Math.ceil(scale * 100) / 100;
         if (scale > 2) {
           // never scale below 0.5 visually
           scale = 2;
@@ -52,16 +55,18 @@
           this.$iframe_wrap = $('<div>');
           this.$iframe.wrap(this.$iframe_wrap);
         }
+        // size in % only - px from measuring can overflow the parent and add a scrollbar
         this.$iframe_wrap.css({
           overflow: 'hidden',
-          width: width,
-          height: height
+          width: '100%',
+          height: '100%'
         });
         return this.$iframe.css({
+          display: 'block',
           'transform-origin': '0 0',
           'transform': `scale(${1 / scale})`,
-          width: width * scale,
-          height: height * scale
+          width: `${scale * 100}%`,
+          height: `${scale * 100}%`
         });
       }
 

@@ -22,8 +22,11 @@ window.o.ViewPopupIframe = class PopupAuthorize extends Popup
   _resize: ->
     if !@options.min_width and !@options.min_height
       return
-    width = @$iframe_parent.width()
-    height = @$iframe_parent.height()
+    el = @$iframe_parent[0]
+    style = window.getComputedStyle el
+    # content box: client* ignores transforms (popup appear animation) and scrollbars
+    width = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    height = el.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
     if !(width >= 50) or !(height >= 50)
       return
     scale = 1
@@ -31,7 +34,7 @@ window.o.ViewPopupIframe = class PopupAuthorize extends Popup
       scale = @options.min_width / width
     if @options.min_height and height < @options.min_height
       scale = Math.max scale, @options.min_height / height
-    scale = Math.round(scale * 100) / 100
+    scale = Math.ceil(scale * 100) / 100
     # never scale below 0.5 visually
     scale = 2 if scale > 2
     if scale is 1 and !@$iframe_wrap
@@ -39,15 +42,17 @@ window.o.ViewPopupIframe = class PopupAuthorize extends Popup
     if !@$iframe_wrap
       @$iframe_wrap = $('<div>')
       @$iframe.wrap @$iframe_wrap
+    # size in % only - px from measuring can overflow the parent and add a scrollbar
     @$iframe_wrap.css
       overflow: 'hidden'
-      width: width
-      height: height
+      width: '100%'
+      height: '100%'
     @$iframe.css
+      display: 'block'
       'transform-origin': '0 0'
       'transform': "scale(#{1/scale})"
-      width: width * scale
-      height: height * scale
+      width: "#{scale * 100}%"
+      height: "#{scale * 100}%"
 
   remove: ->
     clearTimeout @_resize_timeout
