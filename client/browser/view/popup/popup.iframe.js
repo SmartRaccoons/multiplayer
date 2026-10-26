@@ -10,6 +10,12 @@
         super.render(...arguments);
         this.$iframe = this.$('iframe');
         this.$iframe_parent = this.$iframe.parent();
+        if (!this._resize_fn) {
+          this._resize_fn = () => {
+            return this._resize();
+          };
+          window.addEventListener('resize', this._resize_fn);
+        }
         this._resize();
         this._resize_timeout = setTimeout((() => {
           return this._resize();
@@ -19,15 +25,29 @@
 
       _resize() {
         var height, scale, width;
-        if (!this.options.min_width) {
+        if (!this.options.min_width && !this.options.min_height) {
           return;
         }
         width = this.$iframe_parent.width();
         height = this.$iframe_parent.height();
-        if (this.options.min_width < width || width < 50) {
+        if (!(width >= 50) || !(height >= 50)) {
           return;
         }
-        scale = Math.round(this.options.min_width * 100 / width) / 100;
+        scale = 1;
+        if (this.options.min_width && width < this.options.min_width) {
+          scale = this.options.min_width / width;
+        }
+        if (this.options.min_height && height < this.options.min_height) {
+          scale = Math.max(scale, this.options.min_height / height);
+        }
+        scale = Math.round(scale * 100) / 100;
+        if (scale > 2) {
+          // never scale below 0.5 visually
+          scale = 2;
+        }
+        if (scale === 1 && !this.$iframe_wrap) {
+          return;
+        }
         if (!this.$iframe_wrap) {
           this.$iframe_wrap = $('<div>');
           this.$iframe.wrap(this.$iframe_wrap);
@@ -40,13 +60,17 @@
         return this.$iframe.css({
           'transform-origin': '0 0',
           'transform': `scale(${1 / scale})`,
-          width: this.options.min_width,
+          width: width * scale,
           height: height * scale
         });
       }
 
       remove() {
         clearTimeout(this._resize_timeout);
+        if (this._resize_fn) {
+          window.removeEventListener('resize', this._resize_fn);
+          this._resize_fn = null;
+        }
         return super.remove(...arguments);
       }
 
