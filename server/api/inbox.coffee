@@ -31,7 +31,12 @@ module.exports.ApiInbox = class ApiInbox
 
   transaction_create: (price, lang, callback, callback_error=->)->
     language = if ['en', 'ru'].indexOf(lang) >= 0 then lang else 'lv'
-    methods = ['hbl', 'sebl', 'paypal', 'ccard']
+    methods = [
+      'hbl'
+      'sebl'
+      # 'paypal'
+      'ccard'
+    ]
     if price <= 711
       methods.push 'sms'
     @_get_data true, {
