@@ -11,6 +11,6 @@ window.o.PlatformInbox = class Inbox extends window.o.PlatformCommon
     @router.bind 'request', fn
     @router.bind 'connect', => @auth_send({ inbox: @router._get('uid'), language: @router._get('language') })
     @router.bind "request:buy:#{@_name}", ({link})=>
-      # payment.inbox.lv needs ~800px viewport height to show its submit button
-      @router.subview_append new window.o.ViewPopupIframe({link, parent: @router.$el, min_height: 800}).render()
+      # payment.inbox.lv needs ~900px viewport height to show its submit button
+      @router.subview_append new window.o.ViewPopupIframe({link, parent: @router.$el, min_height: 900}).render()
     @

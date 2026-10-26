@@ -23,11 +23,11 @@
           });
         });
         this.router.bind(`request:buy:${this._name}`, ({link}) => {
-          // payment.inbox.lv needs ~800px viewport height to show its submit button
+          // payment.inbox.lv needs ~900px viewport height to show its submit button
           return this.router.subview_append(new window.o.ViewPopupIframe({
             link,
             parent: this.router.$el,
-            min_height: 800
+            min_height: 900
           }).render());
         });
         this;
