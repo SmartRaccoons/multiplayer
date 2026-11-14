@@ -12,11 +12,19 @@ module.exports = class Cordova
       return iap.verifyPayment 'apple', {secret: @options.ios.shared_secret, receipt: params.transaction.appStoreReceipt}, (err, success)=>
         if err
           return callback err
+        # the receipt is per Apple ID, not per purchase: `iap` reports only one "latest" transaction
+        # (with subscriptions in the receipt that is a subscription, not the coins just bought),
+        # so every transaction of the receipt is listed here for the caller to credit
+        purchases = {}
+        (success.receipt?.in_app or []).concat(success.latestReceiptInfo or []).forEach (v)->
+          if v and v.transaction_id and v.product_id
+            purchases[v.transaction_id] = {product_id: v.product_id, transaction_id: v.transaction_id}
         callback null,
           product_id: success.productId
           transaction_id: success.transactionId
           transaction_date: new Date(parseInt(success.purchaseDate))
           expire: if success.expirationDate? then parseInt(success.expirationDate) - new Date().getTime() else null
+          purchases: Object.keys(purchases).map (id)-> purchases[id]
 
     if params.platform is 'android' and params.transaction.type is 'android-playstore'
       return @_android_validate.verify {

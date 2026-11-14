@@ -295,30 +295,44 @@ module.exports.User = class User extends User
           if err
             console.info 'payment validate error', err, params, _payment_validate_params
             return
-          {product_id, transaction_id, expire} = _payment_validate_params
+          {product_id, transaction_id, expire, purchases} = _payment_validate_params
           if !product_id and params.product_id is config.cordova.id
             return cordova_finish()
-          service = _invert(config[params.platform].buy_transaction)[product_id]
-          if !service
+          services = _invert(config[params.platform].buy_transaction)
+          service = services[product_id]
+          # ios: one receipt holds every unfinished purchase and the client finishes them all at once,
+          # so credit each product of the receipt, not only the one reported as the latest
+          queue = (purchases or []).filter (p)->
+            s = services[p.product_id]
+            s and p.transaction_id isnt transaction_id and !( config.buy.subscription and s in Object.keys(config.buy.subscription) )
+          .map (p)-> {service: services[p.product_id], transaction_id: p.transaction_id, product_id: p.product_id, expire: null}
+          if service
+            queue.push {service, transaction_id, product_id, expire}
+          if !queue.length
             return console.info "#{params.platform} not found #{@id}", params, _payment_validate_params
-          new (Authorize.cordova)().buy_complete {
-            platform: params.platform
-            transaction_id
-            service
-            user_id: @id
-          }, (params_transaction)=>
-            @_buy_callback Object.assign({}, params_transaction, {
+          do next = =>
+            purchase = queue.shift()
+            if !purchase
+              return cordova_finish()
+            new (Authorize.cordova)().buy_complete {
               platform: params.platform
-              transaction: Object.assign {}, params_transaction.transaction, {
-                expire: if expire then Math.ceil(expire / (1000 * 60 * 60 * 24) ) else expire
-              }
-            } )
-          , (error)=>
-            if error
-              console.info "#{params.platform} #{product_id} finished error #{@id}:", error
-              if error isnt 'transaction already completed'
+              transaction_id: purchase.transaction_id
+              service: purchase.service
+              user_id: @id
+            }, (params_transaction)=>
+              @_buy_callback Object.assign({}, params_transaction, {
+                platform: params.platform
+                transaction: Object.assign {}, params_transaction.transaction, {
+                  expire: if purchase.expire then Math.ceil(purchase.expire / (1000 * 60 * 60 * 24) ) else purchase.expire
+                }
+              } )
+            , (error)=>
+              # 'transaction already completed' is expected on every app launch (the receipt keeps
+              # listing the last credited purchase), so it is not logged
+              if error and error isnt 'transaction already completed'
+                console.info "#{params.platform} #{purchase.product_id} finished error #{@id}:", error
                 return
-            cordova_finish()
+              next()
 
 
   _bind_socket_fbinstant_buy: ->

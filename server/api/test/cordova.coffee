@@ -145,13 +145,35 @@ describe 'cordova', ->
       verifyPayment.getCall(0).args[2](null, success_ios)
       assert.equal 1, spy.callCount
       assert.equal null, spy.getCall(0).args[0]
-      assert.deepEqual {expire: null, product_id: '50monetas2', transaction_id: '1000000633801337', transaction_date: new Date(1583184628000)}, spy.getCall(0).args[1]
+      assert.deepEqual {expire: null, product_id: '50monetas2', transaction_id: '1000000633801337', transaction_date: new Date(1583184628000), purchases: []}, spy.getCall(0).args[1]
 
     it 'ios (subscription)', ->
       clock.tick 1583418041000
       o.payment_validate {platform: 'ios', transaction: {type: 'ios-appstore', subscription: true, appStoreReceipt: 'rece'}}, spy
       verifyPayment.getCall(0).args[2](null, subscription_ios)
-      assert.deepEqual {expire: 4000,  product_id: 'vip5', transaction_id: '1000000635313423', transaction_date: new Date(1583417745000)}, spy.getCall(0).args[1]
+      assert.deepEqual {expire: 4000,  product_id: 'vip5', transaction_id: '1000000635313423', transaction_date: new Date(1583417745000), purchases: []}, spy.getCall(0).args[1]
+
+    it 'ios (all transactions of the receipt)', ->
+      success_ios.productId = 'vip5'
+      success_ios.transactionId = '3'
+      success_ios.receipt.in_app = [
+        {product_id: 'vip5', transaction_id: '1'}
+        {product_id: '50monetas2', transaction_id: '2'}
+        {quantity: '1'}
+      ]
+      success_ios.latestReceiptInfo = [
+        {product_id: 'vip5', transaction_id: '1'}
+        {product_id: 'vip5', transaction_id: '3'}
+      ]
+      o.payment_validate {platform: 'ios', transaction: {type: 'ios-appstore', appStoreReceipt: 'rece'}}, spy
+      verifyPayment.getCall(0).args[2](null, success_ios)
+      assert.equal 'vip5', spy.getCall(0).args[1].product_id
+      assert.equal '3', spy.getCall(0).args[1].transaction_id
+      assert.deepEqual [
+        {product_id: 'vip5', transaction_id: '1'}
+        {product_id: '50monetas2', transaction_id: '2'}
+        {product_id: 'vip5', transaction_id: '3'}
+      ], spy.getCall(0).args[1].purchases
 
     it 'ios (error)', ->
       o.payment_validate {platform: 'ios', transaction: {type: 'ios-appstore', appStoreReceipt: 'rece'}}, spy

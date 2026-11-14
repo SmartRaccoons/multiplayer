@@ -869,6 +869,61 @@ describe 'User', ->
         assert.equal 'buy:cordova:finish', user.publish.getCall(0).args[0]
         assert.deepEqual {id_local: 0}, user.publish.getCall(0).args[1]
 
+      it 'cordova ios (coins in receipt with subscription reported as latest)', ->
+        config.ios.buy_transaction[11] = 'vip'
+        config_callbacks[0]()
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
+        cordova_payment_validate.getCall(0).args[1](null, {
+          platform: 'ios', product_id: 'vip', transaction_id: 'trsub', expire: 1000 * 60 * 60 * 26
+          purchases: [
+            {product_id: 'vip', transaction_id: 'trsubold'}
+            {product_id: 'vip', transaction_id: 'trsub'}
+            {product_id: '200m', transaction_id: 'trcoins'}
+            {product_id: 'unknown', transaction_id: 'trunknown'}
+          ]
+        })
+        assert.equal 1, buy_complete.callCount
+        assert.deepEqual {user_id: 5, service: '2', transaction_id: 'trcoins', platform: 'ios'}, buy_complete.getCall(0).args[0]
+        buy_complete.getCall(0).args[1]({p: 'ram', transaction: {service: '2'}})
+        assert.deepEqual {p: 'ram', transaction: {service: '2', expire: null}, platform: 'ios'}, user._buy_callback.getCall(0).args[0]
+        assert.equal 0, user.publish.callCount
+        buy_complete.getCall(0).args[2]()
+        assert.equal 2, buy_complete.callCount
+        assert.deepEqual {user_id: 5, service: '11', transaction_id: 'trsub', platform: 'ios'}, buy_complete.getCall(1).args[0]
+        buy_complete.getCall(1).args[1]({p: 'ram', transaction: {service: '11'}})
+        assert.deepEqual {p: 'ram', transaction: {service: '11', expire: 2}, platform: 'ios'}, user._buy_callback.getCall(1).args[0]
+        assert.equal 0, user.publish.callCount
+        buy_complete.getCall(1).args[2]()
+        assert.equal 2, buy_complete.callCount
+        assert.equal 1, user.publish.callCount
+        assert.equal 'buy:cordova:finish', user.publish.getCall(0).args[0]
+
+      it 'cordova ios (two coin purchases in one receipt)', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
+        cordova_payment_validate.getCall(0).args[1](null, {
+          platform: 'ios', product_id: '200m', transaction_id: 'tr2', expire: null
+          purchases: [{product_id: '200m', transaction_id: 'tr1'}, {product_id: '200m', transaction_id: 'tr2'}]
+        })
+        assert.equal 'tr1', buy_complete.getCall(0).args[0].transaction_id
+        buy_complete.getCall(0).args[2]('transaction already completed')
+        assert.equal 'tr2', buy_complete.getCall(1).args[0].transaction_id
+        assert.equal 0, user.publish.callCount
+        buy_complete.getCall(1).args[2]()
+        assert.equal 1, user.publish.callCount
+
+      it 'cordova ios (error on one purchase of the receipt does not finish)', ->
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
+        cordova_payment_validate.getCall(0).args[1](null, {
+          platform: 'ios', product_id: '200m', transaction_id: 'tr2', expire: null
+          purchases: [{product_id: '200m', transaction_id: 'tr1'}, {product_id: '200m', transaction_id: 'tr2'}]
+        })
+        buy_complete.getCall(0).args[2]('err')
+        assert.equal 1, buy_complete.callCount
+        assert.equal 0, user.publish.callCount
+
       it 'cordova ios (product_id null)', ->
         user._bind_socket_coins_buy(['cordova'])
         socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr', product_id: 'cid' }
