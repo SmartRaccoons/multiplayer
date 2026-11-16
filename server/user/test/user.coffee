@@ -966,6 +966,49 @@ describe 'User', ->
         socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr' }
         cordova_payment_validate.getCall(0).args[1](null, {platform: 'ios', product_id: '300m', expire: 12})
         assert.equal 0, buy_complete.callCount
+        assert.equal 0, user.publish.callCount
+
+      it 'cordova ios service not found (log without receipt)', ->
+        sinon.stub(console, 'info')
+        try
+          user._bind_socket_coins_buy(['cordova'])
+          socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr', product_id: 'cid' }
+          cordova_payment_validate.getCall(0).args[1](null, {platform: 'ios', product_id: '300m', expire: 12})
+          assert.equal 1, console.info.callCount
+          assert.deepEqual ['ios not found 5', {id_local: 0, product_id: 'cid'}, {platform: 'ios', product_id: '300m', expire: 12}], console.info.getCall(0).args
+        finally
+          console.info.restore()
+
+      it 'cordova ios retired product (finish without log)', ->
+        config.ios.buy_transaction_retired = ['vipold']
+        config_callbacks[0]()
+        sinon.stub(console, 'info')
+        try
+          user._bind_socket_coins_buy(['cordova'])
+          socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr', product_id: 'cid' }
+          cordova_payment_validate.getCall(0).args[1](null, {
+            platform: 'ios', product_id: 'vipold', transaction_id: 'trold', expire: null
+            purchases: [{product_id: 'vipold', transaction_id: 'trold'}]
+          })
+          assert.equal 0, console.info.callCount
+        finally
+          console.info.restore()
+        assert.equal 0, buy_complete.callCount
+        assert.equal 1, user.publish.callCount
+        assert.equal 'buy:cordova:finish', user.publish.getCall(0).args[0]
+        assert.deepEqual {id_local: 0}, user.publish.getCall(0).args[1]
+
+      it 'cordova ios retired product with unknown product in receipt (no finish)', ->
+        config.ios.buy_transaction_retired = ['vipold']
+        config_callbacks[0]()
+        user._bind_socket_coins_buy(['cordova'])
+        socket.emit 'buy:cordova', {id_local: 0, platform: 'ios', transaction: 'tr', product_id: 'cid' }
+        cordova_payment_validate.getCall(0).args[1](null, {
+          platform: 'ios', product_id: 'vipold', transaction_id: 'trold', expire: null
+          purchases: [{product_id: 'vipold', transaction_id: 'trold'}, {product_id: 'unknown', transaction_id: 'trunknown'}]
+        })
+        assert.equal 0, buy_complete.callCount
+        assert.equal 0, user.publish.callCount
 
       it 'cordova ios (buy error)', ->
         user._bind_socket_coins_buy(['cordova'])

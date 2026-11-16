@@ -309,7 +309,14 @@ module.exports.User = class User extends User
           if service
             queue.push {service, transaction_id, product_id, expire}
           if !queue.length
-            return console.info "#{params.platform} not found #{@id}", params, _payment_validate_params
+            # ios never drops a non-consumable / non-renewing product from the receipt, so a product
+            # retired from buy_transaction comes back on every app launch: nothing to credit or log
+            retired = config[params.platform].buy_transaction_retired or []
+            ids = (purchases or []).map (p)-> p.product_id
+            if product_id in retired and ids.every( (id)-> id in retired or id of services )
+              return cordova_finish()
+            # the receipt itself (params.transaction) is left out: several kb of base64 per line
+            return console.info "#{params.platform} not found #{@id}", _pick(params, ['product_id', 'id_local']), _payment_validate_params
           do next = =>
             purchase = queue.shift()
             if !purchase
