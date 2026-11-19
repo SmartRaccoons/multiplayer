@@ -13,17 +13,26 @@ module.exports.config = (c)->
   }
 
 
+# emailjs builds Message-Id from os.hostname(), which on servers is not a real domain - spam filters punish it
+message_counter = 0
+message_id = -> "<#{Date.now()}.#{message_counter++}.#{process.pid}@#{config.email.split('@').pop()}>"
+
+
 module.exports.send = email_send = (params, callback=->)->
-  email.send Object.assign({}, params, {
-    subject: "#{config.name} #{params.subject}"
-    from: "<#{config.email}>"
-  }, if params.html then {
-    attachment: [{
+  name = (config.name or '').replace(/[\[\]]/g, '').trim()
+  message = Object.assign {}, params, {
+    subject: "#{config.name} #{params.subject}".trim()
+    from: "#{name} <#{config.email}>".trim()
+    'message-id': message_id()
+  }
+  if params.html
+    message.attachment = [{
       alternative: true
       data: params.html
     }]
-    html: null
-  } ), (err)->
+  # any leftover key is sent as a mail header, so `html` must not stay in the message
+  delete message.html
+  email.send message, (err)->
     if err
       console.log 'EMAIL ERROR', new Date(), err
     callback(err)
@@ -36,8 +45,8 @@ errors_log = []
 module.exports.log = (err, _messages = [], callback=->)->
   errors_log.push(new Date().getTime())
   email_send {
-    subject: (if err then ' server error: ' + err.message else '')
-    text: ''
+    subject: (if err then 'server error: ' + err.message else '')
+    text: [ (if err then err.stack else ''), _messages.join("\n") ].join("\n\n").trim()
     to: config.report
     attachment: [{
       alternative:true
